@@ -1,0 +1,22 @@
+[
+  {
+    "_id": { "$oid": "64a1b2c3d4e5f67890130k1" },
+    "payment_id": 1,
+    "payment_method": "bank_transfer",
+    "transaction_code": "TXN20240605123456",
+    "amount": 29990000,
+    "payment_status": "success",
+    "paid_at": { "$date": "2024-06-05T10:00:00Z" },
+    "order_id": 2
+  },
+  {
+    "_id": { "$oid": "64a1b2c3d4e5f67890130k2" },
+    "payment_id": 2,
+    "payment_method": "cod",
+    "transaction_code": null,
+    "amount": 32520000,
+    "payment_status": "pending",
+    "paid_at": null,
+    "order_id": 1
+  }
+]

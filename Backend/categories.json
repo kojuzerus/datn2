@@ -1,0 +1,91 @@
+[
+  {
+    "_id": { "$oid": "64a1b2c3d4e5f6789012cc01" },
+    "category_id": 1,
+    "category_name": "Điện thoại",
+    "slug": "dien-thoai",
+    "description": "Các loại điện thoại thông minh",
+    "parent_id": null,
+    "image_url": "https://example.com/categories/phones.jpg",
+    "status": "active",
+    "created_at": { "$date": "2024-01-01T00:00:00Z" }
+  },
+  {
+    "_id": { "$oid": "64a1b2c3d4e5f6789012cc02" },
+    "category_id": 2,
+    "category_name": "Laptop",
+    "slug": "laptop",
+    "description": "Máy tính xách tay các loại",
+    "parent_id": null,
+    "image_url": "https://example.com/categories/laptops.jpg",
+    "status": "active",
+    "created_at": { "$date": "2024-01-01T00:00:00Z" }
+  },
+  {
+    "_id": { "$oid": "64a1b2c3d4e5f6789012cc03" },
+    "category_id": 3,
+    "category_name": "Phụ kiện",
+    "slug": "phu-kien",
+    "description": "Phụ kiện điện tử đa dạng",
+    "parent_id": null,
+    "image_url": "https://example.com/categories/accessories.jpg",
+    "status": "active",
+    "created_at": { "$date": "2024-01-01T00:00:00Z" }
+  },
+
+  {
+    "_id": { "$oid": "64a1b2c3d4e5f6789012cc04" },
+    "category_id": 4,
+    "category_name": "Chuột",
+    "slug": "chuot",
+    "description": "Chuột máy tính có dây và không dây",
+    "parent_id": 3,
+    "image_url": "https://example.com/categories/mouse.jpg",
+    "status": "active",
+    "created_at": { "$date": "2024-01-01T00:00:00Z" }
+  },
+  {
+    "_id": { "$oid": "64a1b2c3d4e5f6789012cc05" },
+    "category_id": 5,
+    "category_name": "Bàn phím",
+    "slug": "ban-phim",
+    "description": "Bàn phím cơ và bàn phím văn phòng",
+    "parent_id": 3,
+    "image_url": "https://example.com/categories/keyboard.jpg",
+    "status": "active",
+    "created_at": { "$date": "2024-01-01T00:00:00Z" }
+  },
+  {
+    "_id": { "$oid": "64a1b2c3d4e5f6789012cc06" },
+    "category_id": 6,
+    "category_name": "Tai nghe",
+    "slug": "tai-nghe",
+    "description": "Tai nghe gaming và bluetooth",
+    "parent_id": 3,
+    "image_url": "https://example.com/categories/headphone.jpg",
+    "status": "active",
+    "created_at": { "$date": "2024-01-01T00:00:00Z" }
+  },
+  {
+    "_id": { "$oid": "64a1b2c3d4e5f6789012cc07" },
+    "category_id": 7,
+    "category_name": "Loa",
+    "slug": "loa",
+    "description": "Loa bluetooth và loa vi tính",
+    "parent_id": 3,
+    "image_url": "https://example.com/categories/speaker.jpg",
+    "status": "active",
+    "created_at": { "$date": "2024-01-01T00:00:00Z" }
+  },
+  {
+    "_id": { "$oid": "64a1b2c3d4e5f6789012cc08" },
+    "category_id": 8,
+    "category_name": "Sạc & Cáp",
+    "slug": "sac-cap",
+    "description": "Củ sạc, cáp sạc và phụ kiện nguồn",
+    "parent_id": 3,
+    "image_url": "https://example.com/categories/charger.jpg",
+    "status": "active",
+    "created_at": { "$date": "2024-01-01T00:00:00Z" }
+  }
+]

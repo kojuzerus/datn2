@@ -1,0 +1,41 @@
+[
+  {
+    "_id": { "$oid": "64a1b2c3d4e5f678901266g1" },
+    "coupon_id": 1,
+    "code": "SALE10",
+    "discount_type": "percentage",
+    "discount_value": 10,
+    "min_order_value": 5000000,
+    "max_discount": 500000,
+    "quantity": 100,
+    "start_date": { "$date": "2024-06-01T00:00:00Z" },
+    "end_date": { "$date": "2024-06-30T23:59:59Z" },
+    "status": "active"
+  },
+  {
+    "_id": { "$oid": "64a1b2c3d4e5f678901266g2" },
+    "coupon_id": 2,
+    "code": "FREESHIP",
+    "discount_type": "fixed",
+    "discount_value": 30000,
+    "min_order_value": 1000000,
+    "max_discount": 30000,
+    "quantity": 200,
+    "start_date": { "$date": "2024-05-01T00:00:00Z" },
+    "end_date": { "$date": "2024-07-31T23:59:59Z" },
+    "status": "active"
+  },
+  {
+    "_id": { "$oid": "64a1b2c3d4e5f678901266g3" },
+    "coupon_id": 3,
+    "code": "NEWUSER20",
+    "discount_type": "percentage",
+    "discount_value": 20,
+    "min_order_value": 2000000,
+    "max_discount": 1000000,
+    "quantity": 50,
+    "start_date": { "$date": "2024-01-01T00:00:00Z" },
+    "end_date": { "$date": "2024-12-31T23:59:59Z" },
+    "status": "active"
+  }
+]

@@ -1,0 +1,57 @@
+[
+  {
+    "_id": { "$oid": "64a1b2c3d4e5f678901211b1" },
+    "spec_id": 1,
+    "product_id": 1,
+    "variant_id": 1,
+    "group_name": "Thông số chung",
+    "spec_name": "Màn hình",
+    "spec_value": "6.7 inch Super Retina XDR OLED",
+    "sort_order": 1,
+    "created_at": { "$date": "2024-01-05T08:00:00Z" }
+  },
+  {
+    "_id": { "$oid": "64a1b2c3d4e5f678901211b2" },
+    "spec_id": 2,
+    "product_id": 1,
+    "variant_id": 1,
+    "group_name": "Thông số chung",
+    "spec_name": "Chip",
+    "spec_value": "Apple A17 Pro",
+    "sort_order": 2,
+    "created_at": { "$date": "2024-01-05T08:00:00Z" }
+  },
+  {
+    "_id": { "$oid": "64a1b2c3d4e5f678901211b3" },
+    "spec_id": 3,
+    "product_id": 1,
+    "variant_id": 1,
+    "group_name": "Bộ nhớ",
+    "spec_name": "RAM",
+    "spec_value": "8GB",
+    "sort_order": 3,
+    "created_at": { "$date": "2024-01-05T08:00:00Z" }
+  },
+  {
+    "_id": { "$oid": "64a1b2c3d4e5f678901211b4" },
+    "spec_id": 4,
+    "product_id": 2,
+    "variant_id": 3,
+    "group_name": "Thông số chung",
+    "spec_name": "Màn hình",
+    "spec_value": "6.8 inch Dynamic AMOLED 2X",
+    "sort_order": 1,
+    "created_at": { "$date": "2024-01-10T09:00:00Z" }
+  },
+  {
+    "_id": { "$oid": "64a1b2c3d4e5f678901211b5" },
+    "spec_id": 5,
+    "product_id": 3,
+    "variant_id": 4,
+    "group_name": "Cấu hình",
+    "spec_name": "CPU",
+    "spec_value": "Intel Core i9-13900H",
+    "sort_order": 1,
+    "created_at": { "$date": "2024-02-01T08:00:00Z" }
+  }
+]
