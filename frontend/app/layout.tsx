@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ElectroStore - Thế giới đồ điện tử chính hãng",
+  title: "SmartHub - Thế giới đồ điện tử chính hãng",
   description: "Mua sắm laptop, điện thoại, phụ kiện công nghệ giá rẻ nhất",
 };
 
