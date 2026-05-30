@@ -53,6 +53,6 @@ const productSchema = new mongoose.Schema(
 // Index tìm kiếm nhanh
 productSchema.index({ status: 1, total_sold: -1 });
 productSchema.index({ status: 1, avg_rating: -1 });
-productSchema.index({ slug: 1 });
+
 
 module.exports = mongoose.model("Product", productSchema);
