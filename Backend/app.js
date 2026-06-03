@@ -1,35 +1,43 @@
-const express    = require("express");
-const mongoose   = require("mongoose");
-const cors       = require("cors");
+const express  = require("express");
+const mongoose = require("mongoose");
+const cors     = require("cors");
+const path    = require("path");
 require("dotenv").config();
 
-const productRoutes = require("./routes/product");
+const passport = require("./config/passport");
+
+const productRoutes  = require("./routes/product");
+const authRoutes     = require("./routes/auth");
+const categoryRoutes = require("./routes/category");
+const brandRoutes    = require("./routes/brand");
 
 const app  = express();
 const PORT = process.env.PORT || 5000;
+const BASE_URL = process.env.API_BASE_URL || `http://localhost:${PORT}`;
 
-// ── Middleware ────────────────────────────────────────────────────────────
 app.use(cors({
   origin: process.env.FRONTEND_URL || "http://localhost:3000",
   credentials: true,
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(passport.initialize());
 
-// ── Routes ────────────────────────────────────────────────────────────────
+app.use(express.static(path.join(__dirname, "public")));
+
 app.use("/api/products", productRoutes);
+app.use("/api/categories", categoryRoutes);
+app.use("/api/brands", brandRoutes);
+app.use("/api/auth", authRoutes);
 
-// Health check
 app.get("/api/health", (_, res) =>
   res.json({ status: "ok", time: new Date().toISOString() })
 );
 
-// 404
 app.use((_, res) =>
   res.status(404).json({ success: false, message: "Route không tồn tại" })
 );
 
-// Error handler
 app.use((err, _req, res, _next) => {
   console.error(err.stack);
   res.status(500).json({ success: false, message: "Lỗi server" });

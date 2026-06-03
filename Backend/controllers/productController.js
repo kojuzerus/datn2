@@ -1,6 +1,7 @@
 // controllers/productController.js
 const Product = require("../models/productModel");
-const Variant = require("../models/variantModel");  // ← thêm dòng này
+const Variant = require("../models/variantModel");
+const ProductImage = require("../models/productImageModel");
 
 // ── Helper: lấy giá hiển thị từ variants ─────────────────────────────────
 function getDisplayPrice(variants = []) {
@@ -39,6 +40,53 @@ async function attachVariants(products) {
   }));
 }
 
+async function attachProductImages(products) {
+  const variantIds = products.flatMap((p) => (p.variants || []).map((v) => v.variant_id));
+  if (!variantIds.length) return products;
+
+  const images = await ProductImage.find({ variant_id: { $in: variantIds } })
+    .sort({ sort_order: 1 })
+    .lean();
+
+  const imageMap = {};
+  for (const image of images) {
+    if (!imageMap[image.variant_id]) imageMap[image.variant_id] = [];
+    imageMap[image.variant_id].push(image);
+  }
+
+  return products.map((p) => {
+    const productImages = [];
+    for (const v of p.variants || []) {
+      productImages.push(...(imageMap[v.variant_id] || []));
+    }
+    return {
+      ...p,
+      product_images: productImages,
+    };
+  });
+}
+
+const BASE_URL = process.env.API_BASE_URL || "http://localhost:5000";
+
+function normalizeImageUrl(url) {
+  if (!url) return "";
+  if (url.startsWith("http://") || url.startsWith("https://")) return url;
+
+  let normalized = url.replace(/^public\//, "");
+  if (!normalized.startsWith("images/") && !normalized.startsWith("/")) {
+    normalized = `images/${normalized}`;
+  }
+  if (!normalized.startsWith("/")) normalized = `/${normalized}`;
+
+  return `${BASE_URL}${normalized}`;
+}
+
+function getPrimaryImage(p) {
+  const firstImage = p.product_images?.[0]?.image_url;
+  if (firstImage) return normalizeImageUrl(firstImage);
+  return normalizeImageUrl(p.thumbnail || "");
+}
+
 // ── Helper: format output gửi FE ─────────────────────────────────────────
 function formatProduct(p) {
   const { price, sale_price, discount_pct } = getDisplayPrice(p.variants);
@@ -47,7 +95,8 @@ function formatProduct(p) {
     ten:          p.product_name,
     slug:         p.slug,
     thuongHieu:   p.brand_name || "",
-    thumbnail:    p.thumbnail || "",
+    thumbnail:    getPrimaryImage(p),
+    images:       (p.product_images || []).map((img) => normalizeImageUrl(img.image_url)),
     moTa:         p.short_description || "",
     gia:          price,
     giaSale:      sale_price,
@@ -73,6 +122,7 @@ exports.getFeatured = async (req, res) => {
       .lean();
 
     products = await attachVariants(products);  // ← join variants
+    products = await attachProductImages(products); // ← join product_images
 
     res.json({
       success: true,
@@ -96,6 +146,7 @@ exports.getBestSelling = async (req, res) => {
       .lean();
 
     products = await attachVariants(products);  // ← join variants
+    products = await attachProductImages(products); // ← join product_images
 
     res.json({
       success: true,
@@ -138,6 +189,7 @@ exports.getAll = async (req, res) => {
       .lean();
 
     products = await attachVariants(products);  // ← join variants
+    products = await attachProductImages(products); // ← join product_images
 
     // Sort theo giá sau khi đã có variants
     if (sort === "price_asc") {
@@ -180,6 +232,7 @@ exports.getBySlug = async (req, res) => {
     // Join variants cho 1 sản phẩm
     const variants = await Variant.find({ product_id: product.product_id }).lean();
     product.variants = variants;
+    product = (await attachProductImages([product]))[0];
 
     res.json({ success: true, data: formatProduct(product) });
   } catch (err) {

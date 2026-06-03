@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   ChevronLeft, ChevronRight, Star, ArrowRight,
   ShieldCheck, Truck, RefreshCw, Headphones,
-  Smartphone, Laptop, Tablet, Watch,
+  Smartphone, Laptop, Tablet, Watch, Mouse, Speaker,
 } from "lucide-react";
 
 // ─── API CONFIG ───────────────────────────────────────────────────────────────
@@ -74,13 +74,26 @@ const banners = [
   },
 ];
 
-const categories = [
-  { ten: "Điện thoại", icon: Smartphone, slug: "dien-thoai" },
-  { ten: "Laptop",     icon: Laptop,     slug: "laptop" },
-  { ten: "Máy tính bảng", icon: Tablet,  slug: "may-tinh-bang" },
-  { ten: "Tai nghe",   icon: Headphones, slug: "tai-nghe" },
-  { ten: "Đồng hồ",   icon: Watch,      slug: "dong-ho" },
-];
+interface Category {
+  category_id: number;
+  category_name: string;
+  slug: string;
+  description?: string;
+  parent_id?: number | null;
+  image_url?: string;
+  status: string;
+  created_at: string;
+}
+
+const categoriesIconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+  "dien-thoai": Smartphone,
+  laptop: Laptop,
+  chuot: Mouse,
+  "tai-nghe": Headphones,
+  loa: Speaker,
+  "dong-ho": Watch,
+  "phu-kien": Headphones,
+};
 
 const baiViet = [
   {
@@ -103,6 +116,34 @@ const baiViet = [
     tom_tat: "Thế hệ mới của dòng gập đến gần — Samsung hứa hẹn màn hình bền hơn và pin lâu hơn.",
     ngay: "14/05/2025",
     hinhAnh: "https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=800&q=80&fit=crop",
+  },
+  {
+    id: 4, tag: "Đánh giá",
+    tieu_de: "Galaxy Watch 7 Ultra: Smartwatch tốt nhất Android 2025?",
+    tom_tat: "Dòng đồng hồ mới nhất của Samsung có đáng để nâng cấp hay không? Đánh giá nhanh tính năng, pin và thiết kế.",
+    ngay: "11/05/2025",
+    hinhAnh: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800&q=80&fit=crop",
+  },
+];
+
+const baiVietMini = [
+  {
+    id: 4,
+    tag: "Hướng dẫn",
+    tieu_de: "5 cách kéo dài tuổi thọ pin điện thoại hiệu quả nhất",
+    hinhAnh: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800&q=80&fit=crop",
+  },
+  {
+    id: 5,
+    tag: "Kinh nghiệm",
+    tieu_de: "Mua tai nghe chống ồn: Những điều cần biết trước khi xuống tiền",
+    hinhAnh: "https://images.unsplash.com/photo-1517519014922-8fc7eea9b7f1?w=800&q=80&fit=crop",
+  },
+  {
+    id: 6,
+    tag: "Xu hướng",
+    tieu_de: "Laptop gaming tầm giá 20–25 triệu đáng mua nhất 2025",
+    hinhAnh: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800&q=80&fit=crop",
   },
 ];
 
@@ -157,11 +198,11 @@ function ProductCard({ p }: { p: ProductFeatured }) {
             -{p.giamGia}%
           </span>
         )}
-        <div className="bg-gray-50 flex items-center justify-center h-48 overflow-hidden">
+        <div className="bg-gray-50 flex items-center justify-center h-48 overflow-hidden rounded-t-2xl">
           <img
             src={p.thumbnail || "https://placehold.co/400x300?text=No+Image"}
             alt={p.ten}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            className="w-full h-full min-w-full min-h-full object-cover group-hover:scale-105 transition-transform duration-300"
             loading="lazy"
           />
         </div>
@@ -212,10 +253,13 @@ export default function HomePage() {
   // API state
   const [featured,    setFeatured]    = useState<ProductFeatured[]>([]);
   const [bestSelling, setBestSelling] = useState<ProductBestSelling[]>([]);
+  const [categories,  setCategories]  = useState<Category[]>([]);
   const [loadingFeat, setLoadingFeat] = useState(true);
   const [loadingBest, setLoadingBest] = useState(true);
+  const [loadingCats, setLoadingCats] = useState(true);
   const [errorFeat,   setErrorFeat]   = useState("");
   const [errorBest,   setErrorBest]   = useState("");
+  const [errorCats,   setErrorCats]   = useState("");
 
   // ── Fetch sản phẩm nổi bật ──────────────────────────────────────────────
   useEffect(() => {
@@ -228,6 +272,22 @@ export default function HomePage() {
       })
       .catch(() => setErrorFeat("Lỗi kết nối server"))
       .finally(() => setLoadingFeat(false));
+  }, []);
+
+  // ── Fetch danh mục từ backend ───────────────────────────────────────────
+  useEffect(() => {
+    setLoadingCats(true);
+    fetch(`${API_BASE}/categories`)
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.success) {
+          setCategories(json.data || []);
+        } else {
+          setErrorCats("Không thể tải danh mục");
+        }
+      })
+      .catch(() => setErrorCats("Lỗi kết nối server"))
+      .finally(() => setLoadingCats(false));
   }, []);
 
   // ── Fetch sản phẩm bán chạy ─────────────────────────────────────────────
@@ -312,15 +372,25 @@ export default function HomePage() {
       {/* ── DANH MỤC ─────────────────────────────────────────────────── */}
       <section className="max-w-screen-xl mx-auto px-6 mt-10">
         <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide pb-1">
-          {categories.map((cat) => {
-            const Icon = cat.icon;
-            return (
-              <Link key={cat.slug} href={`/sanpham?danh-muc=${cat.slug}`} className="flex-shrink-0 flex items-center gap-2 bg-white border border-gray-100 rounded-xl px-4 py-2.5 hover:border-red-200 hover:bg-red-50 transition-all group">
-                <Icon className="w-4 h-4 text-gray-500 group-hover:text-red-500 transition-colors" />
-                <span className="text-sm font-medium text-gray-600 group-hover:text-red-600 whitespace-nowrap">{cat.ten}</span>
-              </Link>
-            );
-          })}
+          {loadingCats ? (
+            Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex-shrink-0 h-11 w-28 rounded-xl bg-white border border-gray-100 animate-pulse" />
+            ))
+          ) : errorCats ? (
+            <p className="text-sm text-red-500">{errorCats}</p>
+          ) : (
+            categories
+              .filter((cat) => cat.slug !== "phu-kien" && cat.category_name !== "Phụ kiện")
+              .map((cat) => {
+                const Icon = categoriesIconMap[cat.slug] || Tablet;
+                return (
+                  <Link key={cat.slug} href={`/sanpham?danh-muc=${cat.slug}`} className="flex-shrink-0 flex items-center gap-2 bg-white border border-gray-100 rounded-xl px-4 py-2.5 hover:border-red-200 hover:bg-red-50 transition-all group">
+                    <Icon className="w-4 h-4 text-gray-500 group-hover:text-red-500 transition-colors" />
+                    <span className="text-sm font-medium text-gray-600 group-hover:text-red-600 whitespace-nowrap">{cat.category_name}</span>
+                  </Link>
+                );
+              })
+          )}
           <Link href="/sanpham" className="flex-shrink-0 flex items-center gap-1.5 text-sm font-medium text-red-600 hover:text-red-700 px-3 whitespace-nowrap">
             Xem thêm <ArrowRight className="w-3.5 h-3.5" />
           </Link>
@@ -355,41 +425,47 @@ export default function HomePage() {
                   const displayPrice = p.giaSale ?? p.gia;
                   return (
                     <Link key={p.id} href={`/sanpham/${p.slug}`}>
-                      <div className="group bg-white border border-gray-100 rounded-2xl overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex flex-col relative cursor-pointer h-full">
-                        <div className={`absolute top-0 left-0 z-10 w-8 h-8 flex items-center justify-center text-sm font-black rounded-br-xl rounded-tl-2xl
-                          ${i === 0 ? "bg-amber-400 text-amber-900"
-                          : i === 1 ? "bg-gray-300 text-gray-700"
-                          : i === 2 ? "bg-orange-300 text-orange-800"
-                          : "bg-gray-100 text-gray-500"}`}>
-                          {i + 1}
-                        </div>
-                        {p.giamGia > 0 && (
-                          <span className="absolute top-3 right-3 z-10 bg-red-500 text-white text-[10px] font-semibold px-2.5 py-1 rounded-full">
-                            -{p.giamGia}%
-                          </span>
-                        )}
-                        <div className="h-48 overflow-hidden">
-                          <img
+                      <div className="group overflow-hidden rounded-[28px] border border-gray-100 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl h-full">
+                        <div className="relative overflow-hidden bg-slate-50">
+                          <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-white/90 to-transparent pointer-events-none" />
+                                  <img
                             src={p.thumbnail || "https://placehold.co/400x300?text=No+Image"}
                             alt={p.ten}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            className="w-full h-60 min-w-full min-h-full object-cover transition-transform duration-500 group-hover:scale-105"
                             loading="lazy"
                           />
-                        </div>
-                        <div className="p-4 flex flex-col flex-1 gap-3">
-                          <div>
-                            <h3 className="font-semibold text-gray-800 text-sm leading-snug line-clamp-2">{p.ten}</h3>
-                            <p className="text-xs text-gray-400 mt-1 line-clamp-1">{p.moTa}</p>
+                          <div className={`absolute top-3 left-3 z-20 w-9 h-9 flex items-center justify-center text-sm font-black rounded-br-xl rounded-tl-2xl
+                            ${i === 0 ? "bg-amber-400 text-amber-900"
+                            : i === 1 ? "bg-slate-300 text-slate-700"
+                            : i === 2 ? "bg-orange-300 text-orange-800"
+                            : "bg-slate-100 text-slate-600"}`}>
+                            {i + 1}
                           </div>
-                          <div className="flex items-center justify-between mt-auto">
-                            <div>
-                              <p className="text-base font-bold text-gray-900">{fmt(displayPrice)}</p>
-                              <p className="text-[10px] text-gray-400">Đã bán: {p.luotBan}</p>
+                          {p.giamGia > 0 && (
+                            <span className="absolute top-3 right-3 z-20 bg-red-500 text-white text-[10px] font-semibold px-2.5 py-1 rounded-full shadow-sm">
+                              -{p.giamGia}%
+                            </span>
+                          )}
+                        </div>
+                        <div className="p-4 flex flex-col gap-3 h-[220px]">
+                          <div className="min-h-[68px]">
+                            <h3 className="font-semibold text-gray-900 text-sm leading-snug line-clamp-2">{p.ten}</h3>
+                            <p className="text-sm text-gray-500 mt-2 line-clamp-2">{p.moTa}</p>
+                          </div>
+                          <div className="mt-auto grid gap-3">
+                            <div className="flex items-end justify-between gap-4">
+                              <div>
+                                <p className="text-lg font-bold text-gray-900">{fmt(displayPrice)}</p>
+                                {p.giamGia > 0 && (
+                                  <p className="text-xs text-gray-400 line-through">{fmt(p.gia)}</p>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1 text-xs font-semibold text-amber-600">
+                                <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                                <span>{p.danhGia || "—"}</span>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-0.5">
-                              <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                              <span className="text-xs font-medium text-gray-600">{p.danhGia || "—"}</span>
-                            </div>
+                            <p className="text-sm text-slate-500">Đã bán: <span className="font-semibold text-slate-700">{p.luotBan}</span></p>
                           </div>
                         </div>
                       </div>
@@ -404,45 +480,108 @@ export default function HomePage() {
       {/* ── MINI BANNER ĐÔI ──────────────────────────────────────────── */}
       <section className="max-w-screen-xl mx-auto px-6 mt-12">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-sky-100 to-blue-200 p-6 flex items-center justify-between min-h-[160px] cursor-pointer group hover:brightness-95 transition-all">
-            <div className="z-10">
-              <span className="inline-block bg-white text-blue-600 text-[10px] font-bold px-3 py-1 rounded-full mb-3 tracking-wider">SALE GIỮA THÁNG</span>
-              <h3 className="text-2xl font-black text-blue-900 leading-tight">NGẬP TRÀN<br/>ƯU ĐÃI</h3>
-              <div className="mt-3 inline-block bg-orange-400 text-white font-bold text-sm px-4 py-1.5 rounded-full">Giảm đến 30%</div>
+          <Link href="/sanpham?khuyen-mai" className="group block overflow-hidden rounded-2xl bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-5 items-center">
+              <div>
+                <span className="inline-block bg-red-50 text-red-600 text-[10px] font-semibold uppercase tracking-[0.3em] px-3 py-1 rounded-full mb-3">Sale giữa tháng</span>
+                <h3 className="text-2xl font-bold text-gray-900 leading-snug">Ngập tràn ưu đãi</h3>
+                <p className="text-sm text-gray-600 mt-3">Nhiều sản phẩm giảm giá sốc, mua ngay kẻo lỡ.</p>
+                <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-red-600 px-4 py-2 text-sm font-semibold text-white">
+                  Giảm đến 30%
+                </div>
+              </div>
+              <div className="overflow-hidden rounded-2xl bg-gray-100">
+                <img src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&q=80&fit=crop" alt="sale" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+              </div>
             </div>
-            <div className="absolute right-0 bottom-0 h-full w-1/2 overflow-hidden">
-              <img src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&q=80&fit=crop" alt="sale" className="w-full h-full object-cover object-left group-hover:scale-105 transition-transform duration-300" />
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-200 to-transparent" />
+          </Link>
+
+          <Link href="/sanpham?gaming" className="group block overflow-hidden rounded-2xl bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-5 items-center">
+              <div>
+                <span className="inline-block bg-slate-100 text-slate-700 text-[10px] font-semibold uppercase tracking-[0.3em] px-3 py-1 rounded-full mb-3">Gaming</span>
+                <h3 className="text-2xl font-bold text-gray-900 leading-snug">Chơi không ngắt</h3>
+                <p className="text-sm text-gray-600 mt-3">Máy gaming hiệu năng cao, pin bền lâu cho cả ngày.</p>
+                <p className="text-sm text-red-600 font-semibold mt-4">Pin trâu, hiệu năng đỉnh</p>
+              </div>
+              <div className="overflow-hidden rounded-2xl bg-gray-100">
+                <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&q=80&fit=crop" alt="gaming" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+              </div>
             </div>
-          </div>
-          <div className="relative overflow-hidden rounded-2xl bg-gray-900 p-6 flex items-center justify-between min-h-[160px] cursor-pointer group hover:brightness-110 transition-all">
-            <div className="absolute inset-0">
-              <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&q=80&fit=crop" alt="gaming" className="w-full h-full object-cover opacity-40 group-hover:opacity-50 transition-opacity duration-300" />
-              <div className="absolute inset-0 bg-gradient-to-r from-gray-900 via-gray-900/80 to-transparent" />
-            </div>
-            <div className="z-10">
-              <span className="inline-block bg-red-600 text-white text-[10px] font-bold px-3 py-1 rounded-full mb-3 tracking-wider">GAMING</span>
-              <h3 className="text-2xl font-black text-white leading-tight">CHƠI KHÔNG NGẮT<br/><span className="text-red-400">PIN TRÂU</span></h3>
-              <p className="text-gray-400 text-xs mt-2">Cán mọi trận — không lo hết pin</p>
-            </div>
-          </div>
+          </Link>
         </div>
       </section>
 
       {/* ── BÀI VIẾT ─────────────────────────────────────────────────── */}
       <section className="max-w-screen-xl mx-auto px-6 mt-12 mb-16">
         <SectionHeader title="Tin tức & Đánh giá" href="/tin-tuc" />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {baiViet.map((bv) => (
-            <Link key={bv.id} href={`/tin-tuc/${bv.id}`} className="group bg-white border border-gray-100 rounded-2xl overflow-hidden hover:shadow-md transition-all duration-300 cursor-pointer">
-              <div className="h-44 overflow-hidden">
-                <img src={bv.hinhAnh} alt={bv.tieu_de} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Link href={`/tin-tuc/${baiViet[0].id}`} className="group col-span-1 lg:col-span-2 bg-white border border-gray-100 rounded-[28px] overflow-hidden hover:shadow-xl transition-all duration-300">
+            <div className="relative h-[420px] overflow-hidden">
+              <img
+                src={baiViet[0].hinhAnh}
+                alt={baiViet[0].tieu_de}
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                loading="lazy"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-8">
+                <span className="inline-flex items-center rounded-full bg-red-500/10 text-red-600 text-[11px] font-semibold uppercase tracking-[1px] px-3 py-1">
+                  {baiViet[0].tag}
+                </span>
+                <h3 className="mt-4 text-3xl lg:text-4xl font-bold text-white leading-tight">
+                  {baiViet[0].tieu_de}
+                </h3>
+                <p className="mt-4 max-w-2xl text-sm text-white/85 leading-relaxed">{baiViet[0].tom_tat}</p>
+                <p className="mt-5 text-xs text-white/70">{baiViet[0].ngay}</p>
+              </div>
+            </div>
+          </Link>
+
+          <div className="space-y-4">
+            {baiViet.slice(1).map((bv) => (
+              <Link
+                key={bv.id}
+                href={`/tin-tuc/${bv.id}`}
+                className="group flex gap-4 bg-white border border-gray-100 rounded-3xl overflow-hidden hover:shadow-md transition-all duration-300"
+              >
+                <div className="h-28 w-28 overflow-hidden rounded-r-none rounded-l-3xl">
+                  <img
+                    src={bv.hinhAnh}
+                    alt={bv.tieu_de}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    loading="lazy"
+                  />
+                </div>
+                <div className="flex-1 p-4">
+                  <span className="text-[10px] font-semibold uppercase tracking-[1px] text-blue-600">{bv.tag}</span>
+                  <h4 className="mt-2 text-sm font-semibold text-gray-900 leading-snug line-clamp-2 group-hover:text-red-600 transition-colors">{bv.tieu_de}</h4>
+                  <p className="text-[11px] text-gray-400 mt-3">{bv.ngay}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+          {baiVietMini.map((item) => (
+            <Link
+              key={item.id}
+              href={`/tin-tuc/${item.id}`}
+              className="group bg-white border border-gray-100 rounded-3xl overflow-hidden hover:shadow-md transition-all duration-300"
+            >
+              <div className="h-32 overflow-hidden">
+                <img
+                  src={item.hinhAnh}
+                  alt={item.tieu_de}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  loading="lazy"
+                />
               </div>
               <div className="p-4">
-                <span className="text-[10px] font-semibold uppercase tracking-widest text-red-500">{bv.tag}</span>
-                <h3 className="text-sm font-semibold text-gray-800 mt-1.5 leading-snug line-clamp-2 group-hover:text-red-600 transition-colors">{bv.tieu_de}</h3>
-                <p className="text-xs text-gray-400 mt-2 line-clamp-2 leading-relaxed">{bv.tom_tat}</p>
-                <p className="text-[10px] text-gray-300 mt-3">{bv.ngay}</p>
+                <span className="text-[10px] font-semibold uppercase tracking-[1px] text-red-500">{item.tag}</span>
+                <h4 className="mt-2 text-sm font-semibold text-gray-900 leading-snug line-clamp-2">{item.tieu_de}</h4>
               </div>
             </Link>
           ))}
