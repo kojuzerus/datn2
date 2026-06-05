@@ -4,7 +4,7 @@ const cors     = require("cors");
 const path    = require("path");
 require("dotenv").config();
 
-const passport = require("./config/passport");
+// const passport = require("./config/passport");
 
 const productRoutes  = require("./routes/product");
 const authRoutes     = require("./routes/auth");
@@ -21,7 +21,7 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(passport.initialize());
+// app.use(passport.initialize());
 
 app.use(express.static(path.join(__dirname, "public")));
 

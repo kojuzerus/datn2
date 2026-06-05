@@ -4,34 +4,59 @@ import Link from "next/link";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { Plus_Jakarta_Sans } from "next/font/google";
+import {
+  LayoutDashboard,
+  Package,
+  ShoppingCart,
+  Users,
+  FolderOpen,
+  Tag,
+  BarChart2,
+  Settings,
+  Bell,
+  Search,
+  HelpCircle,
+  ChevronDown,
+  LogOut,
+  Home,
+  ChevronRight,
+  type LucideIcon,
+} from "lucide-react";
 
 const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
 });
 
-const NAV_GROUPS = [
+interface NavItem {
+  href: string;
+  label: string;
+  Icon: LucideIcon;
+  badge: number | null;
+}
+
+const NAV_GROUPS: { section: string; items: NavItem[] }[] = [
   {
     section: "Tổng quan",
     items: [
-      { href: "/admin",            label: "Dashboard",           icon: "📊", badge: null },
+      { href: "/admin", label: "Dashboard", Icon: LayoutDashboard, badge: null },
     ],
   },
   {
     section: "Danh mục",
     items: [
-      { href: "/admin/products",   label: "Quản lý sản phẩm",   icon: "📦", badge: null },
-      { href: "/admin/orders",     label: "Quản lý đơn hàng",   icon: "🛒", badge: 12   },
-      { href: "/admin/users",      label: "Quản lý khách hàng", icon: "👥", badge: null },
-      { href: "/admin/categories", label: "Danh mục",           icon: "🗂️", badge: null },
-      { href: "/admin/promotions", label: "Mã giảm giá",        icon: "🏷️", badge: 3   },
-      { href: "/admin/reports",    label: "Báo cáo thống kê",   icon: "📈", badge: null },
+      { href: "/admin/products",   label: "Quản lý sản phẩm",   Icon: Package,      badge: null },
+      { href: "/admin/orders",     label: "Quản lý đơn hàng",   Icon: ShoppingCart, badge: 12   },
+      { href: "/admin/users",      label: "Quản lý khách hàng", Icon: Users,        badge: null },
+      { href: "/admin/categories", label: "Danh mục",           Icon: FolderOpen,   badge: null },
+      { href: "/admin/promotions", label: "Mã giảm giá",        Icon: Tag,          badge: 3    },
+      { href: "/admin/reports",    label: "Báo cáo thống kê",   Icon: BarChart2,    badge: null },
     ],
   },
   {
     section: "Cấu hình",
     items: [
-      { href: "/admin/settings",   label: "Cài đặt",            icon: "⚙️", badge: null },
+      { href: "/admin/settings",   label: "Cài đặt",            Icon: Settings,     badge: null },
     ],
   },
 ];
@@ -56,9 +81,9 @@ function getPageLabel(pathname: string): string {
 }
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const pathname   = usePathname();
+  const pathname  = usePathname();
   const [search, setSearch] = useState("");
-  const pageLabel  = getPageLabel(pathname ?? "");
+  const pageLabel = getPageLabel(pathname ?? "");
 
   const isActive = (href: string) =>
     href === "/admin"
@@ -68,49 +93,51 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className={`flex min-h-screen bg-[#F5F6FA] ${plusJakarta.className}`}>
 
-      {/* ══════════════════════════════════════════
-          SIDEBAR
-      ══════════════════════════════════════════ */}
-      <aside className="w-[220px] shrink-0 bg-white border-r border-gray-200 flex flex-col h-screen fixed left-0 top-0 z-50 overflow-y-auto">
+      {/* ═══ SIDEBAR ═══ */}
+      <aside className="w-[228px] shrink-0 bg-white border-r border-gray-100 flex flex-col h-screen fixed left-0 top-0 z-50 overflow-y-auto shadow-[1px_0_0_0_#F3F4F6]">
 
         {/* Logo */}
-        <div className="flex items-center gap-2.5 px-[18px] py-4 border-b border-gray-200 shrink-0">
-          <div className="w-9 h-9 bg-[#D32F2F] rounded-lg flex items-center justify-center text-white font-bold text-base shrink-0">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-[15px] shrink-0"
+               style={{ background: "linear-gradient(135deg,#D32F2F,#B71C1C)" }}>
             S
           </div>
           <div>
-            <div className="text-base font-bold text-gray-900 leading-tight">SmartHub</div>
-            <div className="text-[10px] text-gray-400 tracking-widest uppercase">Admin Panel</div>
+            <div className="text-[15px] font-bold text-gray-900 leading-tight tracking-tight">SmartHub</div>
+            <div className="text-[9.5px] text-gray-400 tracking-[1.5px] uppercase mt-0.5">Admin Panel</div>
           </div>
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 py-2">
+        <nav className="flex-1 py-3 overflow-y-auto">
           {NAV_GROUPS.map((group) => (
-            <div key={group.section}>
-              <div className="text-[10px] font-semibold text-gray-400 tracking-[1px] uppercase px-[18px] pt-3 pb-1">
+            <div key={group.section} className="mb-1">
+              <div className="text-[10px] font-semibold text-gray-400 tracking-[1.4px] uppercase px-5 pt-3 pb-1.5">
                 {group.section}
               </div>
 
-              {group.items.map((item) => {
-                const active = isActive(item.href);
+              {group.items.map(({ href, label, Icon, badge }) => {
+                const active = isActive(href);
                 return (
                   <Link
-                    key={item.href}
-                    href={item.href}
+                    key={href}
+                    href={href}
                     className={`
-                      flex items-center gap-2.5 px-[18px] py-[9px] text-[13.5px] no-underline transition-all duration-150
-                      border-l-[3px]
+                      flex items-center gap-3 mx-2.5 px-3 py-[9px] rounded-xl text-[13px] no-underline transition-all duration-150 mb-0.5
                       ${active
-                        ? "text-[#D32F2F] bg-[#FFF5F5] border-l-[#D32F2F] font-semibold"
-                        : "text-gray-500 bg-transparent border-l-transparent hover:text-gray-800 hover:bg-gray-50"}
+                        ? "text-[#D32F2F] bg-[#FFF5F5] font-semibold"
+                        : "text-gray-500 hover:text-gray-800 hover:bg-gray-50 font-normal"}
                     `}
                   >
-                    <span className="text-[17px] w-5 text-center shrink-0">{item.icon}</span>
-                    <span className="flex-1">{item.label}</span>
-                    {item.badge != null && (
-                      <span className="bg-[#D32F2F] text-white text-[10px] font-bold px-[7px] py-[2px] rounded-full min-w-[20px] text-center">
-                        {item.badge}
+                    <Icon
+                      className={`shrink-0 ${active ? "text-[#D32F2F]" : "text-gray-400"}`}
+                      size={16}
+                      strokeWidth={active ? 2.2 : 1.8}
+                    />
+                    <span className="flex-1 leading-tight">{label}</span>
+                    {badge != null && (
+                      <span className="bg-[#D32F2F] text-white text-[10px] font-bold px-[6px] py-[1.5px] rounded-full min-w-[18px] text-center leading-snug">
+                        {badge}
                       </span>
                     )}
                   </Link>
@@ -121,38 +148,40 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </nav>
 
         {/* User footer */}
-        <div className="flex items-center gap-2.5 px-[18px] py-3.5 border-t border-gray-200 shrink-0">
-          <div className="w-[34px] h-[34px] rounded-full bg-[#D32F2F] flex items-center justify-center text-xs font-bold text-white shrink-0">
+        <div className="flex items-center gap-2.5 px-4 py-3.5 border-t border-gray-100 shrink-0 bg-gray-50/60">
+          <div className="w-[34px] h-[34px] rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
+               style={{ background: "linear-gradient(135deg,#D32F2F,#B71C1C)" }}>
             AD
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-[13px] font-semibold text-gray-900 truncate">Admin</div>
-            <div className="text-[11px] text-gray-400">Quản trị viên</div>
+            <div className="text-[11px] text-gray-400 leading-tight">Quản trị viên</div>
           </div>
-          <button title="Đăng xuất" className="bg-transparent border-none text-gray-400 cursor-pointer text-lg p-0 leading-none shrink-0">
-            →
+          <button
+            title="Đăng xuất"
+            className="text-gray-400 hover:text-[#D32F2F] cursor-pointer transition-colors p-1.5 rounded-lg hover:bg-red-50"
+          >
+            <LogOut size={15} />
           </button>
         </div>
       </aside>
 
-      {/* ══════════════════════════════════════════
-          MAIN
-      ══════════════════════════════════════════ */}
-      <div className="flex-1 ml-[220px] flex flex-col min-h-screen">
+      {/* ═══ MAIN ═══ */}
+      <div className="flex-1 ml-[228px] flex flex-col min-h-screen">
 
         {/* TOPBAR */}
-        <header className="bg-white h-[58px] flex items-center px-6 gap-4 border-b border-gray-200 sticky top-0 z-40 shrink-0">
+        <header className="bg-white h-[58px] flex items-center px-6 gap-4 border-b border-gray-100 sticky top-0 z-40 shrink-0">
 
           {/* Breadcrumb */}
-          <div className="flex items-center gap-1.5 text-[13px] text-gray-500">
-            <span>🏠</span>
-            <span className="text-gray-300">›</span>
-            <span className="text-gray-900 font-medium">{pageLabel}</span>
+          <div className="flex items-center gap-1.5 text-[12.5px] text-gray-400 shrink-0">
+            <Home size={13} className="text-gray-400" />
+            <ChevronRight size={12} className="text-gray-300" />
+            <span className="text-gray-700 font-medium">{pageLabel}</span>
           </div>
 
           {/* Search */}
-          <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3.5 py-[7px] border border-gray-200 flex-1 max-w-[400px] ml-2 focus-within:border-[#D32F2F] focus-within:bg-white transition-colors">
-            <span className="text-gray-400 text-[15px] shrink-0">🔍</span>
+          <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-3.5 py-[7px] border border-gray-200 flex-1 max-w-[440px] ml-2 focus-within:border-[#D32F2F] focus-within:bg-white transition-all duration-200 shadow-none focus-within:shadow-[0_0_0_3px_rgba(211,47,47,0.08)]">
+            <Search size={14} className="text-gray-400 shrink-0" />
             <input
               type="text"
               placeholder="Tìm kiếm sản phẩm, đơn hàng, khách hàng..."
@@ -163,31 +192,43 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
 
           {/* Right actions */}
-          <div className="flex items-center gap-2.5 ml-auto">
+          <div className="flex items-center gap-2 ml-auto">
 
             {/* Bell */}
-            <button title="Thông báo" className="relative w-9 h-9 rounded-full border border-gray-200 bg-white flex items-center justify-center cursor-pointer text-[17px] hover:border-[#D32F2F] transition-colors">
-              🔔
-              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-[#D32F2F] rounded-full text-[9px] text-white flex items-center justify-center font-bold border-2 border-white">
+            <button
+              title="Thông báo"
+              className="relative w-9 h-9 rounded-xl border border-gray-200 bg-white flex items-center justify-center cursor-pointer hover:border-[#D32F2F] hover:bg-[#FFF5F5] transition-all duration-150"
+            >
+              <Bell size={16} className="text-gray-500" />
+              <span className="absolute -top-1 -right-1 w-[17px] h-[17px] bg-[#D32F2F] rounded-full text-[9px] text-white flex items-center justify-center font-bold border-2 border-white">
                 3
               </span>
             </button>
 
             {/* Help */}
-            <button title="Trợ giúp" className="w-9 h-9 rounded-full border border-gray-200 bg-white flex items-center justify-center cursor-pointer text-[17px] hover:border-[#D32F2F] transition-colors">
-              ❓
+            <button
+              title="Trợ giúp"
+              className="w-9 h-9 rounded-xl border border-gray-200 bg-white flex items-center justify-center cursor-pointer hover:border-[#D32F2F] hover:bg-[#FFF5F5] transition-all duration-150"
+            >
+              <HelpCircle size={16} className="text-gray-500" />
             </button>
 
+            {/* Divider */}
+            <div className="w-px h-6 bg-gray-200 mx-1" />
+
             {/* Profile */}
-            <div className="flex items-center gap-2 cursor-pointer px-2.5 py-1 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-colors">
-              <div className="w-[30px] h-[30px] rounded-full bg-[#D32F2F] text-white text-[11px] font-bold flex items-center justify-center">
+            <div className="flex items-center gap-2 cursor-pointer pl-1 pr-2.5 py-1.5 rounded-xl hover:bg-gray-50 transition-colors">
+              <div
+                className="w-[30px] h-[30px] rounded-full text-white text-[11px] font-bold flex items-center justify-center"
+                style={{ background: "linear-gradient(135deg,#D32F2F,#B71C1C)" }}
+              >
                 AD
               </div>
               <div>
-                <div className="text-[13px] font-semibold text-gray-900 leading-tight">Admin</div>
-                <div className="text-[11px] text-gray-400">Quản trị viên</div>
+                <div className="text-[12.5px] font-semibold text-gray-900 leading-tight">Admin</div>
+                <div className="text-[10.5px] text-gray-400 leading-tight">Quản trị viên</div>
               </div>
-              <span className="text-[11px] text-gray-400">▾</span>
+              <ChevronDown size={13} className="text-gray-400 ml-0.5" />
             </div>
           </div>
         </header>
