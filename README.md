@@ -12,3 +12,5 @@ mới sửa lại một tí về header và footer trang admin. từ nay dùng c
 
 
 03/06 lấy DL database hiện thị danh mục làm lại logo , làm lại header (Phước)
+
+ Đã thêm trang sp và chi tiết. có chức năng tìm kiếm rồi nhé, tuy nhiên hãy cải tiến trang sản phẩm vì nó chưa hợp lí lắm. đã có thể crud rồi nhé lỗi thì note phía dưới nhé .(mk)
