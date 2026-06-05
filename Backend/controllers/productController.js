@@ -225,7 +225,7 @@ exports.getAll = async (req, res) => {
 // ── [GET] /api/products/:slug ─────────────────────────────────────────────
 exports.getBySlug = async (req, res) => {
   try {
-    const product = await Product.findOne({ slug: req.params.slug, status: "active" }).lean();
+    let product = await Product.findOne({ slug: req.params.slug, status: "active" }).lean();
     if (!product)
       return res.status(404).json({ success: false, message: "Không tìm thấy sản phẩm" });
 
