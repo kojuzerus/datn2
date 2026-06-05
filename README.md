@@ -11,4 +11,4 @@ vừa thêm danh mục ngoài header.
 mới sửa lại một tí về header và footer trang admin. từ nay dùng chung header và footer trang admin nó nằm trong: (admin/ layout) và đã thêm trang quản lý sp
 
 
-03/06 lấy DL database hiện thị sp và danh mục làm lại logo  , làm lại header
+03/06 lấy DL database hiện thị danh mục làm lại logo , làm lại header (Phước)
