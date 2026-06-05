@@ -4,10 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
   Chart,
-  ArcElement,
   Tooltip,
   Legend,
-  DoughnutController,
   BarController,
   BarElement,
   CategoryScale,
@@ -24,11 +22,14 @@ import {
   AlertTriangle,
   UserPlus,
   ArrowRight,
+  CheckCircle,
+  Truck,
+  XCircle,
   type LucideIcon,
 } from "lucide-react";
 
 Chart.register(
-  ArcElement, Tooltip, Legend, DoughnutController,
+  Tooltip, Legend,
   BarController, BarElement, CategoryScale, LinearScale,
 );
 
@@ -98,9 +99,7 @@ const PERIOD_DATA: Record<Period, PeriodData> = {
 };
 
 const COLORS1 = ["#D32F2F", "#378ADD", "#1D9E75", "#BA7517"];
-const COLORS2 = ["#3B6D11", "#185FA5", "#854F0B", "#A32D2D"];
 const LABELS1 = ["Điện thoại", "Laptop", "Phụ kiện", "Tivi"];
-const LABELS2 = ["Hoàn thành", "Đang giao", "Chờ xử lý", "Đã hủy"];
 
 const PERIODS: { key: Period; label: string }[] = [
   { key: "day",   label: "Ngày"  },
@@ -284,8 +283,8 @@ function BarTrendChart({
   );
 }
 
-// ── Doughnut Chart ─────────────────────────────────────────────────────────
-function DoughnutChart({
+// ── Category Horizontal Bar Chart ─────────────────────────────────────────
+function CategoryBarChart({
   id, labels, data, colors, vals, title, subtitle,
 }: {
   id: string; labels: string[]; data: number[];
@@ -298,21 +297,21 @@ function DoughnutChart({
     if (!canvasRef.current) return;
     chartRef.current?.destroy();
     chartRef.current = new Chart(canvasRef.current, {
-      type: "doughnut",
+      type: "bar",
       data: {
         labels,
         datasets: [{
           data,
           backgroundColor: colors,
-          borderWidth: 3,
-          borderColor: "#fff",
-          hoverOffset: 6,
+          hoverBackgroundColor: colors.map((c) => c + "cc"),
+          borderRadius: 5,
+          borderSkipped: false,
         }],
       },
       options: {
+        indexAxis: "y",
         responsive: true,
         maintainAspectRatio: false,
-        cutout: "66%",
         plugins: {
           legend: { display: false },
           tooltip: {
@@ -321,13 +320,35 @@ function DoughnutChart({
             cornerRadius: 8,
             titleFont: { size: 12 },
             bodyFont: { size: 12 },
-            callbacks: { label: (ctx) => ` ${ctx.label}: ${ctx.parsed}%` },
+            callbacks: {
+              label: (ctx) => {
+                const idx = ctx.dataIndex;
+                return ` ${ctx.parsed.x}%  (${vals[idx]})`;
+              },
+            },
+          },
+        },
+        scales: {
+          x: {
+            grid: { color: "#F3F4F6" },
+            border: { display: false },
+            ticks: {
+              font: { size: 11 },
+              color: "#9CA3AF",
+              callback: (v) => v + "%",
+            },
+            max: 60,
+          },
+          y: {
+            grid: { display: false },
+            border: { display: false },
+            ticks: { font: { size: 12.5 }, color: "#374151" },
           },
         },
       },
     });
     return () => { chartRef.current?.destroy(); };
-  }, [data, labels, colors]);
+  }, [data, labels, colors, vals]);
 
   return (
     <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden" style={{ flex: "1 1 0" }}>
@@ -338,16 +359,16 @@ function DoughnutChart({
         </div>
         <div className="w-2 h-2 rounded-full bg-[#D32F2F]" />
       </div>
-      <div className="px-4 py-4">
-        <div className="relative w-full h-[160px]">
+      <div className="px-4 pt-4 pb-3">
+        <div className="relative w-full h-[148px]">
           <canvas ref={canvasRef} id={id} />
         </div>
-        <div className="flex flex-col gap-2.5 mt-4">
+        <div className="flex flex-col gap-2 mt-3 border-t border-gray-50 pt-3">
           {labels.map((label, i) => (
             <div key={label} className="flex items-center justify-between text-[12.5px]">
               <div className="flex items-center gap-2">
                 <span
-                  className="w-2.5 h-2.5 rounded-[3px] shrink-0 inline-block"
+                  className="w-2.5 h-2.5 rounded-[3px] shrink-0"
                   style={{ background: colors[i] }}
                 />
                 <span className="text-gray-500">{label}</span>
@@ -356,6 +377,53 @@ function DoughnutChart({
             </div>
           ))}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Order Status Stat Tiles ────────────────────────────────────────────────
+const ORDER_STATUS_TILES: {
+  label: string; Icon: LucideIcon; color: string; bg: string; border: string;
+}[] = [
+  { label: "Hoàn thành", Icon: CheckCircle, color: "#15803D", bg: "#F0FDF4", border: "#BBF7D0" },
+  { label: "Đang giao",  Icon: Truck,       color: "#1D4ED8", bg: "#EFF6FF", border: "#BFDBFE" },
+  { label: "Chờ xử lý", Icon: Clock,       color: "#D97706", bg: "#FFFBEB", border: "#FDE68A" },
+  { label: "Đã hủy",    Icon: XCircle,     color: "#B91C1C", bg: "#FEF2F2", border: "#FECACA" },
+];
+
+function OrderStatusCard({ vals, subtitle }: { vals: string[]; subtitle: string }) {
+  return (
+    <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden" style={{ flex: "1 1 0" }}>
+      <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div>
+          <div className="text-[14px] font-semibold text-gray-900 tracking-tight">
+            Trạng thái đơn hàng
+          </div>
+          <div className="text-[11.5px] text-gray-400 mt-0.5">{subtitle}</div>
+        </div>
+        <div className="w-2 h-2 rounded-full bg-[#D32F2F]" />
+      </div>
+      <div className="grid grid-cols-2 gap-3 p-4">
+        {ORDER_STATUS_TILES.map(({ label, Icon, color, bg, border }, i) => (
+          <div
+            key={label}
+            className="rounded-xl px-3.5 py-3 flex flex-col gap-1.5 border"
+            style={{ background: bg, borderColor: border }}
+          >
+            <div className="flex items-center gap-1.5">
+              <Icon size={13} style={{ color }} strokeWidth={2.5} />
+              <span className="text-[11px] font-semibold" style={{ color }}>{label}</span>
+            </div>
+            <div
+              className="text-[24px] font-bold leading-none tracking-tight tabular-nums"
+              style={{ color }}
+            >
+              {vals[i]}
+            </div>
+            <div className="text-[10.5px] text-gray-400">đơn hàng</div>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -486,7 +554,7 @@ export default function AdminDashboardPage() {
       {/* ── Quick strip ── */}
       <QuickStrip />
 
-      {/* ── Bar chart + Revenue doughnut ── */}
+      {/* ── Bar chart + Category bar chart ── */}
       <div className="flex gap-4">
         <BarTrendChart
           id="chart-bar-trend"
@@ -495,7 +563,7 @@ export default function AdminDashboardPage() {
           labels={d.bar.labels}
           data={d.bar.data}
         />
-        <DoughnutChart
+        <CategoryBarChart
           id="chart-revenue"
           title="Doanh thu theo danh mục"
           subtitle={d.label}
@@ -504,15 +572,12 @@ export default function AdminDashboardPage() {
         />
       </div>
 
-      {/* ── Recent orders + Order status doughnut ── */}
+      {/* ── Recent orders + Order status tiles ── */}
       <div className="flex gap-4">
         <RecentOrdersCard />
-        <DoughnutChart
-          id="chart-orders"
-          title="Trạng thái đơn hàng"
+        <OrderStatusCard
+          vals={d.chart2.vals}
           subtitle={d.label}
-          labels={LABELS2} data={d.chart2.data}
-          colors={COLORS2} vals={d.chart2.vals}
         />
       </div>
     </div>
