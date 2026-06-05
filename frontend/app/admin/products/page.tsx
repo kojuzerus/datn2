@@ -232,9 +232,9 @@ export default function ProductsPage() {
       const params = new URLSearchParams({
         page: String(page),
         limit: String(limit),
-        ...(search       && { search }),
-        ...(catFilter    && { category_name: catFilter }),
-        ...(statusFilter && { status: statusFilter }),
+        status: statusFilter || "all",
+        ...(search    && { search }),
+        ...(catFilter && { category_name: catFilter }),
       });
       const res  = await fetch(`${API_BASE}/api/products?${params}`);
       const json = await res.json();

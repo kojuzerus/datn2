@@ -4,11 +4,10 @@ import Link from "next/link";
 import {
   Search, User, ShoppingCart, Menu, X, Repeat, Phone, Smartphone,
   Laptop, Tv2, Headphones, TabletSmartphone, Speaker, Watch,
-  BatteryCharging,
+  BatteryCharging, TrendingUp,
 } from "lucide-react";
-import { useContext, useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { SearchContext } from "./searchContext";
 import Logo from "./Logo";
 import MegaMenuButton from "./Megamenu";
 
@@ -21,6 +20,16 @@ type CategoryItem = {
   parent_id?: number | null;
   status: string;
 };
+
+interface SearchProduct {
+  id: number;
+  ten: string;
+  slug: string;
+  thuongHieu: string;
+  thumbnail: string;
+  gia: number;
+  giaSale: number | null;
+}
 
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
 
@@ -44,25 +53,41 @@ const HOT_PRODUCTS = [
   "ASUS ROG Zephyrus G16", "Sony WH-1000XM6",
 ];
 
+const TRENDING_KEYWORDS = [
+  "iPhone 16", "Samsung Galaxy", "MacBook", "AirPods", "iPad", "Laptop gaming",
+];
+
+const fmtPrice = (n: number) =>
+  new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(n);
+
 // ─── COMPONENT ────────────────────────────────────────────────────────────────
 
 export default function Header() {
-  const cartItems: any[] = [];
-  const cartCount = cartItems.reduce((sum: number, item: any) => sum + Number(item.quantity), 0);
+  const cartItems: unknown[] = [];
+  const cartCount = 0;
 
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const [mobileOpen,      setMobileOpen]      = useState(false);
+  const [showUserMenu,    setShowUserMenu]    = useState(false);
+  const [isLoggedIn,      setIsLoggedIn]      = useState(false);
+  const [userRole,        setUserRole]        = useState<string | null>(null);
   const [mobileCategories, setMobileCategories] = useState<CategoryItem[]>([]);
 
-  const { keyword, setKeyword } = useContext(SearchContext);
-  const router = useRouter();
+  // ── Search state ──
+  const [searchInput,     setSearchInput]     = useState("");
+  const [suggestions,     setSuggestions]     = useState<SearchProduct[]>([]);
+  const [suggestOpen,     setSuggestOpen]     = useState(false);
+  const [suggestLoading,  setSuggestLoading]  = useState(false);
+  const [inputFocused,    setInputFocused]    = useState(false);
+  const [activeIdx,       setActiveIdx]       = useState(-1);
+
+  const router      = useRouter();
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const searchRef   = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
-  // Fetch categories cho mobile menu
+  // ── Fetch mobile categories ──
   useEffect(() => {
     const ctrl = new AbortController();
     fetch(`${apiUrl}/api/categories`, { signal: ctrl.signal })
@@ -83,7 +108,7 @@ export default function Header() {
     return () => ctrl.abort();
   }, [apiUrl]);
 
-  // Check login
+  // ── Check login ──
   useEffect(() => {
     const checkLogin = async () => {
       const token = localStorage.getItem("token");
@@ -108,20 +133,112 @@ export default function Header() {
     };
   }, [apiUrl]);
 
-  // Đóng user menu khi click ra ngoài
+  // ── Close user menu on outside click ──
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node))
         setShowUserMenu(false);
-      }
     };
     if (showUserMenu) document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [showUserMenu]);
 
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setKeyword(e.target.value);
-    if (e.target.value.trim()) router.push("/timkiem");
+  // ── Close search dropdown on outside click ──
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setSuggestOpen(false);
+        setInputFocused(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  // ── Cleanup debounce on unmount ──
+  useEffect(() => () => clearTimeout(debounceRef.current), []);
+
+  // ── Fetch suggestions (debounced 280ms) ──
+  const fetchSuggestions = useCallback(
+    (q: string) => {
+      clearTimeout(debounceRef.current);
+      if (!q.trim()) {
+        setSuggestions([]);
+        setSuggestOpen(false);
+        setSuggestLoading(false);
+        return;
+      }
+      setSuggestLoading(true);
+      debounceRef.current = setTimeout(async () => {
+        try {
+          const res  = await fetch(
+            `${apiUrl}/api/products?search=${encodeURIComponent(q)}&limit=6&status=active`
+          );
+          const json = await res.json();
+          if (json.success) {
+            setSuggestions(json.data ?? []);
+            setSuggestOpen(true);
+          }
+        } catch {
+          /* ignore */
+        } finally {
+          setSuggestLoading(false);
+        }
+      }, 280);
+    },
+    [apiUrl],
+  );
+
+  // ── Handlers ──
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setSearchInput(val);
+    setActiveIdx(-1);
+    fetchSuggestions(val);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Escape") {
+      setSuggestOpen(false);
+      return;
+    }
+    if (!suggestOpen || suggestions.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIdx((i) => Math.min(i + 1, suggestions.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIdx((i) => Math.max(i - 1, -1));
+    } else if (e.key === "Enter" && activeIdx >= 0) {
+      e.preventDefault();
+      const p = suggestions[activeIdx];
+      setSuggestOpen(false);
+      setSearchInput(p.ten);
+      router.push(`/sanpham/${p.slug}`);
+    }
+  };
+
+  const handleSubmit = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    const q = searchInput.trim();
+    if (!q) return;
+    setSuggestOpen(false);
+    setInputFocused(false);
+    router.push(`/sanpham?tu-khoa=${encodeURIComponent(q)}`);
+  };
+
+  const handleTrendingClick = (kw: string) => {
+    setSearchInput(kw);
+    setSuggestOpen(false);
+    setInputFocused(false);
+    router.push(`/sanpham?tu-khoa=${encodeURIComponent(kw)}`);
+  };
+
+  const handleSuggestionClick = (p: SearchProduct) => {
+    setSuggestOpen(false);
+    setInputFocused(false);
+    setSearchInput(p.ten);
+    router.push(`/sanpham/${p.slug}`);
   };
 
   const handleLogout = () => {
@@ -132,6 +249,11 @@ export default function Header() {
     setShowUserMenu(false);
     router.push("/");
   };
+
+  // ── Dropdown visibility logic ──
+  const showTrending  = inputFocused && !searchInput.trim();
+  const showResults   = suggestOpen && !!searchInput.trim();
+  const showDropdown  = showTrending || showResults || (suggestLoading && !!searchInput.trim());
 
   return (
     <header className="sticky top-0 z-50 w-full bg-white shadow-sm">
@@ -158,30 +280,130 @@ export default function Header() {
       <div className="bg-white border-b border-gray-100">
         <div className="max-w-screen-xl mx-auto px-6 py-3 flex items-center gap-4">
 
-          {/* Logo */}
           <Logo className="flex-shrink-0" />
-
-          {/* Mega menu desktop — lấy data từ MongoDB */}
           <MegaMenuButton />
 
           {/* Search */}
-          <div className="flex-1 relative">
-            <input
-              type="text"
-              placeholder="Tìm kiếm sản phẩm, thương hiệu..."
-              className="w-full bg-gray-50 text-gray-800 placeholder-gray-400 pl-4 pr-12 py-2.5 rounded-xl text-sm outline-none border border-gray-200 focus:border-red-400 focus:bg-white transition-all"
-              value={keyword}
-              onChange={handleSearch}
-            />
-            <button className="absolute right-0 top-0 bottom-0 w-11 flex items-center justify-center rounded-r-xl bg-red-600 hover:bg-red-700 transition-colors text-white">
-              <Search className="w-4 h-4" />
-            </button>
+          <div ref={searchRef} className="flex-1 relative">
+            <form onSubmit={handleSubmit}>
+              <input
+                type="text"
+                placeholder="Tìm kiếm sản phẩm, thương hiệu..."
+                value={searchInput}
+                onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
+                onFocus={() => setInputFocused(true)}
+                className="w-full bg-gray-50 text-gray-800 placeholder-gray-400 pl-4 pr-12 py-2.5 rounded-xl text-sm outline-none border border-gray-200 focus:border-red-400 focus:bg-white transition-all"
+                autoComplete="off"
+              />
+              <button
+                type="submit"
+                className="absolute right-0 top-0 bottom-0 w-11 flex items-center justify-center rounded-r-xl bg-red-600 hover:bg-red-700 transition-colors text-white"
+              >
+                <Search className="w-4 h-4" />
+              </button>
+            </form>
+
+            {/* Suggestions / Trending dropdown */}
+            {showDropdown && (
+              <div className="absolute top-[calc(100%+6px)] left-0 right-0 bg-white border border-gray-100 rounded-2xl shadow-xl z-50 overflow-hidden">
+
+                {/* ── Trending (empty input) ── */}
+                {showTrending && (
+                  <div className="p-4">
+                    <p className="flex items-center gap-1.5 text-[11.5px] font-bold text-gray-400 uppercase tracking-wide mb-3">
+                      <TrendingUp className="w-3.5 h-3.5" />
+                      Tìm kiếm phổ biến
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {TRENDING_KEYWORDS.map((kw) => (
+                        <button
+                          key={kw}
+                          onClick={() => handleTrendingClick(kw)}
+                          className="px-3.5 py-1.5 bg-gray-100 hover:bg-red-50 hover:text-red-600 text-gray-600 text-[12.5px] font-medium rounded-full transition-colors"
+                        >
+                          {kw}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Loading skeleton ── */}
+                {suggestLoading && suggestions.length === 0 && (
+                  <div className="p-3 space-y-1">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="flex items-center gap-3 px-2 py-2 animate-pulse">
+                        <div className="w-10 h-10 bg-gray-200 rounded-xl shrink-0" />
+                        <div className="flex-1 space-y-2">
+                          <div className="h-3 bg-gray-200 rounded w-3/4" />
+                          <div className="h-3 bg-gray-100 rounded w-1/3" />
+                        </div>
+                        <div className="h-4 bg-gray-200 rounded w-20 shrink-0" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* ── No results ── */}
+                {showResults && !suggestLoading && suggestions.length === 0 && (
+                  <div className="px-4 py-6 text-center">
+                    <p className="text-[13px] text-gray-400">
+                      Không tìm thấy sản phẩm cho &ldquo;{searchInput}&rdquo;
+                    </p>
+                  </div>
+                )}
+
+                {/* ── Product list ── */}
+                {showResults && suggestions.length > 0 && (
+                  <>
+                    <div>
+                      {suggestions.map((p, i) => (
+                        <button
+                          key={p.id}
+                          onClick={() => handleSuggestionClick(p)}
+                          onMouseEnter={() => setActiveIdx(i)}
+                          className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${
+                            i === activeIdx ? "bg-red-50" : "hover:bg-gray-50"
+                          } ${i > 0 ? "border-t border-gray-50" : ""}`}
+                        >
+                          <div className="w-10 h-10 bg-gray-50 border border-gray-100 rounded-xl overflow-hidden shrink-0">
+                            <img
+                              src={p.thumbnail || "https://placehold.co/40x40?text=?"}
+                              alt=""
+                              className="w-full h-full object-contain p-1"
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[13px] text-gray-800 font-medium truncate leading-tight">
+                              {p.ten}
+                            </p>
+                            <p className="text-[11.5px] text-gray-400 mt-0.5">{p.thuongHieu}</p>
+                          </div>
+                          <p className="text-[13px] font-bold text-red-600 shrink-0">
+                            {fmtPrice(p.giaSale ?? p.gia)}
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* View all results */}
+                    <button
+                      onClick={() => handleSubmit()}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gray-50 hover:bg-red-50 border-t border-gray-100 text-[13px] text-red-600 font-semibold hover:text-red-700 transition-colors"
+                    >
+                      <Search className="w-3.5 h-3.5" />
+                      Xem tất cả kết quả cho &ldquo;{searchInput}&rdquo;
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Right actions */}
           <div className="hidden md:flex items-center gap-1.5">
 
-            {/* So sánh */}
             <button
               title="So sánh"
               className="w-10 h-10 flex items-center justify-center rounded-xl text-gray-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-100 transition-all"
@@ -189,7 +411,6 @@ export default function Header() {
               <Repeat className="w-5 h-5" />
             </button>
 
-            {/* Giỏ hàng */}
             <Link
               href="/giohang"
               title="Giỏ hàng"
@@ -203,7 +424,6 @@ export default function Header() {
               )}
             </Link>
 
-            {/* User */}
             {isLoggedIn ? (
               <div ref={userMenuRef} className="relative">
                 <button
@@ -231,7 +451,7 @@ export default function Header() {
                     </Link>
                     {userRole === "admin" && (
                       <Link
-                        href="/admin/product"
+                        href="/admin"
                         onClick={() => setShowUserMenu(false)}
                         className="block px-4 py-2.5 text-sm text-amber-500 font-medium hover:bg-amber-50 transition-colors"
                       >
@@ -278,22 +498,45 @@ export default function Header() {
           <div className="overflow-hidden flex-1">
             <div className="flex gap-8 animate-ticker whitespace-nowrap">
               {[...HOT_PRODUCTS, ...HOT_PRODUCTS].map((p, i) => (
-                <Link
+                <button
                   key={i}
-                  href="/sanpham"
+                  onClick={() => handleTrendingClick(p)}
                   className="text-xs text-gray-500 hover:text-red-600 transition-colors"
                 >
                   {p}
-                </Link>
+                </button>
               ))}
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── Mobile menu — lấy data từ MongoDB ── */}
+      {/* ── Mobile menu ── */}
       {mobileOpen && (
         <div className="md:hidden bg-white border-t border-gray-100 px-6 py-5 space-y-3 shadow-lg">
+
+          {/* Mobile search */}
+          <form onSubmit={handleSubmit} className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 focus-within:border-red-400 focus-within:bg-white transition-colors">
+            <Search className="w-4 h-4 text-gray-400 shrink-0" />
+            <input
+              type="text"
+              placeholder="Tìm kiếm sản phẩm..."
+              value={searchInput}
+              onChange={handleInputChange}
+              className="flex-1 bg-transparent text-[13px] text-gray-900 outline-none placeholder-gray-400"
+              autoComplete="off"
+            />
+            {searchInput && (
+              <button
+                type="button"
+                onClick={() => setSearchInput("")}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </form>
+
           <div className="space-y-1">
             {mobileCategories.length === 0 ? (
               Array.from({ length: 5 }).map((_, i) => (
@@ -335,7 +578,7 @@ export default function Header() {
               </button>
             ) : (
               <Link
-                href="/dangnhap"
+                href="/login"
                 className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold text-sm transition-colors"
               >
                 <User className="w-5 h-5" />
