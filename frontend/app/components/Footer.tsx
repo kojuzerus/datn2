@@ -5,9 +5,42 @@ import { Phone, Mail, MapPin, Clock, ShieldCheck, Star, Store, CreditCard, Smart
 import { FaFacebookF, FaYoutube, FaTiktok } from "react-icons/fa";
 import { SiZalo, SiVisa, SiMastercard } from "react-icons/si";
 import { BsCash, BsBank2 } from "react-icons/bs";
+import Logo from "./Logo";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
+
+  const footerCategories = [
+    { href: "/sanpham?danh-muc=iphone-air", label: "iPhone Air" },
+    { href: "/sanpham?danh-muc=iphone-17", label: "iPhone 17" },
+    { href: "/sanpham?danh-muc=iphone-17-pro", label: "iPhone 17 Pro" },
+    { href: "/sanpham?danh-muc=iphone-17-pro-max", label: "iPhone 17 Pro Max" },
+    { href: "/sanpham?danh-muc=iphone-16-pro-max", label: "iPhone 16 Pro Max" },
+    { href: "/sanpham?danh-muc=iphone-16", label: "iPhone 16" },
+    { href: "/sanpham?danh-muc=iphone-cu", label: "iPhone cũ" },
+    { href: "/sanpham?danh-muc=macbook-neo", label: "Macbook Neo" },
+    { href: "/sanpham?danh-muc=dien-thoai", label: "Điện thoại" },
+    { href: "/sanpham?danh-muc=dien-thoai-iphone", label: "Điện thoại iPhone" },
+    { href: "/sanpham?danh-muc=xiaomi", label: "Xiaomi" },
+    { href: "/sanpham?danh-muc=samsung-galaxy", label: "Điện thoại Samsung Galaxy" },
+    { href: "/sanpham?danh-muc=oppo", label: "Điện thoại OPPO" },
+    { href: "/sanpham?danh-muc=oppo-find-x9s", label: "OPPO Find X9s" },
+    { href: "/sanpham?danh-muc=oppo-find-x9-ultra", label: "OPPO Find X9 Ultra" },
+    { href: "/sanpham?danh-muc=laptop", label: "Laptop" },
+    { href: "/sanpham?danh-muc=laptop-acer", label: "Laptop Acer" },
+    { href: "/sanpham?danh-muc=laptop-dell", label: "Laptop Dell" },
+    { href: "/sanpham?danh-muc=laptop-hp", label: "Laptop HP" },
+    { href: "/sanpham?danh-muc=do-gia-dung", label: "Đồ gia dụng" },
+    { href: "/sanpham?danh-muc=may-hut-bui", label: "Máy hút bụi gia đình" },
+    { href: "/sanpham?danh-muc=build-pc", label: "Build PC" },
+    { href: "/sanpham?danh-muc=tivi", label: "Tivi" },
+    { href: "/sanpham?danh-muc=tivi-samsung", label: "Tivi Samsung" },
+    { href: "/sanpham?danh-muc=tivi-sony", label: "Tivi Sony" },
+    { href: "/sanpham?danh-muc=tivi-lg", label: "Tivi LG" },
+    { href: "/sanpham?danh-muc=camera", label: "Camera" },
+    { href: "/sanpham?danh-muc=tra-gop", label: "Trả góp" },
+    { href: "/sanpham?danh-muc=xiaomi-17t", label: "Xiaomi 17T" },
+  ];
 
   const categories = [
     { href: "/sanpham?danh-muc=dien-thoai", label: "Điện thoại" },
@@ -63,199 +96,126 @@ export default function Footer() {
 
   return (
     <footer className="w-full bg-white border-t border-gray-200">
-
-      {/* Stats bar */}
-      <div className="bg-red-600">
-        <div className="max-w-screen-xl mx-auto px-6 py-4 grid grid-cols-2 md:grid-cols-4 divide-x divide-red-500">
-          {stats.map((stat) => (
-            <div key={stat.label} className="text-center px-4">
-              <div className="text-xl font-bold text-white">{stat.value}</div>
-              <div className="text-xs text-red-200 mt-0.5">{stat.label}</div>
+      <div className="max-w-screen-xl mx-auto px-6 py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
+          <div className="space-y-5">
+            <div className="inline-flex items-center gap-3">
+              <Logo />
             </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Email signup */}
-      <div className="bg-gray-50 border-b border-gray-100">
-        <div className="max-w-screen-xl mx-auto px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div>
-            <p className="font-semibold text-gray-800 text-sm">Nhận ưu đãi từ SMARTHUB</p>
-            <p className="text-xs text-gray-400 mt-0.5">Voucher 200K cho đơn đầu tiên khi đăng ký email</p>
-          </div>
-          <div className="flex gap-2 w-full sm:w-auto">
-            <input
-              type="email"
-              placeholder="Email của bạn..."
-              className="flex-1 sm:w-64 bg-white border border-gray-200 text-gray-700 placeholder-gray-400 px-4 py-2.5 rounded-lg text-sm outline-none focus:border-red-400 transition-colors"
-            />
-            <button className="px-5 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors flex-shrink-0">
-              Đăng ký
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Main grid */}
-      <div className="max-w-screen-xl mx-auto px-6 py-10">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
-
-          {/* Col 1 — Brand + Contact */}
-          <div>
-            <Link href="/" className="flex items-center gap-2.5 mb-5 group">
-              <div className="w-10 h-10 rounded-xl bg-red-600 flex items-center justify-center text-lg transition-transform group-hover:scale-105">
-                💻
-              </div>
-              <div className="leading-none">
-                <div className="text-lg font-bold text-gray-900 tracking-tight">
-                  SMART<span className="text-red-600">HUB</span>
-                </div>
-                <div className="text-[9px] text-gray-400 tracking-[2px] mt-0.5">CÔNG NGHỆ</div>
-              </div>
-            </Link>
-
-            <p className="text-xs text-gray-400 leading-relaxed mb-5">
-              Hệ thống bán lẻ điện tử hàng đầu Việt Nam. Hàng chính hãng, giá tốt nhất, giao hàng toàn quốc.
+            <p className="text-sm text-gray-500 leading-relaxed">
+              SMARTHUB cung cấp thiết bị công nghệ chính hãng với dịch vụ hỗ trợ mua hàng và bảo hành chuyên nghiệp.
             </p>
-
-            <ul className="space-y-3">
-              <li className="flex items-center gap-3 text-sm text-gray-600">
-                <Phone className="w-4 h-4 text-red-500 flex-shrink-0" />
-                <div>
-                  <span className="font-medium">1800 9999</span>
-                  <span className="text-xs text-gray-400 ml-2">Miễn phí • 8–22h</span>
-                </div>
-              </li>
-              <li className="flex items-center gap-3 text-sm text-gray-600">
-                <Mail className="w-4 h-4 text-red-500 flex-shrink-0" />
-                <span>hotro@smarthub.vn</span>
-              </li>
-              <li className="flex items-center gap-3 text-sm text-gray-600">
-                <MapPin className="w-4 h-4 text-red-500 flex-shrink-0" />
-                <span>123 Nguyễn Huệ, Q.1, TP.HCM</span>
-              </li>
-              <li className="flex items-center gap-3 text-sm text-gray-600">
-                <Clock className="w-4 h-4 text-red-500 flex-shrink-0" />
-                <span>8:00 – 22:00 tất cả các ngày</span>
-              </li>
-            </ul>
-          </div>
-
-          {/* Col 2 — Danh mục */}
-          <div>
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100">
-              Danh mục sản phẩm
-            </h4>
-            <ul className="space-y-2">
-              {categories.map((item) => (
-                <li key={item.href}>
-                  <Link href={item.href} className="text-sm text-gray-500 hover:text-red-600 transition-colors">
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Col 3 — Hỗ trợ + Về chúng tôi */}
-          <div>
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100">
-              Hỗ trợ khách hàng
-            </h4>
-            <ul className="space-y-2 mb-6">
-              {support.map((item) => (
-                <li key={item.href}>
-                  <Link href={item.href} className="text-sm text-gray-500 hover:text-red-600 transition-colors">
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100">
-              Về chúng tôi
-            </h4>
-            <ul className="space-y-2">
-              {about.map((item) => (
-                <li key={item.href}>
-                  <Link href={item.href} className="text-sm text-gray-500 hover:text-red-600 transition-colors">
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Col 4 — Mạng xã hội + Thanh toán + Chứng nhận */}
-          <div>
-
-            {/* Kết nối */}
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100">Kết nối</h4>
-            <div className="flex gap-2 mb-6">
+            <div className="space-y-3 text-sm text-gray-700">
+              <div className="font-semibold text-gray-900">Hotline hỗ trợ</div>
+              <div>1800.2044</div>
+              <div>1800.2063</div>
+            </div>
+            <div className="flex items-center gap-3 pt-2">
               {socials.map(({ label, href, icon: Icon, color, bg }) => (
-                <a
+                <Link
                   key={label}
                   href={href}
                   target="_blank"
                   rel="noopener noreferrer"
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 transition hover:border-red-400 hover:text-red-600"
                   title={label}
-                  className="w-9 h-9 rounded-lg border border-gray-100 flex items-center justify-center transition-all hover:scale-110 hover:shadow-sm"
-                  style={{ background: bg, color }}
                 >
-                  <Icon size={15} />
-                </a>
+                  <Icon size={16} style={{ color }} />
+                </Link>
               ))}
             </div>
+          </div>
 
-            {/* Thanh toán */}
-            <h4 className="text-sm font-semibold text-gray-800 mb-3 pb-2 border-b border-gray-100">Thanh toán</h4>
-            <div className="grid grid-cols-2 gap-1.5 mb-6">
-              {payments.map(({ label, icon: Icon, color, bg }) => (
-                <div
-                  key={label}
-                  className="flex items-center gap-2 text-xs font-medium px-2.5 py-2 rounded-lg border border-gray-100"
-                  style={{ background: bg, color }}
-                >
-                  <Icon size={14} style={{ flexShrink: 0 }} />
-                  <span className="truncate">{label}</span>
-                </div>
+          <div>
+            <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-[0.2em] mb-5">Hỗ trợ</h4>
+            <ul className="space-y-3 text-sm text-gray-600">
+              {support.map((item) => (
+                <li key={item.href}>
+                  <Link href={item.href} className="hover:text-red-600 transition-colors">
+                    {item.label}
+                  </Link>
+                </li>
               ))}
-            </div>
+            </ul>
+          </div>
 
-            {/* Chứng nhận */}
-            <h4 className="text-sm font-semibold text-gray-800 mb-3 pb-2 border-b border-gray-100">Chứng nhận</h4>
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-2 text-xs text-gray-500">
-                <ShieldCheck className="w-4 h-4 text-green-500 flex-shrink-0" />
-                Bộ Công Thương xác nhận
-              </div>
-              <div className="flex items-center gap-2 text-xs text-gray-500">
-                <Store className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                SSL Secured
-              </div>
-              <div className="flex items-center gap-2 text-xs text-gray-500">
-                <Star className="w-4 h-4 text-yellow-500 flex-shrink-0" />
-                4.9/5 trên Google Reviews
+          <div>
+            <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-[0.2em] mb-5">Về chúng tôi</h4>
+            <ul className="space-y-3 text-sm text-gray-600">
+              {about.map((item) => (
+                <li key={item.href}>
+                  <Link href={item.href} className="hover:text-red-600 transition-colors">
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-8">
+              <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-[0.2em] mb-4">Thanh toán</h4>
+              <div className="grid grid-cols-3 gap-3">
+                {payments.map(({ label, icon: Icon, color, bg }) => (
+                  <div
+                    key={label}
+                    className="flex items-center gap-2 rounded-xl border border-gray-100 px-3 py-2 text-[11px] font-medium"
+                    style={{ background: bg, color }}
+                  >
+                    <Icon size={16} />
+                    <span className="truncate">{label}</span>
+                  </div>
+                ))}
               </div>
             </div>
+          </div>
 
+          <div className="bg-gray-50 rounded-3xl p-6">
+            <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-[0.2em] mb-5">Đăng ký nhận tin</h4>
+            <p className="text-sm text-gray-500 leading-relaxed">
+              Nhận mã giảm giá và tin khuyến mãi mới nhất từ SMARTHUB.
+            </p>
+            <div className="mt-6 space-y-4">
+              <input
+                type="email"
+                placeholder="Nhập email"
+                className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100"
+              />
+              <button className="w-full rounded-2xl bg-red-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-red-700">
+                NHẬN NGAY
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-12 border-t border-gray-100 pt-8">
+          <div className="grid gap-6 md:grid-cols-2 md:items-center">
+            <div className="space-y-2 text-sm text-gray-600">
+              <div>Công ty TNHH Thương Mại Tổng Hợp HTV</div>
+              <div>GPDKKD: 0108075931 cấp tại Sở KH&ĐT TP. Hà Nội</div>
+              <div>Địa chỉ: 543 Nguyễn Trãi, Thanh Liệt, Hà Nội</div>
+              <div>Điện thoại: 024.7303.0119</div>
+            </div>
+            <div className="space-y-2 text-sm text-gray-600">
+              <div className="font-semibold text-gray-900">Danh mục nổi bật</div>
+              <div className="flex flex-wrap gap-2">
+                {footerCategories.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="rounded-full border border-gray-200 bg-white px-3 py-1 text-[11px] text-gray-600 hover:bg-gray-100 hover:text-red-600 transition"
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <span className="rounded-full border border-gray-200 bg-gray-50 px-4 py-2 text-[11px] text-gray-600">Đã thông báo Bộ Công Thương</span>
+            <span className="rounded-full border border-gray-200 bg-gray-50 px-4 py-2 text-[11px] text-gray-600">Bảo vệ bởi DMCA.com</span>
+            <span className="rounded-full border border-gray-200 bg-gray-50 px-4 py-2 text-[11px] text-gray-600">Copyright Protected</span>
           </div>
         </div>
       </div>
-
-      {/* Bottom bar */}
-      <div className="border-t border-gray-100 bg-gray-50">
-        <div className="max-w-screen-xl mx-auto px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p className="text-xs text-gray-400 text-center sm:text-left">
-            © {currentYear} <span className="font-medium text-gray-600">SMARTHUB</span>. Tất cả quyền được bảo lưu. GPKD: 0123456789 — Sở KH&ĐT TP.HCM
-          </p>
-          <div className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-xs text-gray-400">Hệ thống hoạt động bình thường</span>
-          </div>
-        </div>
-      </div>
-
     </footer>
   );
 }
