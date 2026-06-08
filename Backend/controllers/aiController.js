@@ -1,6 +1,6 @@
-const { GoogleGenAI } = require("@google/genai");
+const Groq = require("groq-sdk");
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 exports.generateProduct = async (req, res) => {
   const { name, category } = req.body;
@@ -12,7 +12,7 @@ exports.generateProduct = async (req, res) => {
   const prompt = `Bạn là chuyên gia về sản phẩm điện tử tại Việt Nam.
 Hãy tạo thông tin cho sản phẩm: "${name}"${category ? ` (danh mục: ${category})` : ""}.
 
-Trả về JSON với đúng format này, không có markdown, không có giải thích:
+Trả về JSON với đúng format này:
 {
   "short_description": "mô tả ngắn 1-2 câu nêu đặc điểm nổi bật, viết bằng tiếng Việt, tối đa 120 ký tự",
   "badge": "một trong các giá trị: Hot | Mới | Sale | Bestseller | hoặc để trống nếu không phù hợp",
@@ -21,17 +21,14 @@ Trả về JSON với đúng format này, không có markdown, không có giải
 }`;
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash-lite",
-      contents: prompt,
+    const completion = await groq.chat.completions.create({
+      model: "llama-3.1-8b-instant",
+      messages: [{ role: "user", content: prompt }],
+      response_format: { type: "json_object" },
+      temperature: 0.7,
     });
 
-    const raw = response.text.trim()
-      .replace(/^```json\s*/i, "")
-      .replace(/^```\s*/i, "")
-      .replace(/\s*```$/i, "");
-
-    const json = JSON.parse(raw);
+    const json = JSON.parse(completion.choices[0].message.content);
     res.json({ success: true, data: json });
   } catch (err) {
     console.error("AI generate error:", err.message);
