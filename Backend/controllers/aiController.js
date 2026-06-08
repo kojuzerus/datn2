@@ -1,6 +1,6 @@
-const Anthropic = require("@anthropic-ai/sdk");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 exports.generateProduct = async (req, res) => {
   const { name, category } = req.body;
@@ -21,15 +21,14 @@ Trả về JSON với đúng format này, không có markdown, không có giải
 }`;
 
   try {
-    const message = await client.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 256,
-      messages: [{ role: "user", content: prompt }],
-    });
+    const model  = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const result = await model.generateContent(prompt);
+    const raw    = result.response.text().trim()
+      .replace(/^```json\s*/i, "")
+      .replace(/^```\s*/i, "")
+      .replace(/\s*```$/i, "");
 
-    const raw = message.content[0].text.trim();
     const json = JSON.parse(raw);
-
     res.json({ success: true, data: json });
   } catch (err) {
     console.error("AI generate error:", err.message);
