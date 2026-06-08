@@ -83,7 +83,7 @@ export default function Header() {
   const router      = useRouter();
   const userMenuRef = useRef<HTMLDivElement>(null);
   const searchRef   = useRef<HTMLDivElement>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
