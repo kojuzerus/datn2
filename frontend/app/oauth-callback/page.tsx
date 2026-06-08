@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function OAuthCallbackPage() {
+function OAuthHandler() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -24,14 +24,25 @@ export default function OAuthCallbackPage() {
     } catch {
       router.push('/dang-nhap?error=oauth_failed');
     }
-  }, []);
+  }, [router, searchParams]);
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="text-center">
-        <div className="w-12 h-12 border-4 border-red-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-        <p className="text-gray-500 text-sm">Đang đăng nhập...</p>
-      </div>
+  return null;
+}
+
+const Spinner = () => (
+  <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="text-center">
+      <div className="w-12 h-12 border-4 border-red-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+      <p className="text-gray-500 text-sm">Đang đăng nhập...</p>
     </div>
+  </div>
+);
+
+export default function OAuthCallbackPage() {
+  return (
+    <Suspense fallback={<Spinner />}>
+      <OAuthHandler />
+      <Spinner />
+    </Suspense>
   );
 }
