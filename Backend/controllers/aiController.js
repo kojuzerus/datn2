@@ -21,7 +21,7 @@ Trả về JSON với đúng format này, không có markdown, không có giải
 }`;
 
   try {
-    const model  = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const model  = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite" });
     const result = await model.generateContent(prompt);
     const raw    = result.response.text().trim()
       .replace(/^```json\s*/i, "")
