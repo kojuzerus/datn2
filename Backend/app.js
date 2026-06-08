@@ -9,6 +9,7 @@ const authRoutes     = require("./routes/auth");
 const cartRoutes     = require("./routes/cart");
 const categoryRoutes = require("./routes/category");
 const brandRoutes    = require("./routes/brand");
+const aiRoutes       = require("./routes/ai");
 
 const app  = express();
 const PORT = process.env.PORT || 5000;
@@ -35,6 +36,7 @@ app.use("/api/auth",       authRoutes);
 app.use("/api/cart",       cartRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/brands",     brandRoutes);
+app.use("/api/ai",         aiRoutes);
 
 app.get("/api/health", (_, res) =>
   res.json({ status: "ok", time: new Date().toISOString() })
