@@ -197,6 +197,7 @@ export default function ProductsPage() {
   const [editId, setEditId]       = useState<number | null>(null);
   const [form, setForm]           = useState<ProductForm>(EMPTY_FORM);
   const [saving, setSaving]       = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
 
   // Selection
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -208,6 +209,39 @@ export default function ProductsPage() {
   const [confirmState, setConfirmState] = useState<ConfirmState>({
     open: false, title: "", message: "", onConfirm: () => {},
   });
+
+  // ── AI generate ───────────────────────────────────────────────────────────
+  const generateWithAI = async () => {
+    if (!form.product_name.trim()) {
+      showToast("error", "Nhập tên sản phẩm trước khi dùng AI");
+      return;
+    }
+    setAiLoading(true);
+    try {
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+      const res  = await fetch(`${API_BASE}/api/ai/generate-product`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: form.product_name, category: form.category_id }),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.message);
+      const d = json.data;
+      setForm((prev) => ({
+        ...prev,
+        short_description: d.short_description || prev.short_description,
+        badge:             d.badge             || prev.badge,
+        warranty:          d.warranty          || prev.warranty,
+        sku:               d.sku               || prev.sku,
+      }));
+      showToast("success", "AI đã điền thông tin sản phẩm!");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Lỗi không xác định";
+      showToast("error", "AI lỗi: " + msg);
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   // ── Toast helpers ─────────────────────────────────────────────────────────
   const showToast = useCallback((type: Toast["type"], message: string) => {
@@ -741,12 +775,27 @@ export default function ProductsPage() {
                   {editId ? "Chỉnh sửa sản phẩm" : "Thêm sản phẩm mới"}
                 </span>
               </div>
-              <button
-                onClick={() => setModalOpen(false)}
-                className="w-8 h-8 border border-gray-200 rounded-xl bg-white hover:bg-gray-100 cursor-pointer flex items-center justify-center transition-colors"
-              >
-                <X size={15} className="text-gray-500" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={generateWithAI}
+                  disabled={aiLoading}
+                  title="Dùng AI để tự điền thông tin (cần nhập tên sản phẩm trước)"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-50 border border-violet-200 text-violet-700 text-[12.5px] font-semibold hover:bg-violet-100 disabled:opacity-60 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                >
+                  {aiLoading ? (
+                    <span className="w-3.5 h-3.5 border-2 border-violet-400 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <span className="text-[14px]">✨</span>
+                  )}
+                  {aiLoading ? "Đang tạo..." : "AI gợi ý"}
+                </button>
+                <button
+                  onClick={() => setModalOpen(false)}
+                  className="w-8 h-8 border border-gray-200 rounded-xl bg-white hover:bg-gray-100 cursor-pointer flex items-center justify-center transition-colors"
+                >
+                  <X size={15} className="text-gray-500" />
+                </button>
+              </div>
             </div>
 
             {/* Modal body */}
