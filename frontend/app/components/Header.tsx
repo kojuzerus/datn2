@@ -111,16 +111,16 @@ export default function Header() {
   // ── Check login ──
   useEffect(() => {
     const checkLogin = async () => {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("smarthub_token");
       setIsLoggedIn(!!token);
       if (!token) { setUserRole(null); return; }
       try {
-        const res = await fetch(`${apiUrl}/users/userinfo`, {
+        const res = await fetch(`${apiUrl}/api/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (res.ok) {
           const data = await res.json();
-          setUserRole(data?.role ?? null);
+          setUserRole(data?.user?.role ?? null);
         }
       } catch { setUserRole(null); }
     };
@@ -242,8 +242,8 @@ export default function Header() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    document.cookie = "token=; path=/; max-age=0";
+    localStorage.removeItem("smarthub_token");
+    localStorage.removeItem("smarthub_user");
     setIsLoggedIn(false);
     setUserRole(null);
     setShowUserMenu(false);

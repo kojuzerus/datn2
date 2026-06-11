@@ -1,6 +1,6 @@
 const express = require("express");
 const router  = express.Router();
-const { register, login, getMe } = require("../controllers/authController");
+const { register, login, getMe, updateProfile, changePassword } = require("../controllers/authController");
 const authMiddleware = require("../middleware/auth");
 const passport = require("passport");
 const jwt      = require("jsonwebtoken");
@@ -22,9 +22,11 @@ const makeRedirect = (token, user) => {
 };
 
 // ── Đăng ký / Đăng nhập thường ───────────────────────────────────────────
-router.post("/register", register);
-router.post("/login",    login);
-router.get("/me",        authMiddleware, getMe);
+router.post("/register",         register);
+router.post("/login",            login);
+router.get("/me",                authMiddleware, getMe);
+router.put("/profile",           authMiddleware, updateProfile);
+router.put("/change-password",   authMiddleware, changePassword);
 
 // ── Google OAuth ──────────────────────────────────────────────────────────
 router.get("/google", passport.authenticate("google", { scope: ["profile", "email"] }));

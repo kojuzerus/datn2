@@ -59,3 +59,53 @@ exports.getMe = async (req, res) => {
     res.status(500).json({ message: "Lỗi server" });
   }
 };
+
+// ── Cập nhật thông tin user ───────────────────────────────────────────────
+exports.updateProfile = async (req, res) => {
+  try {
+    const { hoTen, ngaySinh, email } = req.body;
+    const update = {};
+    if (hoTen?.trim())  update.hoTen    = hoTen.trim();
+    if (ngaySinh)       update.ngaySinh = ngaySinh;
+    if (email !== undefined) {
+      if (email && email.trim()) {
+        const existing = await User.findOne({ email: email.trim().toLowerCase(), _id: { $ne: req.userId } });
+        if (existing) return res.status(400).json({ message: "Email đã được sử dụng bởi tài khoản khác" });
+        update.email = email.trim().toLowerCase();
+      } else {
+        update.email = null;
+      }
+    }
+    const user = await User.findByIdAndUpdate(req.userId, update, { new: true }).select("-matKhau");
+    if (!user) return res.status(404).json({ message: "Không tìm thấy người dùng" });
+    res.json({ message: "Cập nhật thành công", user });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Lỗi server" });
+  }
+};
+
+// ── Đổi mật khẩu ─────────────────────────────────────────────────────────
+exports.changePassword = async (req, res) => {
+  try {
+    const { matKhauCu, matKhauMoi } = req.body;
+    if (!matKhauCu || !matKhauMoi)
+      return res.status(400).json({ message: "Vui lòng điền đầy đủ thông tin" });
+    if (matKhauMoi.length < 6)
+      return res.status(400).json({ message: "Mật khẩu mới phải có ít nhất 6 ký tự" });
+
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ message: "Không tìm thấy người dùng" });
+    if (!user.matKhau) return res.status(400).json({ message: "Tài khoản này không dùng mật khẩu" });
+
+    const ok = await bcrypt.compare(matKhauCu, user.matKhau);
+    if (!ok) return res.status(400).json({ message: "Mật khẩu cũ không đúng" });
+
+    user.matKhau = await bcrypt.hash(matKhauMoi, 10);
+    await user.save();
+    res.json({ message: "Đổi mật khẩu thành công" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Lỗi server" });
+  }
+};
