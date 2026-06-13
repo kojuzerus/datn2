@@ -291,7 +291,23 @@ export default function ProductsPage() {
         return next;
       });
 
-      showToast("success", "AI đã điền đầy đủ thông tin sản phẩm!");
+      showToast("success", "AI đã điền thông tin, đang tìm ảnh...");
+
+      // Tự động tìm ảnh sản phẩm
+      try {
+        const imgRes  = await fetch(`${API_BASE}/api/ai/search-image`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: form.product_name }),
+        });
+        const imgJson = await imgRes.json();
+        if (imgJson.success && imgJson.imageUrl) {
+          setForm((prev) => ({ ...prev, thumbnail: imgJson.imageUrl }));
+          showToast("success", "Đã tìm được ảnh sản phẩm!");
+        }
+      } catch {
+        // Không tìm được ảnh - không block luồng chính
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Lỗi không xác định";
       showToast("error", "AI lỗi: " + msg);

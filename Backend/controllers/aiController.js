@@ -1,4 +1,52 @@
-const Groq = require("groq-sdk");
+const Groq  = require("groq-sdk");
+const axios = require("axios");
+
+exports.searchImage = async (req, res) => {
+  const { name } = req.body;
+  if (!name?.trim()) {
+    return res.status(400).json({ success: false, message: "Thiếu tên sản phẩm" });
+  }
+
+  const apiKey = process.env.GOOGLE_SEARCH_API_KEY;
+  const cx     = process.env.GOOGLE_SEARCH_CX;
+  if (!apiKey || !cx) {
+    return res.status(500).json({ success: false, message: "Chưa cấu hình GOOGLE_SEARCH_API_KEY / GOOGLE_SEARCH_CX" });
+  }
+
+  try {
+    const { data } = await axios.get("https://www.googleapis.com/customsearch/v1", {
+      params: {
+        key:        apiKey,
+        cx,
+        q:          `${name} official product image`,
+        searchType: "image",
+        num:        5,
+        imgType:    "photo",
+        imgSize:    "large",
+        safe:       "active",
+      },
+    });
+
+    const items = data.items || [];
+    if (!items.length) {
+      return res.json({ success: false, message: "Không tìm thấy ảnh" });
+    }
+
+    // Ưu tiên ảnh từ trang chính hãng hoặc thương mại uy tín
+    const trusted = [
+      "apple.com", "samsung.com", "sony.com", "lg.com",
+      "amazon.com", "bestbuy.com", "tgdd.vn", "cellphones.com.vn",
+    ];
+    const best = items.find(item =>
+      trusted.some(domain => item.displayLink?.includes(domain))
+    ) || items[0];
+
+    res.json({ success: true, imageUrl: best.link });
+  } catch (err) {
+    const msg = err.response?.data?.error?.message || err.message;
+    res.status(500).json({ success: false, message: msg });
+  }
+};
 
 exports.generateProduct = async (req, res) => {
   const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
