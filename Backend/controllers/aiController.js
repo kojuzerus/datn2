@@ -1,8 +1,7 @@
 const Groq = require("groq-sdk");
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-
 exports.generateProduct = async (req, res) => {
+  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
   const { name, category } = req.body;
 
   if (!name?.trim()) {
