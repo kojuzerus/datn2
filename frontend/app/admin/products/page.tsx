@@ -267,12 +267,17 @@ export default function ProductsPage() {
 
         // Auto-thêm biến thể
         if (Array.isArray(d.variants) && d.variants.length) {
-          next.variants = d.variants.map((v: any) => ({
-            color:          String(v.color || ""),
-            price:          String(v.price || 0),
-            sale_price:     v.sale_price != null ? String(v.sale_price) : "",
-            stock_quantity: String(v.stock_quantity || 0),
-          }));
+          next.variants = d.variants.map((v: any) => {
+            const price = Number(v.price) || 0;
+            const sp    = Number(v.sale_price);
+            const validSale = sp > 0 && sp < price;
+            return {
+              color:          String(v.color || ""),
+              price:          String(price),
+              sale_price:     validSale ? String(sp) : "",
+              stock_quantity: String(Number(v.stock_quantity) || 0),
+            };
+          });
         }
 
         // Auto-điền thông số kỹ thuật
@@ -878,7 +883,7 @@ export default function ProductsPage() {
             </div>
 
             {/* Modal body */}
-            <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-5">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden p-6 flex flex-col gap-5">
 
               {/* Section: Thông tin cơ bản */}
               <div>
@@ -1030,13 +1035,13 @@ export default function ProductsPage() {
                         value={s.label}
                         onChange={(e) => updateSpec(idx, "label", e.target.value)}
                         placeholder="VD: CPU, RAM, Pin..."
-                        className="border border-gray-200 rounded-lg px-2.5 py-2 text-[13px] outline-none focus:border-[#D32F2F] bg-white font-sans"
+                        className="min-w-0 border border-gray-200 rounded-lg px-2.5 py-2 text-[13px] outline-none focus:border-[#D32F2F] bg-white font-sans"
                       />
                       <input
                         value={s.value}
                         onChange={(e) => updateSpec(idx, "value", e.target.value)}
                         placeholder="VD: Apple A17 Pro, 8GB..."
-                        className="border border-gray-200 rounded-lg px-2.5 py-2 text-[13px] outline-none focus:border-[#D32F2F] bg-white font-sans"
+                        className="min-w-0 border border-gray-200 rounded-lg px-2.5 py-2 text-[13px] outline-none focus:border-[#D32F2F] bg-white font-sans"
                       />
                       <button
                         onClick={() => removeSpec(idx)}
@@ -1072,28 +1077,28 @@ export default function ProductsPage() {
                         value={v.color}
                         onChange={(e) => updateVariant(idx, "color", e.target.value)}
                         placeholder="Đen"
-                        className="border border-gray-200 rounded-lg px-2.5 py-2 text-[13px] outline-none focus:border-[#D32F2F] bg-white font-sans"
+                        className="min-w-0 border border-gray-200 rounded-lg px-2.5 py-2 text-[13px] outline-none focus:border-[#D32F2F] bg-white font-sans"
                       />
                       <input
                         type="number"
                         value={v.price}
                         onChange={(e) => updateVariant(idx, "price", e.target.value)}
                         placeholder="0"
-                        className="border border-gray-200 rounded-lg px-2.5 py-2 text-[13px] outline-none focus:border-[#D32F2F] bg-white font-sans"
+                        className="min-w-0 border border-gray-200 rounded-lg px-2.5 py-2 text-[13px] outline-none focus:border-[#D32F2F] bg-white font-sans"
                       />
                       <input
                         type="number"
                         value={v.sale_price}
                         onChange={(e) => updateVariant(idx, "sale_price", e.target.value)}
-                        placeholder="—"
-                        className="border border-gray-200 rounded-lg px-2.5 py-2 text-[13px] outline-none focus:border-[#D32F2F] bg-white font-sans"
+                        placeholder=""
+                        className="min-w-0 border border-gray-200 rounded-lg px-2.5 py-2 text-[13px] outline-none focus:border-[#D32F2F] bg-white font-sans"
                       />
                       <input
                         type="number"
                         value={v.stock_quantity}
                         onChange={(e) => updateVariant(idx, "stock_quantity", e.target.value)}
                         placeholder="0"
-                        className="border border-gray-200 rounded-lg px-2.5 py-2 text-[13px] outline-none focus:border-[#D32F2F] bg-white font-sans"
+                        className="min-w-0 border border-gray-200 rounded-lg px-2.5 py-2 text-[13px] outline-none focus:border-[#D32F2F] bg-white font-sans"
                       />
                       <button
                         onClick={() => removeVariant(idx)}
