@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 export function useCart() {
   const [adding, setAdding] = useState(false);
@@ -25,7 +25,7 @@ export function useCart() {
 
     setAdding(true);
     try {
-      const res = await fetch(`${API_URL}/cart/add`, {
+      const res = await fetch(`${API_URL}/api/cart/add`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
