@@ -304,9 +304,12 @@ export default function ProductsPage() {
         if (imgJson.success && imgJson.imageUrl) {
           setForm((prev) => ({ ...prev, thumbnail: imgJson.imageUrl }));
           showToast("success", "Đã tìm được ảnh sản phẩm!");
+        } else {
+          showToast("error", "Tìm ảnh thất bại: " + (imgJson.message || "Không rõ lỗi"));
         }
-      } catch {
-        // Không tìm được ảnh - không block luồng chính
+      } catch (imgErr: unknown) {
+        const m = imgErr instanceof Error ? imgErr.message : "Lỗi kết nối";
+        showToast("error", "Lỗi tìm ảnh: " + m);
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Lỗi không xác định";
