@@ -9,6 +9,7 @@ import {
   ShoppingCart, Heart, Share2, Package, CheckCircle2,
   CreditCard, Gift, ThumbsUp, MessageSquare,
 } from "lucide-react";
+import { useCart } from "../../../hooks/useCart";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -139,6 +140,7 @@ export default function ProductDetailPage() {
   const [descExpanded, setDescExpanded]     = useState(false);
 
   const tabRef = useRef<HTMLDivElement>(null);
+  const { addToCart, adding } = useCart();
 
   useEffect(() => {
     if (!slug) return;
@@ -170,9 +172,20 @@ export default function ProductDetailPage() {
     ? [product.thumbnail, ...(product.images || [])].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i)
     : [];
 
-  const handleAddToCart = () => {
-    setAddedToCart(true);
-    setTimeout(() => setAddedToCart(false), 2000);
+  const handleAddToCart = async () => {
+    if (!product || !inStock) return;
+    const success = await addToCart({
+      productId: String(product.id),
+      tenSanPham: product.ten,
+      hinhAnh: product.thumbnail,
+      gia: displayPrice,
+      soLuong: qty,
+      variant: selectedVariant?.color || "",
+    });
+    if (success) {
+      setAddedToCart(true);
+      setTimeout(() => setAddedToCart(false), 2000);
+    }
   };
 
   const scrollToTab = (tab: TabKey) => {
@@ -527,18 +540,18 @@ export default function ProductDetailPage() {
 
             <div className="flex gap-2.5">
               <button
-                disabled={!inStock}
+                disabled={!inStock || adding}
                 onClick={handleAddToCart}
                 className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[13.5px] font-semibold border-2 transition-all ${
                   addedToCart
                     ? "border-green-500 bg-green-50 text-green-700"
-                    : inStock
+                    : inStock && !adding
                     ? "border-red-500 text-red-600 hover:bg-red-50"
                     : "border-gray-200 text-gray-300 cursor-not-allowed"
                 }`}
               >
                 <ShoppingCart className="w-4 h-4" />
-                {addedToCart ? "Đã thêm vào giỏ!" : "Thêm vào giỏ hàng"}
+                {adding ? "Đang thêm..." : addedToCart ? "Đã thêm vào giỏ!" : "Thêm vào giỏ hàng"}
               </button>
               <button
                 onClick={() => setWishlist((w) => !w)}
