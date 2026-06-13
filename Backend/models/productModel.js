@@ -43,6 +43,12 @@ const productSchema = new mongoose.Schema(
 
     // Badge hiển thị ngoài FE
     badge:             { type: String, default: "" },
+
+    // Thông số kỹ thuật [{label, value}]
+    specification: [{
+      label: { type: String, default: "" },
+      value: { type: String, default: "" },
+    }],
   },
   {
     timestamps: { createdAt: "created_at", updatedAt: "updated_at" },
