@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 interface CartItem {
   _id: string;
@@ -31,7 +31,7 @@ export default function GioHangPage() {
   const fetchCart = async () => {
     if (!token) { setLoading(false); return; }
     try {
-      const res = await fetch(`${API_URL}/cart`, {
+      const res = await fetch(`${API_URL}/api/cart`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -46,7 +46,7 @@ export default function GioHangPage() {
     if (soLuong < 1) return;
     setUpdating(itemId);
     try {
-      const res = await fetch(`${API_URL}/cart/item/${itemId}`, {
+      const res = await fetch(`${API_URL}/api/cart/item/${itemId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ soLuong }),
@@ -60,7 +60,7 @@ export default function GioHangPage() {
   const removeItem = async (itemId: string) => {
     setUpdating(itemId);
     try {
-      const res = await fetch(`${API_URL}/cart/item/${itemId}`, {
+      const res = await fetch(`${API_URL}/api/cart/item/${itemId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -73,7 +73,7 @@ export default function GioHangPage() {
   const clearCart = async () => {
     if (!confirm('Bạn có chắc muốn xóa toàn bộ giỏ hàng?')) return;
     try {
-      await fetch(`${API_URL}/cart/clear`, {
+      await fetch(`${API_URL}/api/cart/clear`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
