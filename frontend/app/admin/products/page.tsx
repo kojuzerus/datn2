@@ -57,7 +57,11 @@ interface ProductForm {
   thumbnail: string;
   status: "active" | "inactive";
   variants: { color: string; price: string; sale_price: string; stock_quantity: string }[];
+  specification: { label: string; value: string }[];
 }
+
+interface CategoryOption { category_id: number; category_name: string; }
+interface BrandOption    { brand_id: number;    brand_name: string;    }
 
 interface Toast {
   id: number;
@@ -77,6 +81,7 @@ const EMPTY_FORM: ProductForm = {
   warranty: "", badge: "", short_description: "", thumbnail: "",
   status: "active",
   variants: [{ color: "", price: "", sale_price: "", stock_quantity: "" }],
+  specification: [],
 };
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -192,6 +197,10 @@ export default function ProductsPage() {
   const [page, setPage]                 = useState(1);
   const [limit, setLimit]               = useState(10);
 
+  // Categories & Brands
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
+  const [brands, setBrands]         = useState<BrandOption[]>([]);
+
   // Modal
   const [modalOpen, setModalOpen] = useState(false);
   const [editId, setEditId]       = useState<number | null>(null);
@@ -218,7 +227,6 @@ export default function ProductsPage() {
     }
     setAiLoading(true);
     try {
-      const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
       const res  = await fetch(`${API_BASE}/api/ai/generate-product`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -227,14 +235,58 @@ export default function ProductsPage() {
       const json = await res.json();
       if (!json.success) throw new Error(json.message);
       const d = json.data;
-      setForm((prev) => ({
-        ...prev,
-        short_description: d.short_description || prev.short_description,
-        badge:             d.badge             || prev.badge,
-        warranty:          d.warranty          || prev.warranty,
-        sku:               d.sku               || prev.sku,
-      }));
-      showToast("success", "AI đã điền thông tin sản phẩm!");
+
+      setForm((prev) => {
+        const next = { ...prev };
+
+        // Điền các field text
+        if (d.short_description) next.short_description = d.short_description;
+        if (d.badge)             next.badge             = d.badge;
+        if (d.warranty)          next.warranty          = d.warranty;
+        if (d.sku)               next.sku               = d.sku;
+
+        // Auto-chọn danh mục
+        if (d.category_name && categories.length) {
+          const name = d.category_name.toLowerCase();
+          const found = categories.find(c =>
+            c.category_name.toLowerCase().includes(name) ||
+            name.includes(c.category_name.toLowerCase())
+          );
+          if (found) next.category_id = String(found.category_id);
+        }
+
+        // Auto-chọn thương hiệu
+        if (d.brand_name && brands.length) {
+          const name = d.brand_name.toLowerCase();
+          const found = brands.find(b =>
+            b.brand_name.toLowerCase().includes(name) ||
+            name.includes(b.brand_name.toLowerCase())
+          );
+          if (found) next.brand_id = String(found.brand_id);
+        }
+
+        // Auto-thêm biến thể
+        if (Array.isArray(d.variants) && d.variants.length) {
+          next.variants = d.variants.map((v: any) => ({
+            color:          String(v.color || ""),
+            price:          String(v.price || 0),
+            sale_price:     v.sale_price != null ? String(v.sale_price) : "",
+            stock_quantity: String(v.stock_quantity || 0),
+          }));
+        }
+
+        // Auto-điền thông số kỹ thuật
+        if (Array.isArray(d.specification) && d.specification.length) {
+          next.specification = d.specification.map((s: any) => ({
+            label: String(s.label || ""),
+            value: String(s.value || ""),
+          }));
+        }
+
+        return next;
+      });
+
+      showToast("success", "AI đã điền đầy đủ thông tin sản phẩm!");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Lỗi không xác định";
       showToast("error", "AI lỗi: " + msg);
@@ -286,6 +338,16 @@ export default function ProductsPage() {
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
+  useEffect(() => {
+    Promise.all([
+      fetch(`${API_BASE}/api/categories`).then(r => r.json()),
+      fetch(`${API_BASE}/api/brands`).then(r => r.json()),
+    ]).then(([catJson, brandJson]) => {
+      if (catJson.success)   setCategories(catJson.data);
+      if (brandJson.success) setBrands(brandJson.data);
+    }).catch(() => {});
+  }, []);
+
   // ── Form helpers ──────────────────────────────────────────────────────────
   const openAdd = () => {
     setEditId(null);
@@ -313,6 +375,9 @@ export default function ProductsPage() {
             stock_quantity: String(v.stock_quantity),
           }))
         : [{ color: "", price: "", sale_price: "", stock_quantity: "" }],
+      specification: (p as any).specification?.length
+        ? (p as any).specification.map((s: any) => ({ label: s.label || "", value: s.value || "" }))
+        : [],
     });
     setModalOpen(true);
   };
@@ -334,6 +399,19 @@ export default function ProductsPage() {
       const variants = [...f.variants];
       variants[i] = { ...variants[i], [k]: v };
       return { ...f, variants };
+    });
+
+  const addSpec = () =>
+    setForm((f) => ({ ...f, specification: [...f.specification, { label: "", value: "" }] }));
+
+  const removeSpec = (i: number) =>
+    setForm((f) => ({ ...f, specification: f.specification.filter((_, idx) => idx !== i) }));
+
+  const updateSpec = (i: number, k: "label" | "value", v: string) =>
+    setForm((f) => {
+      const specification = [...f.specification];
+      specification[i] = { ...specification[i], [k]: v };
+      return { ...f, specification };
     });
 
   // ── Save ──────────────────────────────────────────────────────────────────
@@ -360,6 +438,7 @@ export default function ProductsPage() {
           sale_price:     v.sale_price ? parseFloat(v.sale_price) : null,
           stock_quantity: parseInt(v.stock_quantity)   || 0,
         })),
+        specification: form.specification.filter(s => s.label.trim() || s.value.trim()),
       };
       const url    = editId ? `${API_BASE}/api/products/${editId}` : `${API_BASE}/api/products`;
       const method = editId ? "PUT" : "POST";
@@ -838,22 +917,18 @@ export default function ProductsPage() {
                     <FormLabel>Danh mục</FormLabel>
                     <select value={form.category_id} onChange={(e) => setField("category_id", e.target.value)} className={inputCls}>
                       <option value="">-- Chọn danh mục --</option>
-                      <option value="1">Điện thoại</option>
-                      <option value="2">Laptop</option>
-                      <option value="3">Phụ kiện</option>
-                      <option value="4">Tivi</option>
-                      <option value="5">Máy tính bảng</option>
+                      {categories.map(c => (
+                        <option key={c.category_id} value={String(c.category_id)}>{c.category_name}</option>
+                      ))}
                     </select>
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <FormLabel>Thương hiệu</FormLabel>
                     <select value={form.brand_id} onChange={(e) => setField("brand_id", e.target.value)} className={inputCls}>
                       <option value="">-- Chọn thương hiệu --</option>
-                      <option value="1">Samsung</option>
-                      <option value="2">Apple</option>
-                      <option value="3">Sony</option>
-                      <option value="4">LG</option>
-                      <option value="5">Xiaomi</option>
+                      {brands.map(b => (
+                        <option key={b.brand_id} value={String(b.brand_id)}>{b.brand_name}</option>
+                      ))}
                     </select>
                   </div>
                 </div>
@@ -933,6 +1008,50 @@ export default function ProductsPage() {
                       <option value="inactive">Ngừng bán</option>
                     </select>
                   </div>
+                </div>
+              </div>
+
+              {/* Section: Thông số kỹ thuật */}
+              <div>
+                <div className="text-[11.5px] font-bold text-gray-400 uppercase tracking-[1px] mb-3 flex items-center gap-2">
+                  <span className="w-4 h-px bg-gray-300" /> Thông số kỹ thuật <span className="flex-1 h-px bg-gray-100" />
+                </div>
+                <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                  {form.specification.length > 0 && (
+                    <div className="grid gap-2 mb-3" style={{ gridTemplateColumns: "1fr 1fr 32px" }}>
+                      {["Tên thông số", "Giá trị", ""].map((h) => (
+                        <span key={h} className="text-[10.5px] text-gray-400 font-bold uppercase tracking-[0.5px]">{h}</span>
+                      ))}
+                    </div>
+                  )}
+                  {form.specification.map((s, idx) => (
+                    <div key={idx} className="grid gap-2 mb-2 items-center" style={{ gridTemplateColumns: "1fr 1fr 32px" }}>
+                      <input
+                        value={s.label}
+                        onChange={(e) => updateSpec(idx, "label", e.target.value)}
+                        placeholder="VD: CPU, RAM, Pin..."
+                        className="border border-gray-200 rounded-lg px-2.5 py-2 text-[13px] outline-none focus:border-[#D32F2F] bg-white font-sans"
+                      />
+                      <input
+                        value={s.value}
+                        onChange={(e) => updateSpec(idx, "value", e.target.value)}
+                        placeholder="VD: Apple A17 Pro, 8GB..."
+                        className="border border-gray-200 rounded-lg px-2.5 py-2 text-[13px] outline-none focus:border-[#D32F2F] bg-white font-sans"
+                      />
+                      <button
+                        onClick={() => removeSpec(idx)}
+                        className="w-7 h-7 border border-red-200 rounded-lg bg-red-50 hover:bg-red-100 cursor-pointer flex items-center justify-center transition-colors"
+                      >
+                        <X size={12} className="text-red-600" />
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    onClick={addSpec}
+                    className="w-full py-2 border-2 border-dashed border-gray-300 hover:border-[#D32F2F] rounded-xl text-[13px] text-gray-500 hover:text-[#D32F2F] cursor-pointer bg-transparent transition-colors flex items-center justify-center gap-2 mt-1"
+                  >
+                    <Plus size={14} /> Thêm thông số
+                  </button>
                 </div>
               </div>
 
