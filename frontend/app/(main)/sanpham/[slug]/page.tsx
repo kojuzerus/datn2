@@ -7,9 +7,10 @@ import {
   Star, ShieldCheck, Truck, RefreshCw, Headphones,
   ChevronRight, Home, ChevronLeft, ChevronDown, ChevronUp,
   ShoppingCart, Heart, Share2, Package, CheckCircle2,
-  CreditCard, Gift, ThumbsUp, MessageSquare,
+  CreditCard, Gift, ThumbsUp, MessageSquare, Repeat,
 } from "lucide-react";
 import { useCart } from "../../../hooks/useCart";
+import { useComparison } from "../../../components/comparisonContext";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -141,6 +142,7 @@ export default function ProductDetailPage() {
 
   const tabRef = useRef<HTMLDivElement>(null);
   const { addToCart, adding } = useCart();
+  const { addItem, removeItem, isInComparison } = useComparison();
 
   useEffect(() => {
     if (!slug) return;
@@ -562,6 +564,29 @@ export default function ProductDetailPage() {
               >
                 <Heart className={`w-4.5 h-4.5 ${wishlist ? "fill-red-500" : ""}`} />
               </button>
+              {product && (() => {
+                const inCompare = isInComparison(product.id);
+                return (
+                  <button
+                    onClick={() => inCompare
+                      ? removeItem(product.id)
+                      : addItem({
+                          id: product.id, ten: product.ten, slug: product.slug,
+                          thumbnail: product.thumbnail, gia: product.gia,
+                          giaSale: product.giaSale, giamGia: product.giamGia,
+                          danhGia: product.danhGia, thuongHieu: product.thuongHieu,
+                          categoryName: product.categoryName,
+                        })
+                    }
+                    title={inCompare ? "Đang so sánh" : "So sánh sản phẩm"}
+                    className={`w-11 h-11 flex-shrink-0 border-2 rounded-xl flex items-center justify-center transition-all ${
+                      inCompare ? "border-red-400 bg-red-50 text-red-500" : "border-gray-200 text-gray-400 hover:border-red-300"
+                    }`}
+                  >
+                    <Repeat className="w-4 h-4" />
+                  </button>
+                );
+              })()}
             </div>
           </div>
 

@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@variant dark (&:is(.dark, .dark *));
 
 :root {
   --background: #f3f6f9;
@@ -57,4 +58,81 @@ body {
 /* Small helpers used in header/footer */
 .text-amber-400\/70 { color: rgba(56,189,248,0.7) !important; }
 .text-amber-400\/60 { color: rgba(56,189,248,0.6) !important; }
+
+/* ── Dark mode global overrides ──────────────────────────────── */
+html.dark {
+  color-scheme: dark;
+}
+
+html.dark body {
+  background-color: #0f172a;
+  color: #f1f5f9;
+}
+
+html.dark .bg-white {
+  background-color: #1e293b !important;
+}
+
+html.dark .bg-gray-50 {
+  background-color: #0f172a !important;
+}
+
+html.dark .bg-gray-100 {
+  background-color: #1e293b !important;
+}
+
+html.dark .bg-gray-200 {
+  background-color: #334155 !important;
+}
+
+html.dark .border-gray-100 {
+  border-color: #334155 !important;
+}
+
+html.dark .border-gray-200 {
+  border-color: #475569 !important;
+}
+
+html.dark .text-gray-900 {
+  color: #f1f5f9 !important;
+}
+
+html.dark .text-gray-800 {
+  color: #e2e8f0 !important;
+}
+
+html.dark .text-gray-700 {
+  color: #cbd5e1 !important;
+}
+
+html.dark .text-gray-600 {
+  color: #94a3b8 !important;
+}
+
+html.dark .text-gray-500 {
+  color: #64748b !important;
+}
+
+html.dark .text-gray-400 {
+  color: #475569 !important;
+}
+
+html.dark .shadow-sm,
+html.dark .shadow-lg,
+html.dark .shadow-xl {
+  --tw-shadow-color: rgb(0 0 0 / 0.5);
+}
+
+html.dark input,
+html.dark textarea,
+html.dark select {
+  background-color: #1e293b;
+  color: #f1f5f9;
+  border-color: #475569;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #64748b;
+}
 
