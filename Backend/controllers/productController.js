@@ -128,23 +128,29 @@ function getPrimaryImage(p) {
 function formatProduct(p) {
   const { price, sale_price, discount_pct } = getDisplayPrice(p.variants);
   return {
-    id:           p.product_id,
-    ten:          p.product_name,
-    slug:         p.slug,
-    thuongHieu:   p.brand_name || "",
-    thumbnail:    getPrimaryImage(p),
-    images:       (p.product_images || []).map((img) => normalizeImageUrl(img.image_url)),
-    moTa:         p.short_description || "",
-    gia:          price,
-    giaSale:      sale_price,
-    giamGia:      discount_pct,
-    danhGia:      p.avg_rating || 0,
-    luotDanhGia:  p.review_count || 0,
-    luotBan:      p.total_sold || 0,
-    badge:        p.badge || "",
-    categoryName: p.category_name || "",
-    warranty:     p.warranty || "",
-    variants:     p.variants,
+    id:            p.product_id,
+    ten:           p.product_name,
+    slug:          p.slug,
+    thuongHieu:    p.brand_name || "",
+    thumbnail:     getPrimaryImage(p),
+    images:        (p.product_images || []).map((img) => normalizeImageUrl(img.image_url)),
+    moTa:          p.short_description || "",
+    gia:           price,
+    giaSale:       sale_price,
+    giamGia:       discount_pct,
+    danhGia:       p.avg_rating || 0,
+    luotDanhGia:   p.review_count || 0,
+    luotBan:       p.total_sold || 0,
+    badge:         p.badge || "",
+    categoryName:  p.category_name || "",
+    warranty:      p.warranty || "",
+    variants:      p.variants,
+    // Admin fields
+    sku:           p.sku || "",
+    status:        p.status || "active",
+    category_id:   p.category_id ?? null,
+    brand_id:      p.brand_id ?? null,
+    specification: p.specification || [],
   };
 }
 
@@ -294,6 +300,7 @@ exports.createProduct = async (req, res) => {
       product_name, sku = "", category_id, brand_id,
       warranty = "", badge = "", short_description = "",
       thumbnail = "", status = "active", variants = [],
+      specification = [],
     } = req.body;
 
     if (!product_name?.trim())
@@ -335,6 +342,7 @@ exports.createProduct = async (req, res) => {
       brand_name:    brand?.brand_name       || "",
       category_name: category?.category_name || "",
       variants:      builtVariants,
+      specification: (specification || []).filter(s => s.label?.trim() || s.value?.trim()),
     });
 
     // Also persist to separate product_variants collection
@@ -361,6 +369,7 @@ exports.updateProduct = async (req, res) => {
     const {
       product_name, sku, category_id, brand_id,
       warranty, badge, short_description, thumbnail, status, variants = [],
+      specification,
     } = req.body;
 
     const [brand, category] = await Promise.all([
@@ -405,6 +414,9 @@ exports.updateProduct = async (req, res) => {
         brand_name:    brand?.brand_name       || existing.brand_name,
         category_name: category?.category_name || existing.category_name,
         variants:      builtVariants,
+        ...(specification !== undefined && {
+          specification: specification.filter(s => s.label?.trim() || s.value?.trim()),
+        }),
       },
       { new: true }
     ).lean();

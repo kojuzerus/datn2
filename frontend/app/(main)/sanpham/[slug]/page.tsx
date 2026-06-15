@@ -31,6 +31,7 @@ interface Product {
   giamGia: number; danhGia: number; luotDanhGia: number;
   luotBan: number; badge: string; categoryName: string;
   warranty: string; variants: Variant[];
+  specification?: { label: string; value: string }[];
 }
 
 /* ── Helpers ────────────────────────────────────────────────────────────── */
@@ -682,6 +683,24 @@ export default function ProductDetailPage() {
                 <span className="text-[13px] text-gray-800 font-medium">{row.value}</span>
               </div>
             ))}
+
+            {product.specification && product.specification.length > 0 && (
+              <>
+                <div className="bg-gray-50 px-6 py-3 border-b border-gray-100">
+                  <p className="text-[12.5px] font-bold text-gray-600 uppercase tracking-wide">Thông số kỹ thuật</p>
+                </div>
+                {product.specification.map((spec, i) => (
+                  <div
+                    key={i}
+                    className={`flex items-center px-6 py-3 border-b border-gray-100 ${i % 2 === 0 ? "bg-white" : "bg-gray-50/40"}`}
+                  >
+                    <span className="w-2/5 text-[13px] text-gray-500 shrink-0">{spec.label}</span>
+                    <span className="text-[13px] text-gray-800 font-medium">{spec.value}</span>
+                  </div>
+                ))}
+              </>
+            )}
+
             {product.variants?.length > 0 && (
               <>
                 <div className="bg-gray-50 px-6 py-3 border-b border-gray-100">
@@ -704,9 +723,12 @@ export default function ProductDetailPage() {
                 ))}
               </>
             )}
-            <div className="px-6 py-4 bg-yellow-50/40 border-t border-yellow-100">
-              <p className="text-[12px] text-yellow-700">Thông số kỹ thuật chi tiết đang được cập nhật. Vui lòng liên hệ hotline để biết thêm thông tin.</p>
-            </div>
+
+            {(!product.specification || product.specification.length === 0) && (
+              <div className="px-6 py-4 bg-yellow-50/40 border-t border-yellow-100">
+                <p className="text-[12px] text-yellow-700">Thông số kỹ thuật chi tiết đang được cập nhật. Vui lòng liên hệ hotline để biết thêm thông tin.</p>
+              </div>
+            )}
           </div>
         )}
 
