@@ -22,3 +22,5 @@ mới sửa lại một tí về header và footer trang admin. từ nay dùng c
  
  
  làm lại trang giỏ hàng, làm thêm trang thanh toán(Phuoc)
+
+làm trang profile cập nhật địa chit người dùng(Phước)
