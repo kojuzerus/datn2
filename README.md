@@ -19,3 +19,4 @@ mới sửa lại một tí về header và footer trang admin. từ nay dùng c
  Đã thêm trang sp và chi tiết. có chức năng tìm kiếm rồi nhé, tuy nhiên hãy cải tiến trang sản phẩm vì nó chưa hợp lí lắm. đã có thể crud rồi nhé lỗi thì note phía dưới nhé .(mk)
  
  Xem tất cả sản phẩm, chức năng sắp xếp và phân trang(KLinh)
+ làm lại trang giỏ hàng, làm thêm trang thanh toán
