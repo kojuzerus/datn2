@@ -3,8 +3,8 @@ const mongoose = require("mongoose");
 
 const variantSchema = new mongoose.Schema(
   {
-    variant_id:     { type: Number, required: true, unique: true },
-    product_id:     { type: Number, required: true, index: true },
+    variant_id:     { type: Number, required: true },
+    product_id:     { type: Number, required: true },
     color:          { type: String, default: "" },
     price:          { type: Number, required: true },
     sale_price:     { type: Number, default: null },
@@ -13,8 +13,14 @@ const variantSchema = new mongoose.Schema(
   },
   {
     timestamps: { createdAt: "created_at", updatedAt: "updated_at" },
-    collection: "product_variants",   // ← đúng tên collection trong MongoDB
+    collection: "product_variants",
   }
+);
+
+// Không cho phép trùng variant_id trong cùng 1 product
+variantSchema.index(
+  { product_id: 1, variant_id: 1 },
+  { unique: true }
 );
 
 module.exports = mongoose.model("Variant", variantSchema);
