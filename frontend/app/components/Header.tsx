@@ -10,6 +10,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Logo from "./Logo";
 import MegaMenuButton from "./Megamenu";
+import { useComparison } from "./comparisonContext";
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 
@@ -65,6 +66,7 @@ const fmtPrice = (n: number) =>
 export default function Header() {
   const cartItems: unknown[] = [];
   const cartCount = 0;
+  const { items: compareItems } = useComparison();
 
   const [mobileOpen,      setMobileOpen]      = useState(false);
   const [showUserMenu,    setShowUserMenu]    = useState(false);
@@ -256,10 +258,10 @@ export default function Header() {
   const showDropdown  = showTrending || showResults || (suggestLoading && !!searchInput.trim());
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-white shadow-sm">
+    <header className="sticky top-0 z-50 w-full bg-white dark:bg-slate-900 shadow-sm dark:shadow-slate-900/50">
 
       {/* ── Top bar ── */}
-      <div className="bg-red-700">
+      <div className="bg-red-700 dark:bg-red-900">
         <div className="max-w-screen-xl mx-auto px-6 py-1.5 flex items-center justify-between">
           <span className="text-xs text-red-200">
             Chào mừng đến với{" "}
@@ -277,7 +279,7 @@ export default function Header() {
       </div>
 
       {/* ── Main header ── */}
-      <div className="bg-white border-b border-gray-100">
+      <div className="bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-slate-700">
         <div className="max-w-screen-xl mx-auto px-6 py-3 flex items-center gap-4">
 
           <Logo className="flex-shrink-0" />
@@ -293,7 +295,7 @@ export default function Header() {
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
                 onFocus={() => setInputFocused(true)}
-                className="w-full bg-gray-50 text-gray-800 placeholder-gray-400 pl-4 pr-12 py-2.5 rounded-xl text-sm outline-none border border-gray-200 focus:border-red-400 focus:bg-white transition-all"
+                className="w-full bg-gray-50 dark:bg-slate-800 text-gray-800 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 pl-4 pr-12 py-2.5 rounded-xl text-sm outline-none border border-gray-200 dark:border-slate-600 focus:border-red-400 focus:bg-white dark:focus:bg-slate-700 transition-all"
                 autoComplete="off"
               />
               <button
@@ -306,7 +308,7 @@ export default function Header() {
 
             {/* Suggestions / Trending dropdown */}
             {showDropdown && (
-              <div className="absolute top-[calc(100%+6px)] left-0 right-0 bg-white border border-gray-100 rounded-2xl shadow-xl z-50 overflow-hidden">
+              <div className="absolute top-[calc(100%+6px)] left-0 right-0 bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl shadow-xl z-50 overflow-hidden">
 
                 {/* ── Trending (empty input) ── */}
                 {showTrending && (
@@ -404,12 +406,18 @@ export default function Header() {
           {/* Right actions */}
           <div className="hidden md:flex items-center gap-1.5">
 
-            <button
-              title="So sánh"
-              className="w-10 h-10 flex items-center justify-center rounded-xl text-gray-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-100 transition-all"
+            <Link
+              href="/sosanh"
+              title="So sánh sản phẩm"
+              className="w-10 h-10 flex items-center justify-center rounded-xl text-gray-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-100 transition-all relative"
             >
               <Repeat className="w-5 h-5" />
-            </button>
+              {compareItems.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full">
+                  {compareItems.length}
+                </span>
+              )}
+            </Link>
 
             <Link
               href="/giohang"
@@ -434,7 +442,7 @@ export default function Header() {
                   <User className="w-5 h-5" />
                 </button>
                 {showUserMenu && (
-                  <div className="absolute right-0 mt-2 w-52 bg-white border border-gray-200 rounded-xl shadow-lg py-1.5 z-50">
+                  <div className="absolute right-0 mt-2 w-52 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-lg py-1.5 z-50">
                     <Link
                       href="/nguoidung"
                       onClick={() => setShowUserMenu(false)}
@@ -490,7 +498,7 @@ export default function Header() {
       </div>
 
       {/* ── Ticker ── */}
-      <div className="bg-red-50 border-b border-red-100 overflow-hidden">
+      <div className="bg-red-50 dark:bg-slate-800 border-b border-red-100 dark:border-slate-700 overflow-hidden">
         <div className="max-w-screen-xl mx-auto px-6 py-1.5 flex items-center gap-3">
           <span className="flex-shrink-0 bg-red-600 text-white text-[11px] font-bold px-2 py-0.5 rounded">
             HOT
@@ -513,7 +521,7 @@ export default function Header() {
 
       {/* ── Mobile menu ── */}
       {mobileOpen && (
-        <div className="md:hidden bg-white border-t border-gray-100 px-6 py-5 space-y-3 shadow-lg">
+        <div className="md:hidden bg-white dark:bg-slate-900 border-t border-gray-100 dark:border-slate-700 px-6 py-5 space-y-3 shadow-lg">
 
           {/* Mobile search */}
           <form onSubmit={handleSubmit} className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 focus-within:border-red-400 focus-within:bg-white transition-colors">

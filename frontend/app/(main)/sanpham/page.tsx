@@ -4,8 +4,9 @@ import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
-  Star, ChevronRight, X, Package, Home, ChevronDown,
+  Star, ChevronRight, X, Package, Home, ChevronDown, Repeat,
 } from "lucide-react";
+import { useComparison } from "../../components/comparisonContext";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -32,47 +33,75 @@ const SORT_OPTIONS = [
 
 /* ── Product Card ───────────────────────────────────────────────────────── */
 function ProductCard({ p }: { p: Product }) {
+  const { addItem, removeItem, isInComparison } = useComparison();
+  const inCompare = isInComparison(p.id);
+
+  const handleCompare = () => {
+    if (inCompare) {
+      removeItem(p.id);
+    } else {
+      addItem({
+        id: p.id, ten: p.ten, slug: p.slug, thumbnail: p.thumbnail,
+        gia: p.gia, giaSale: p.giaSale, giamGia: p.giamGia,
+        danhGia: p.danhGia, thuongHieu: p.thuongHieu, categoryName: p.categoryName,
+      });
+    }
+  };
+
   return (
-    <Link href={`/sanpham/${p.slug}`} className="group block h-full">
-      <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex flex-col h-full relative">
-        {p.badge && (
-          <span className="absolute top-3 left-3 z-10 bg-red-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full">
-            {p.badge}
-          </span>
-        )}
-        {p.giamGia > 0 && (
-          <span className="absolute top-3 right-3 z-10 bg-red-500 text-white text-[10px] font-semibold px-2.5 py-1 rounded-full">
-            -{p.giamGia}%
-          </span>
-        )}
-        <div className="bg-gray-50 flex items-center justify-center h-48 overflow-hidden">
-          <img
-            src={p.thumbnail || "https://placehold.co/400x300?text=No+Image"}
-            alt={p.ten}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            loading="lazy"
-          />
-        </div>
-        <div className="p-4 flex flex-col flex-1 gap-2">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-red-500">{p.thuongHieu}</p>
-          <h3 className="font-semibold text-gray-800 text-sm leading-snug line-clamp-2 flex-1">{p.ten}</h3>
-          <div className="flex items-center justify-between pt-2.5 border-t border-gray-100 mt-auto">
-            <div>
-              <p className="font-bold text-gray-900 text-[15px]">{fmt(p.giaSale ?? p.gia)}</p>
-              {p.giamGia > 0 && (
-                <p className="text-xs text-gray-400 line-through">{fmt(p.gia)}</p>
+    <div className="group flex flex-col h-full">
+      <Link href={`/sanpham/${p.slug}`} className="flex-1 block">
+        <div className="bg-white border border-gray-100 rounded-t-2xl overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex flex-col h-full relative">
+          {p.badge && (
+            <span className="absolute top-3 left-3 z-10 bg-red-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full">
+              {p.badge}
+            </span>
+          )}
+          {p.giamGia > 0 && (
+            <span className="absolute top-3 right-3 z-10 bg-red-500 text-white text-[10px] font-semibold px-2.5 py-1 rounded-full">
+              -{p.giamGia}%
+            </span>
+          )}
+          <div className="bg-gray-50 flex items-center justify-center h-48 overflow-hidden">
+            <img
+              src={p.thumbnail || "https://placehold.co/400x300?text=No+Image"}
+              alt={p.ten}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              loading="lazy"
+            />
+          </div>
+          <div className="p-4 flex flex-col flex-1 gap-2">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-red-500">{p.thuongHieu}</p>
+            <h3 className="font-semibold text-gray-800 text-sm leading-snug line-clamp-2 flex-1">{p.ten}</h3>
+            <div className="flex items-center justify-between pt-2.5 border-t border-gray-100 mt-auto">
+              <div>
+                <p className="font-bold text-gray-900 text-[15px]">{fmt(p.giaSale ?? p.gia)}</p>
+                {p.giamGia > 0 && (
+                  <p className="text-xs text-gray-400 line-through">{fmt(p.gia)}</p>
+                )}
+              </div>
+              {p.danhGia > 0 && (
+                <div className="flex items-center gap-1">
+                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                  <span className="text-xs text-gray-600 font-medium">{p.danhGia.toFixed(1)}</span>
+                </div>
               )}
             </div>
-            {p.danhGia > 0 && (
-              <div className="flex items-center gap-1">
-                <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                <span className="text-xs text-gray-600 font-medium">{p.danhGia.toFixed(1)}</span>
-              </div>
-            )}
           </div>
         </div>
-      </div>
-    </Link>
+      </Link>
+      <button
+        onClick={handleCompare}
+        className={`flex items-center justify-center gap-1.5 py-2 text-[11px] font-medium rounded-b-2xl border border-t-0 transition-all ${
+          inCompare
+            ? "bg-red-50 text-red-600 border-red-200"
+            : "bg-white text-gray-500 border-gray-100 hover:bg-red-50 hover:text-red-600"
+        }`}
+      >
+        <Repeat className="w-3 h-3" />
+        {inCompare ? "Đang so sánh" : "So sánh"}
+      </button>
+    </div>
   );
 }
 
