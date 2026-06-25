@@ -264,7 +264,7 @@ export default function HomePage() {
   // ── Fetch sản phẩm nổi bật ──────────────────────────────────────────────
   useEffect(() => {
     setLoadingFeat(true);
-    fetch(`${API_BASE}/api/products/featured?limit=6`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/products/featured?limit=6`)
       .then((r) => r.json())
       .then((json) => {
         if (json.success) setFeatured(json.data);
