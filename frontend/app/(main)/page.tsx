@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 
 // ─── API CONFIG ───────────────────────────────────────────────────────────────
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 interface ProductFeatured {
@@ -264,7 +264,7 @@ export default function HomePage() {
   // ── Fetch sản phẩm nổi bật ──────────────────────────────────────────────
   useEffect(() => {
     setLoadingFeat(true);
-    fetch(`${API_BASE}/api/products/featured?limit=6`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/products/featured?limit=6`)
       .then((r) => r.json())
       .then((json) => {
         if (json.success) setFeatured(json.data);
@@ -277,7 +277,7 @@ export default function HomePage() {
   // ── Fetch danh mục từ backend ───────────────────────────────────────────
   useEffect(() => {
     setLoadingCats(true);
-    fetch(`${API_BASE}/api/categories`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/categories`)
       .then((r) => r.json())
       .then((json) => {
         if (json.success) {
@@ -293,7 +293,7 @@ export default function HomePage() {
   // ── Fetch sản phẩm bán chạy ─────────────────────────────────────────────
   useEffect(() => {
     setLoadingBest(true);
-    fetch(`${API_BASE}/api/products/best-selling?limit=4`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/products/best-selling?limit=4`)
       .then((r) => r.json())
       .then((json) => {
         if (json.success) setBestSelling(json.data);

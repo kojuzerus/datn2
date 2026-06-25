@@ -16,7 +16,7 @@ const vnpayRoutes    = require("./routes/vnpay");
 
 const app  = express();
 const PORT = process.env.PORT || 5000;
-const BASE_URL = process.env.API_BASE_URL || `http://localhost:${PORT}`;
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || `http://localhost:${PORT}`;
 
 const allowedOrigins = [
   "http://localhost:3000",
