@@ -15,7 +15,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // === KẾT NỐI MONGODB ===
-console.log('MONGODB_URI =', process.env.MONGODB_URI);
+console.log("MONGODB_URI =", process.env.MONGODB_URI);
+console.log("Using URI =", MONGODB_URI);
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/smarthub';
 mongoose.connect(MONGODB_URI)
   .then(() => console.log('✅ Kết nối MongoDB thành công'))
