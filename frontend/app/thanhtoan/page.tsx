@@ -75,6 +75,14 @@ const PAYMENT_METHODS = [
     color: 'text-blue-500',
     bg: 'bg-blue-50',
   },
+  {
+    id: 'vnpay',
+    label: 'Thanh toán VNPAY',
+    desc: 'QR Code, thẻ tín dụng, tài khoản ngân hàng',
+    Icon: CreditCard,
+    color: 'text-yellow-500',
+    bg: 'bg-yellow-50',
+  },
 ];
 
 export default function ThanhToanPage() {
@@ -83,7 +91,7 @@ export default function ThanhToanPage() {
   const [items, setItems]               = useState<CartItem[]>([]);   // chỉ item được chọn
   const [addresses, setAddresses]       = useState<Address[]>([]);
   const [selectedAddr, setSelectedAddr] = useState<string>('');
-  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'banking'>('cod');
+  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'banking' | 'vnpay'>('cod');
   const [ghiChu, setGhiChu]             = useState('');
   const [loading, setLoading]           = useState(true);
   const [placing, setPlacing]           = useState(false);
@@ -227,11 +235,28 @@ export default function ThanhToanPage() {
 
     if (data.success) {
       localStorage.removeItem('smarthub_checkout_ids');
-      router.push(`/dat-hang-thanh-cong?orderId=${data.order._id}`);
+      // Nếu VNPAY, lấy URL thanh toán và redirect
+      if (paymentMethod === 'vnpay') {
+        const payRes = await fetch(`${API_URL}/api/vnpay/create_payment`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ orderId: data.order._id }),
+        });
+        const payData = await payRes.json();
+        if (payData.success && payData.url) {
+          window.location.href = payData.url;
+        } else {
+          alert(payData.message || 'Lỗi tạo URL VNPAY');
+        }
+      } else {
+        router.push(`/dat-hang-thanh-cong?orderId=${data.order._id}`);
+      }
     } else {
       alert(data.message || 'Đặt hàng thất bại');
     }
   };
+
+  
 
   const tongTien      = items.reduce((s, i) => s + i.gia * i.soLuong, 0);
   const phiGH         = tongTien >= 500000 ? 0 : 30000;
@@ -435,7 +460,7 @@ export default function ThanhToanPage() {
                       name="payment"
                       value={id}
                       checked={paymentMethod === id}
-                      onChange={() => setPaymentMethod(id as 'cod' | 'banking')}
+                      onChange={() => setPaymentMethod(id as 'cod' | 'banking' | 'vnpay')}
                       className="accent-red-500"
                     />
                     <div className={`w-10 h-10 ${bg} rounded-lg flex items-center justify-center shrink-0`}>
@@ -460,6 +485,19 @@ export default function ThanhToanPage() {
                     <p>Số tài khoản: <span className="font-medium">1234567890</span></p>
                     <p>Chủ tài khoản: <span className="font-medium">SMARTHUB CO. LTD</span></p>
                     <p className="text-xs text-blue-400 mt-1">Nội dung: [Mã đơn hàng] - [Họ tên]</p>
+                  </div>
+                </div>
+              )}
+
+              {paymentMethod === 'vnpay' && (
+                <div className="mt-3 p-4 bg-yellow-50 border border-yellow-100 rounded-lg">
+                  <p className="font-semibold text-yellow-700 text-sm mb-2 flex items-center gap-1.5">
+                    <CreditCard className="w-4 h-4" />
+                    Thanh toán VNPAY
+                  </p>
+                  <div className="text-sm text-yellow-700 space-y-1">
+                    <p>Bạn sẽ được chuyển đến trang VNPAY để thanh toán an toàn.</p>
+                    <p className="text-xs text-yellow-600 mt-1">Hỗ trợ: QR Code, thẻ tín dụng/ghi nợ, tài khoản ngân hàng</p>
                   </div>
                 </div>
               )}
@@ -536,11 +574,17 @@ export default function ThanhToanPage() {
               <button
                 onClick={handlePlaceOrder}
                 disabled={placing || items.length === 0 || !selectedAddr}
-                className="w-full bg-red-500 hover:bg-red-600 disabled:bg-gray-200 disabled:text-gray-400 text-white font-bold py-3.5 rounded-lg transition flex items-center justify-center gap-2"
+                className={`w-full font-bold py-3.5 rounded-lg transition flex items-center justify-center gap-2 ${
+                  paymentMethod === 'vnpay'
+                    ? 'bg-yellow-500 hover:bg-yellow-600 text-white'
+                    : 'bg-red-500 hover:bg-red-600 text-white'
+                } disabled:bg-gray-200 disabled:text-gray-400`}
               >
                 {placing
-                  ? <><Loader2 className="w-5 h-5 animate-spin" /> Đang đặt hàng...</>
-                  : <><CreditCard className="w-4 h-4" /> Đặt hàng ngay</>
+                  ? <><Loader2 className="w-5 h-5 animate-spin" /> Đang xử lý...</>
+                  : paymentMethod === 'vnpay'
+                    ? <><CreditCard className="w-4 h-4" /> Thanh toán VNPAY</>
+                    : <><CreditCard className="w-4 h-4" /> Đặt hàng ngay</>
                 }
               </button>
 
@@ -562,6 +606,8 @@ export default function ThanhToanPage() {
           </div>
         </div>
       )}
+
+            
     </div>
   );
 }
