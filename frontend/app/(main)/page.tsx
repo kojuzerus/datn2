@@ -277,7 +277,7 @@ export default function HomePage() {
   // ── Fetch danh mục từ backend ───────────────────────────────────────────
   useEffect(() => {
     setLoadingCats(true);
-    fetch(`${API_BASE}/api/categories`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/categories`)
       .then((r) => r.json())
       .then((json) => {
         if (json.success) {
@@ -293,7 +293,7 @@ export default function HomePage() {
   // ── Fetch sản phẩm bán chạy ─────────────────────────────────────────────
   useEffect(() => {
     setLoadingBest(true);
-    fetch(`${API_BASE}/api/products/best-selling?limit=4`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/products/best-selling?limit=4`)
       .then((r) => r.json())
       .then((json) => {
         if (json.success) setBestSelling(json.data);
