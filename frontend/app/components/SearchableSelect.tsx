@@ -93,7 +93,7 @@ export default function SearchableSelect({
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Nhập để tìm kiếm..."
-                className="w-full pl-8 pr-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-red-400 focus:bg-white transition-colors"
+                className="w-full pl-8 pr-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-sm focus:outline-none focus:border-red-400 focus:bg-white transition-colors"
               />
             </div>
           </div>

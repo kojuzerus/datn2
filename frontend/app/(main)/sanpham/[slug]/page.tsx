@@ -91,7 +91,7 @@ function Skeleton() {
     <div className="animate-pulse">
       <div className="grid grid-cols-1 lg:grid-cols-[440px_1fr] gap-6">
         <div>
-          <div className="bg-gray-200 rounded-2xl aspect-square" />
+          <div className="bg-gray-200 rounded-sm aspect-square" />
           <div className="flex gap-2 mt-3">
             {[0, 1, 2, 3].map((i) => <div key={i} className="w-16 h-16 bg-gray-200 rounded-xl flex-shrink-0" />)}
           </div>
@@ -210,7 +210,7 @@ export default function ProductDetailPage() {
   if (notFound || !product) {
     return (
       <div className="max-w-screen-xl mx-auto py-20 flex flex-col items-center gap-4">
-        <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center">
+        <div className="w-20 h-20 bg-gray-100 rounded-sm flex items-center justify-center">
           <Package className="w-10 h-10 text-gray-300" />
         </div>
         <h1 className="text-[20px] font-bold text-gray-800">Không tìm thấy sản phẩm</h1>
@@ -265,7 +265,7 @@ export default function ProductDetailPage() {
         <div className="lg:sticky lg:top-4 lg:self-start">
 
           {/* Main image */}
-          <div className="relative bg-white border border-gray-100 rounded-2xl overflow-hidden aspect-square flex items-center justify-center group">
+          <div className="relative bg-white border border-gray-100 rounded-sm overflow-hidden aspect-square flex items-center justify-center group">
             {product.badge && (
               <span className="absolute top-3 left-3 z-10 bg-red-500 text-white text-[11px] font-bold px-2.5 py-1 rounded-full">
                 {product.badge}

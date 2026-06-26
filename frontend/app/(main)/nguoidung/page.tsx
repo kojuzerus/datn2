@@ -368,7 +368,7 @@ export default function NguoiDungPage() {
 
         {/* ══════════ Sidebar ══════════ */}
         <aside className="w-full md:w-64 shrink-0">
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-sm shadow-sm border border-gray-100 overflow-hidden">
             {/* Avatar block */}
             <div className="bg-gradient-to-br from-red-500 to-red-700 px-5 py-6 text-center">
               <div className="relative inline-block">
@@ -424,7 +424,7 @@ export default function NguoiDungPage() {
             </nav>
           </div>
           <div className="mt-3 bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-sm bg-gray-100 flex items-center justify-center">
               <Shield className="w-4 h-4 text-gray-500" />
             </div>
             <div>
@@ -439,7 +439,7 @@ export default function NguoiDungPage() {
 
           {/* ── Tab: Thông tin cá nhân ── */}
           {tab === 'info' && (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
+            <div className="bg-white rounded-sm shadow-sm border border-gray-100">
               <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
                 <div>
                   <h1 className="text-base font-bold text-gray-800">Thông tin cá nhân</h1>
@@ -497,7 +497,7 @@ export default function NguoiDungPage() {
 
           {/* ── Tab: Địa chỉ ── */}
           {tab === 'address' && (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
+            <div className="bg-white rounded-sm shadow-sm border border-gray-100">
               <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
                 <div>
                   <h1 className="text-base font-bold text-gray-800">Địa chỉ của tôi</h1>
@@ -518,7 +518,7 @@ export default function NguoiDungPage() {
 
               {/* ── Add / Edit Form ── */}
               {showForm && (
-                <div className="mx-6 mt-4 mb-2 border border-gray-200 rounded-2xl p-5 bg-gray-50/60">
+                <div className="mx-6 mt-4 mb-2 border border-gray-200 rounded-sm p-5 bg-gray-50/60">
                   <h3 className="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
                     <MapPin className="w-4 h-4 text-red-500" />
                     {editingAddr ? 'Chỉnh sửa địa chỉ' : 'Thêm địa chỉ mới'}
@@ -650,7 +650,7 @@ export default function NguoiDungPage() {
               <div className="p-6 space-y-3">
                 {addrLoading ? (
                   [1, 2].map(i => (
-                    <div key={i} className="animate-pulse border border-gray-100 rounded-2xl p-4 space-y-2">
+                    <div key={i} className="animate-pulse border border-gray-100 rounded-sm p-4 space-y-2">
                       <div className="h-4 bg-gray-100 rounded w-1/3" />
                       <div className="h-3 bg-gray-100 rounded w-2/3" />
                       <div className="h-3 bg-gray-100 rounded w-1/2" />
@@ -669,7 +669,7 @@ export default function NguoiDungPage() {
                   </div>
                 ) : (
                   addresses.map(addr => (
-                    <div key={addr._id} className={`relative border rounded-2xl p-4 transition-all ${
+                    <div key={addr._id} className={`relative border rounded-sm p-4 transition-all ${
                       addr.isDefault ? 'border-red-200 bg-red-50/30' : 'border-gray-100 bg-white hover:border-gray-200'
                     }`}>
                       {addr.isDefault && (
@@ -693,16 +693,16 @@ export default function NguoiDungPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2 mt-3 ml-12">
-                        <button onClick={() => openEditForm(addr)} className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 text-xs font-medium transition-colors">
+                        <button onClick={() => openEditForm(addr)} className="flex items-center gap-1 px-3 py-1.5 rounded-sm border border-gray-200 text-gray-600 hover:bg-gray-50 text-xs font-medium transition-colors">
                           <Edit3 className="w-3 h-3" />Chỉnh sửa
                         </button>
                         {!addr.isDefault && (
-                          <button onClick={() => handleSetDefault(addr._id)} className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 text-xs font-medium transition-colors">
+                          <button onClick={() => handleSetDefault(addr._id)} className="flex items-center gap-1 px-3 py-1.5 rounded-sm border border-red-200 text-red-500 hover:bg-red-50 text-xs font-medium transition-colors">
                             <Star className="w-3 h-3" />Đặt mặc định
                           </button>
                         )}
                         {addresses.length > 1 && (
-                          <button onClick={() => handleDelete(addr._id)} disabled={deletingId === addr._id} className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 text-red-400 hover:bg-red-50 hover:border-red-200 text-xs font-medium transition-colors disabled:opacity-50">
+                          <button onClick={() => handleDelete(addr._id)} disabled={deletingId === addr._id} className="flex items-center gap-1 px-3 py-1.5 rounded-sm border border-gray-200 text-red-400 hover:bg-red-50 hover:border-red-200 text-xs font-medium transition-colors disabled:opacity-50">
                             <Trash2 className="w-3 h-3" />{deletingId === addr._id ? 'Đang xóa...' : 'Xóa'}
                           </button>
                         )}
@@ -716,7 +716,7 @@ export default function NguoiDungPage() {
 
           {/* ── Tab: Đơn hàng ── */}
           {tab === 'orders' && (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
+            <div className="bg-white rounded-sm shadow-sm border border-gray-100">
               <div className="px-6 py-4 border-b border-gray-100">
                 <h1 className="text-base font-bold text-gray-800">Đơn hàng của tôi</h1>
                 <p className="text-xs text-gray-400 mt-0.5">Theo dõi và quản lý đơn hàng</p>
@@ -736,7 +736,7 @@ export default function NguoiDungPage() {
 
           {/* ── Tab: Đổi mật khẩu ── */}
           {tab === 'password' && hasPassword && (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
+            <div className="bg-white rounded-sm shadow-sm border border-gray-100">
               <div className="px-6 py-4 border-b border-gray-100">
                 <h1 className="text-base font-bold text-gray-800">Đổi mật khẩu</h1>
                 <p className="text-xs text-gray-400 mt-0.5">Bảo mật tài khoản bằng mật khẩu mạnh</p>

@@ -56,7 +56,7 @@ export default function DangNhapPage() {
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-8 text-center relative">
+      <div className="bg-white rounded-sm shadow-xl w-full max-w-sm p-8 text-center relative">
 
         {/* Nút đóng */}
         <button
@@ -116,7 +116,7 @@ export default function DangNhapPage() {
           </div>
 
           {error && (
-            <p className="text-red-500 text-xs text-center bg-red-50 py-2 rounded-lg">{error}</p>
+            <p className="text-red-500 text-xs text-center bg-red-50 py-2 rounded-sm">{error}</p>
           )}
 
           <button

@@ -271,7 +271,7 @@ export default function ThanhToanPage() {
           </div>
           <h2 className="text-xl font-bold text-gray-800 mb-2">Vui lòng đăng nhập</h2>
           <p className="text-gray-500 text-sm mb-6">Bạn cần đăng nhập để thanh toán</p>
-          <Link href="/login" className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg font-semibold transition">
+          <Link href="/login" className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-sm font-semibold transition">
             Đăng nhập ngay
           </Link>
         </div>
@@ -305,7 +305,7 @@ export default function ThanhToanPage() {
           <div className="lg:col-span-2 space-y-4">
 
             {/* 1. Địa chỉ giao hàng */}
-            <section className="bg-white border border-gray-100 rounded-lg p-6">
+            <section className="bg-white border border-gray-100 rounded-sm p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-bold text-gray-800 flex items-center gap-2">
                   <span className="w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold">1</span>
@@ -323,7 +323,7 @@ export default function ThanhToanPage() {
 
               {/* Form thêm địa chỉ mới */}
               {showNewAddr && (
-                <div className="mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg space-y-3">
+                <div className="mb-4 p-4 bg-gray-50 border border-gray-200 rounded-sm space-y-3">
                   <h3 className="font-semibold text-gray-700 text-sm flex items-center gap-1.5">
                     <MapPin className="w-4 h-4 text-red-400" />
                     Địa chỉ mới
@@ -333,13 +333,13 @@ export default function ThanhToanPage() {
                     placeholder="Họ và tên người nhận *"
                     value={newAddr.receiverName}
                     onChange={e => setNewAddr(p => ({ ...p, receiverName: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 bg-white"
+                    className="w-full border border-gray-200 rounded-sm px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 bg-white"
                   />
                   <input
                     placeholder="Số điện thoại *"
                     value={newAddr.phone}
                     onChange={e => setNewAddr(p => ({ ...p, phone: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 bg-white"
+                    className="w-full border border-gray-200 rounded-sm px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 bg-white"
                   />
                   <SearchableSelect
                     options={provinces}
@@ -367,14 +367,14 @@ export default function ThanhToanPage() {
                     placeholder="Địa chỉ chi tiết (số nhà, tên đường...) *"
                     value={newAddr.detailAddress}
                     onChange={e => setNewAddr(p => ({ ...p, detailAddress: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 bg-white"
+                    className="w-full border border-gray-200 rounded-sm px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 bg-white"
                   />
 
                   <div className="flex gap-2 pt-1">
                     <button
                       onClick={handleSaveNewAddr}
                       disabled={savingAddr}
-                      className="flex items-center gap-1.5 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition disabled:opacity-60"
+                      className="flex items-center gap-1.5 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-sm text-sm font-medium transition disabled:opacity-60"
                     >
                       {savingAddr
                         ? <><Loader2 className="w-4 h-4 animate-spin" /> Đang lưu...</>
@@ -383,7 +383,7 @@ export default function ThanhToanPage() {
                     </button>
                     <button
                       onClick={() => { setShowNewAddr(false); setNewAddr(EMPTY_FORM); setDistricts([]); setWards([]); }}
-                      className="border border-gray-200 text-gray-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-100 transition"
+                      className="border border-gray-200 text-gray-600 px-4 py-2 rounded-sm text-sm font-medium hover:bg-gray-100 transition"
                     >
                       Hủy
                     </button>
@@ -402,7 +402,7 @@ export default function ThanhToanPage() {
                   {addresses.map(addr => (
                     <label
                       key={addr._id}
-                      className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition ${
+                      className={`flex items-start gap-3 p-4 rounded-sm border-2 cursor-pointer transition ${
                         selectedAddr === addr._id
                           ? 'border-red-400 bg-red-50'
                           : 'border-gray-100 hover:border-gray-200'
@@ -439,7 +439,7 @@ export default function ThanhToanPage() {
             </section>
 
             {/* 2. Phương thức thanh toán */}
-            <section className="bg-white border border-gray-100 rounded-lg p-6">
+            <section className="bg-white border border-gray-100 rounded-sm p-6">
               <h2 className="font-bold text-gray-800 flex items-center gap-2 mb-4">
                 <span className="w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold">2</span>
                 <CreditCard className="w-4 h-4 text-red-500" />
@@ -449,7 +449,7 @@ export default function ThanhToanPage() {
                 {PAYMENT_METHODS.map(({ id, label, desc, Icon, color, bg }) => (
                   <label
                     key={id}
-                    className={`flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition ${
+                    className={`flex items-center gap-4 p-4 rounded-sm border-2 cursor-pointer transition ${
                       paymentMethod === id
                         ? 'border-red-400 bg-red-50'
                         : 'border-gray-100 hover:border-gray-200'
@@ -463,7 +463,7 @@ export default function ThanhToanPage() {
                       onChange={() => setPaymentMethod(id as 'cod' | 'banking' | 'vnpay')}
                       className="accent-red-500"
                     />
-                    <div className={`w-10 h-10 ${bg} rounded-lg flex items-center justify-center shrink-0`}>
+                    <div className={`w-10 h-10 ${bg} rounded-sm flex items-center justify-center shrink-0`}>
                       <Icon className={`w-5 h-5 ${color}`} />
                     </div>
                     <div>
@@ -475,7 +475,7 @@ export default function ThanhToanPage() {
               </div>
 
               {paymentMethod === 'banking' && (
-                <div className="mt-3 p-4 bg-blue-50 border border-blue-100 rounded-lg">
+                <div className="mt-3 p-4 bg-blue-50 border border-blue-100 rounded-sm">
                   <p className="font-semibold text-blue-700 text-sm mb-2 flex items-center gap-1.5">
                     <Building2 className="w-4 h-4" />
                     Thông tin chuyển khoản
@@ -490,7 +490,7 @@ export default function ThanhToanPage() {
               )}
 
               {paymentMethod === 'vnpay' && (
-                <div className="mt-3 p-4 bg-yellow-50 border border-yellow-100 rounded-lg">
+                <div className="mt-3 p-4 bg-yellow-50 border border-yellow-100 rounded-sm">
                   <p className="font-semibold text-yellow-700 text-sm mb-2 flex items-center gap-1.5">
                     <CreditCard className="w-4 h-4" />
                     Thanh toán VNPAY
@@ -504,7 +504,7 @@ export default function ThanhToanPage() {
             </section>
 
             {/* 3. Ghi chú */}
-            <section className="bg-white border border-gray-100 rounded-lg p-6">
+            <section className="bg-white border border-gray-100 rounded-sm p-6">
               <h2 className="font-bold text-gray-800 flex items-center gap-2 mb-4">
                 <span className="w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold">3</span>
                 <FileText className="w-4 h-4 text-red-500" />
@@ -515,14 +515,14 @@ export default function ThanhToanPage() {
                 placeholder="Ghi chú cho người giao hàng (không bắt buộc)..."
                 value={ghiChu}
                 onChange={e => setGhiChu(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-red-400"
+                className="w-full border border-gray-200 rounded-sm px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-red-400"
               />
             </section>
           </div>
 
           {/* ── Cột phải — Tóm tắt ── */}
           <div className="lg:col-span-1">
-            <div className="bg-white border border-gray-100 rounded-lg p-6 sticky top-24">
+            <div className="bg-white border border-gray-100 rounded-sm p-6 sticky top-24">
               <h2 className="font-bold text-gray-800 text-base mb-4 flex items-center gap-2">
                 <Package className="w-4 h-4 text-red-500" />
                 Sản phẩm ({items.length})
@@ -574,7 +574,7 @@ export default function ThanhToanPage() {
               <button
                 onClick={handlePlaceOrder}
                 disabled={placing || items.length === 0 || !selectedAddr}
-                className={`w-full font-bold py-3.5 rounded-lg transition flex items-center justify-center gap-2 ${
+                className={`w-full font-bold py-3.5 rounded-sm transition flex items-center justify-center gap-2 ${
                   paymentMethod === 'vnpay'
                     ? 'bg-yellow-500 hover:bg-yellow-600 text-white'
                     : 'bg-red-500 hover:bg-red-600 text-white'
