@@ -117,7 +117,7 @@ export default function DangKyPage() {
                 Zalo
               </button>
               {showZaloNote && (
-                <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap z-10">
+                <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs rounded-sm px-3 py-2 whitespace-nowrap z-10">
                   Tính năng sắp ra mắt 🚀
                   <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-800 rotate-45"/>
                 </div>
@@ -132,7 +132,7 @@ export default function DangKyPage() {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm p-8 space-y-4">
+        <form onSubmit={handleSubmit} className="bg-white rounded-sm shadow-sm p-8 space-y-4">
           <h2 className="font-semibold text-gray-800">Thông tin cá nhân</h2>
 
           <div className="grid grid-cols-2 gap-4">

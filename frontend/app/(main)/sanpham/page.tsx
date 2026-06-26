@@ -107,7 +107,7 @@ function ProductCard({ p }: { p: Product }) {
 
 function SkeletonCard() {
   return (
-    <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden animate-pulse">
+    <div className="bg-white border border-gray-100 rounded-sm overflow-hidden animate-pulse">
       <div className="bg-gray-200 h-48" />
       <div className="p-4 space-y-2.5">
         <div className="h-2.5 bg-gray-100 rounded w-1/3" />
@@ -231,7 +231,7 @@ function ProductsContent() {
       </nav>
 
       {/* ── Filter bar ── */}
-      <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden mb-5">
+      <div className="bg-white border border-gray-100 rounded-sm overflow-hidden mb-5">
 
         {/* Row 1: Category pills */}
         <div className="px-4 pt-3 pb-3 border-b border-gray-100">
@@ -317,7 +317,7 @@ function ProductsContent() {
                 <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${sortOpen ? "rotate-180" : ""}`} />
               </button>
               {sortOpen && (
-                <div className="absolute right-0 top-full mt-1.5 z-30 bg-white border border-gray-100 rounded-2xl shadow-lg min-w-[170px] py-1.5 overflow-hidden">
+                <div className="absolute right-0 top-full mt-1.5 z-30 bg-white border border-gray-100 rounded-sm shadow-lg min-w-[170px] py-1.5 overflow-hidden">
                   {SORT_OPTIONS.map((o) => (
                     <button
                       key={o.value}
@@ -365,8 +365,8 @@ function ProductsContent() {
           {Array.from({ length: 20 }).map((_, i) => <SkeletonCard key={i} />)}
         </div>
       ) : products.length === 0 ? (
-        <div className="bg-white border border-gray-100 rounded-2xl py-20 flex flex-col items-center gap-4">
-          <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center">
+        <div className="bg-white border border-gray-100 rounded-sm py-20 flex flex-col items-center gap-4">
+          <div className="w-16 h-16 bg-gray-100 rounded-sm flex items-center justify-center">
             <Package className="w-8 h-8 text-gray-300" />
           </div>
           <div className="text-center">
@@ -446,10 +446,10 @@ export default function SanPhamPage() {
     <Suspense
       fallback={
         <div>
-          <div className="bg-white border border-gray-100 rounded-2xl h-28 mb-5 animate-pulse" />
+          <div className="bg-white border border-gray-100 rounded-sm h-28 mb-5 animate-pulse" />
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             {Array.from({ length: 20 }).map((_, i) => (
-              <div key={i} className="bg-white border border-gray-100 rounded-2xl overflow-hidden animate-pulse">
+              <div key={i} className="bg-white border border-gray-100 rounded-sm overflow-hidden animate-pulse">
                 <div className="bg-gray-200 h-48" />
                 <div className="p-4 space-y-2">
                   <div className="h-3 bg-gray-100 rounded w-1/3" />

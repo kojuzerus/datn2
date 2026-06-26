@@ -308,7 +308,7 @@ export default function Header() {
 
             {/* Suggestions / Trending dropdown */}
             {showDropdown && (
-              <div className="absolute top-[calc(100%+6px)] left-0 right-0 bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl shadow-xl z-50 overflow-hidden">
+              <div className="absolute top-[calc(100%+6px)] left-0 right-0 bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-sm shadow-xl z-50 overflow-hidden">
 
                 {/* ── Trending (empty input) ── */}
                 {showTrending && (
@@ -451,7 +451,7 @@ export default function Header() {
                       Thông tin cá nhân
                     </Link>
                     <Link
-                      href="/donhang"
+                      href="/don-hang"
                       onClick={() => setShowUserMenu(false)}
                       className="block px-4 py-2.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors"
                     >
@@ -548,7 +548,7 @@ export default function Header() {
           <div className="space-y-1">
             {mobileCategories.length === 0 ? (
               Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="h-10 rounded-lg bg-gray-100 animate-pulse" />
+                <div key={i} className="h-10 rounded-sm bg-gray-100 animate-pulse" />
               ))
             ) : (
               mobileCategories.map((cat) => {
@@ -558,7 +558,7 @@ export default function Header() {
                     key={cat.slug}
                     href={`/sanpham?danh-muc=${encodeURIComponent(cat.slug)}`}
                     onClick={() => setMobileOpen(false)}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors"
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-sm text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors"
                   >
                     <CatIcon className="w-4 h-4 flex-shrink-0" />
                     {cat.category_name}

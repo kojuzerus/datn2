@@ -145,7 +145,7 @@ function ConfirmDialog({
 }) {
   return (
     <div className="fixed inset-0 bg-black/40 z-[200] flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl w-[380px] shadow-2xl border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-sm w-[380px] shadow-2xl border border-gray-100 overflow-hidden">
         <div className="p-6 text-center">
           <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
             <AlertTriangle size={22} className="text-red-600" />
@@ -181,7 +181,7 @@ function FormLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-const inputCls = "w-full border border-gray-200 rounded-lg px-3 py-2.5 text-[13.5px] text-gray-900 bg-white outline-none focus:border-[#D32F2F] focus:ring-[2px] focus:ring-[rgba(211,47,47,0.1)] transition-all placeholder-gray-400 font-sans";
+const inputCls = "w-full border border-gray-200 rounded-sm px-3 py-2.5 text-[13.5px] text-gray-900 bg-white outline-none focus:border-[#D32F2F] focus:ring-[2px] focus:ring-[rgba(211,47,47,0.1)] transition-all placeholder-gray-400 font-sans";
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function ProductsPage() {
@@ -570,7 +570,7 @@ export default function ProductsPage() {
       </div>
 
       {/* ── Filter box ── */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 mb-4">
+      <div className="bg-white border border-gray-200 rounded-sm p-5 mb-4">
         <div className="grid gap-3" style={{ gridTemplateColumns: "1fr 1fr 1fr 1fr auto" }}>
 
           <div className="flex flex-col gap-1.5">
@@ -641,10 +641,10 @@ export default function ProductsPage() {
         <div className="flex items-center gap-3 px-4 py-2.5 bg-[#FFF5F5] border border-[#FECACA] rounded-xl mb-3 text-[13.5px] text-[#D32F2F] font-medium">
           <CheckCircle size={15} className="shrink-0" />
           Đã chọn {selected.size} sản phẩm
-          <button className="ml-2 px-3 py-1 border border-[#FECACA] rounded-lg bg-white text-[#D32F2F] text-[12.5px] hover:bg-[#FFF5F5] cursor-pointer transition-colors">
+          <button className="ml-2 px-3 py-1 border border-[#FECACA] rounded-sm bg-white text-[#D32F2F] text-[12.5px] hover:bg-[#FFF5F5] cursor-pointer transition-colors">
             Ẩn đã chọn
           </button>
-          <button className="px-3 py-1 border border-[#FECACA] rounded-lg bg-[#D32F2F] text-white text-[12.5px] hover:bg-[#B71C1C] cursor-pointer transition-colors">
+          <button className="px-3 py-1 border border-[#FECACA] rounded-sm bg-[#D32F2F] text-white text-[12.5px] hover:bg-[#B71C1C] cursor-pointer transition-colors">
             Xoá đã chọn
           </button>
           <button
@@ -657,7 +657,7 @@ export default function ProductsPage() {
       )}
 
       {/* ── Table ── */}
-      <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-[13.5px]" style={{ borderCollapse: "collapse" }}>
             <colgroup>
@@ -767,13 +767,13 @@ export default function ProductsPage() {
                         )}
                       </td>
                       <td className="px-4 py-3.5">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-lg text-[12.5px] font-bold border ${sb.cls}`}>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-sm text-[12.5px] font-bold border ${sb.cls}`}>
                           {sb.label}
                         </span>
                       </td>
                       <td className="px-4 py-3.5">
                         <span
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[12px] font-medium border"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-[12px] font-medium border"
                           style={{ background: si.bg, color: si.color, borderColor: si.border }}
                         >
                           <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: si.dot }} />
@@ -785,21 +785,21 @@ export default function ProductsPage() {
                           <button
                             title="Xem trang sản phẩm"
                             onClick={() => window.open(`/products/${p.slug}`, "_blank")}
-                            className="w-8 h-8 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 hover:border-gray-300 cursor-pointer flex items-center justify-center transition-colors"
+                            className="w-8 h-8 border border-gray-200 rounded-sm bg-white hover:bg-gray-50 hover:border-gray-300 cursor-pointer flex items-center justify-center transition-colors"
                           >
                             <Eye size={14} className="text-gray-500" />
                           </button>
                           <button
                             title="Chỉnh sửa"
                             onClick={() => openEdit(p)}
-                            className="w-8 h-8 border border-emerald-200 rounded-lg bg-emerald-50 hover:bg-emerald-100 cursor-pointer flex items-center justify-center transition-colors"
+                            className="w-8 h-8 border border-emerald-200 rounded-sm bg-emerald-50 hover:bg-emerald-100 cursor-pointer flex items-center justify-center transition-colors"
                           >
                             <Edit2 size={14} className="text-emerald-700" />
                           </button>
                           <button
                             title="Xoá"
                             onClick={() => deleteProduct(p.id, p.ten)}
-                            className="w-8 h-8 border border-red-200 rounded-lg bg-red-50 hover:bg-red-100 cursor-pointer flex items-center justify-center transition-colors"
+                            className="w-8 h-8 border border-red-200 rounded-sm bg-red-50 hover:bg-red-100 cursor-pointer flex items-center justify-center transition-colors"
                           >
                             <Trash2 size={14} className="text-red-600" />
                           </button>
@@ -820,7 +820,7 @@ export default function ProductsPage() {
             <select
               value={limit}
               onChange={(e) => { setLimit(Number(e.target.value)); setPage(1); }}
-              className="border border-gray-200 rounded-lg px-2 py-1 text-[13px] outline-none cursor-pointer bg-white"
+              className="border border-gray-200 rounded-sm px-2 py-1 text-[13px] outline-none cursor-pointer bg-white"
             >
               <option value={10}>10</option>
               <option value={20}>20</option>
@@ -839,14 +839,14 @@ export default function ProductsPage() {
             <button
               disabled={page <= 1}
               onClick={() => setPage((p) => p - 1)}
-              className="w-8 h-8 rounded-lg border border-gray-200 bg-white text-[13px] flex items-center justify-center cursor-pointer hover:bg-gray-100 disabled:opacity-30 disabled:cursor-default transition-colors"
+              className="w-8 h-8 rounded-sm border border-gray-200 bg-white text-[13px] flex items-center justify-center cursor-pointer hover:bg-gray-100 disabled:opacity-30 disabled:cursor-default transition-colors"
             >‹</button>
 
             {Array.from({ length: Math.min(pagination.totalPages, 5) }, (_, i) => i + 1).map((n) => (
               <button
                 key={n}
                 onClick={() => setPage(n)}
-                className={`w-8 h-8 rounded-lg border text-[13px] flex items-center justify-center cursor-pointer transition-colors ${
+                className={`w-8 h-8 rounded-sm border text-[13px] flex items-center justify-center cursor-pointer transition-colors ${
                   page === n
                     ? "bg-[#D32F2F] text-white border-[#D32F2F] font-semibold"
                     : "bg-white border-gray-200 text-gray-600 hover:bg-gray-100"
@@ -857,7 +857,7 @@ export default function ProductsPage() {
             <button
               disabled={page >= pagination.totalPages}
               onClick={() => setPage((p) => p + 1)}
-              className="w-8 h-8 rounded-lg border border-gray-200 bg-white text-[13px] flex items-center justify-center cursor-pointer hover:bg-gray-100 disabled:opacity-30 disabled:cursor-default transition-colors"
+              className="w-8 h-8 rounded-sm border border-gray-200 bg-white text-[13px] flex items-center justify-center cursor-pointer hover:bg-gray-100 disabled:opacity-30 disabled:cursor-default transition-colors"
             >›</button>
           </div>
         </div>
@@ -866,7 +866,7 @@ export default function ProductsPage() {
       {/* ── Modal thêm / sửa ── */}
       {modalOpen && (
         <div className="fixed inset-0 bg-black/45 z-[100] flex items-center justify-center p-5">
-          <div className="bg-white rounded-2xl w-[720px] max-h-[92vh] flex flex-col border border-gray-100 shadow-2xl overflow-hidden">
+          <div className="bg-white rounded-sm w-[720px] max-h-[92vh] flex flex-col border border-gray-100 shadow-2xl overflow-hidden">
 
             {/* Modal header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50/60 shrink-0">
@@ -883,7 +883,7 @@ export default function ProductsPage() {
                   onClick={generateWithAI}
                   disabled={aiLoading}
                   title="Dùng AI để tự điền thông tin (cần nhập tên sản phẩm trước)"
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-50 border border-violet-200 text-violet-700 text-[12.5px] font-semibold hover:bg-violet-100 disabled:opacity-60 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-violet-50 border border-violet-200 text-violet-700 text-[12.5px] font-semibold hover:bg-violet-100 disabled:opacity-60 disabled:cursor-not-allowed transition-colors cursor-pointer"
                 >
                   {aiLoading ? (
                     <span className="w-3.5 h-3.5 border-2 border-violet-400 border-t-transparent rounded-full animate-spin" />
@@ -1054,17 +1054,17 @@ export default function ProductsPage() {
                         value={s.label}
                         onChange={(e) => updateSpec(idx, "label", e.target.value)}
                         placeholder="VD: CPU, RAM, Pin..."
-                        className="min-w-0 border border-gray-200 rounded-lg px-2.5 py-2 text-[13px] outline-none focus:border-[#D32F2F] bg-white font-sans"
+                        className="min-w-0 border border-gray-200 rounded-sm px-2.5 py-2 text-[13px] outline-none focus:border-[#D32F2F] bg-white font-sans"
                       />
                       <input
                         value={s.value}
                         onChange={(e) => updateSpec(idx, "value", e.target.value)}
                         placeholder="VD: Apple A17 Pro, 8GB..."
-                        className="min-w-0 border border-gray-200 rounded-lg px-2.5 py-2 text-[13px] outline-none focus:border-[#D32F2F] bg-white font-sans"
+                        className="min-w-0 border border-gray-200 rounded-sm px-2.5 py-2 text-[13px] outline-none focus:border-[#D32F2F] bg-white font-sans"
                       />
                       <button
                         onClick={() => removeSpec(idx)}
-                        className="w-7 h-7 border border-red-200 rounded-lg bg-red-50 hover:bg-red-100 cursor-pointer flex items-center justify-center transition-colors"
+                        className="w-7 h-7 border border-red-200 rounded-sm bg-red-50 hover:bg-red-100 cursor-pointer flex items-center justify-center transition-colors"
                       >
                         <X size={12} className="text-red-600" />
                       </button>
@@ -1096,32 +1096,32 @@ export default function ProductsPage() {
                         value={v.color}
                         onChange={(e) => updateVariant(idx, "color", e.target.value)}
                         placeholder="Đen"
-                        className="min-w-0 border border-gray-200 rounded-lg px-2.5 py-2 text-[13px] outline-none focus:border-[#D32F2F] bg-white font-sans"
+                        className="min-w-0 border border-gray-200 rounded-sm px-2.5 py-2 text-[13px] outline-none focus:border-[#D32F2F] bg-white font-sans"
                       />
                       <input
                         type="number"
                         value={v.price}
                         onChange={(e) => updateVariant(idx, "price", e.target.value)}
                         placeholder="0"
-                        className="min-w-0 border border-gray-200 rounded-lg px-2.5 py-2 text-[13px] outline-none focus:border-[#D32F2F] bg-white font-sans"
+                        className="min-w-0 border border-gray-200 rounded-sm px-2.5 py-2 text-[13px] outline-none focus:border-[#D32F2F] bg-white font-sans"
                       />
                       <input
                         type="number"
                         value={v.sale_price}
                         onChange={(e) => updateVariant(idx, "sale_price", e.target.value)}
                         placeholder=""
-                        className="min-w-0 border border-gray-200 rounded-lg px-2.5 py-2 text-[13px] outline-none focus:border-[#D32F2F] bg-white font-sans"
+                        className="min-w-0 border border-gray-200 rounded-sm px-2.5 py-2 text-[13px] outline-none focus:border-[#D32F2F] bg-white font-sans"
                       />
                       <input
                         type="number"
                         value={v.stock_quantity}
                         onChange={(e) => updateVariant(idx, "stock_quantity", e.target.value)}
                         placeholder="0"
-                        className="min-w-0 border border-gray-200 rounded-lg px-2.5 py-2 text-[13px] outline-none focus:border-[#D32F2F] bg-white font-sans"
+                        className="min-w-0 border border-gray-200 rounded-sm px-2.5 py-2 text-[13px] outline-none focus:border-[#D32F2F] bg-white font-sans"
                       />
                       <button
                         onClick={() => removeVariant(idx)}
-                        className="w-7 h-7 border border-red-200 rounded-lg bg-red-50 hover:bg-red-100 cursor-pointer flex items-center justify-center transition-colors"
+                        className="w-7 h-7 border border-red-200 rounded-sm bg-red-50 hover:bg-red-100 cursor-pointer flex items-center justify-center transition-colors"
                       >
                         <X size={12} className="text-red-600" />
                       </button>

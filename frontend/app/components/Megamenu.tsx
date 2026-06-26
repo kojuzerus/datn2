@@ -50,6 +50,25 @@ const HOT_TAGS: Record<string, string[]> = {
   "dong-ho":    ["Smartwatch", "Chống nước", "Thể thao", "Pin lâu"],
 };
 
+const BRAND_LOGOS: Record<string, string> = {
+  apple: "https://logo.clearbit.com/apple.com",
+  samsung: "https://logo.clearbit.com/samsung.com",
+  dell: "https://logo.clearbit.com/dell.com",
+  asus: "https://logo.clearbit.com/asus.com",
+  hp: "https://logo.clearbit.com/hp.com",
+  lenovo: "https://logo.clearbit.com/lenovo.com",
+  acer: "https://logo.clearbit.com/acer.com",
+  msi: "https://logo.clearbit.com/msi.com",
+  razer: "https://logo.clearbit.com/razer.com",
+  logitech: "https://logo.clearbit.com/logitech.com",
+  xiaomi: "https://logo.clearbit.com/mi.com",
+  oppo: "https://logo.clearbit.com/oppo.com",
+  vivo: "https://logo.clearbit.com/vivo.com",
+  iphone: "https://logo.clearbit.com/apple.com",
+  sony: "https://logo.clearbit.com/sony.com",
+  realme: "https://logo.clearbit.com/realme.com",
+};
+
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 
 export default function MegaMenuButton() {
@@ -162,7 +181,7 @@ export default function MegaMenuButton() {
       {/* ── Trigger button ── */}
       <button
         onClick={() => setOpen((v) => !v)}
-        className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+        className={`flex items-center gap-2 px-4 py-2.5 rounded-sm text-sm font-medium transition-colors ${
           open
             ? "bg-red-700 text-white"
             : "bg-red-600 hover:bg-red-700 text-white"
@@ -175,7 +194,7 @@ export default function MegaMenuButton() {
       {/* ── Mega menu panel ── */}
       {open && (
         <div
-          className="absolute top-full left-0 z-50 mt-2 flex rounded-2xl bg-white border border-gray-100 shadow-xl overflow-hidden"
+          className="absolute top-full left-0 z-50 mt-2 flex rounded-sm bg-white border border-gray-100 shadow-xl overflow-hidden"
           style={{ width: 780, maxHeight: 500 }}
         >
           {/* ── Col 1: Category sidebar ── */}
@@ -184,7 +203,7 @@ export default function MegaMenuButton() {
               ? Array.from({ length: 6 }).map((_, i) => (
                   <div
                     key={i}
-                    className="h-12 mx-3 mb-1.5 rounded-lg bg-gray-100 animate-pulse"
+                    className="h-12 mx-3 mb-1.5 rounded-sm bg-gray-100 animate-pulse"
                   />
                 ))
               : sidebarCats.map((cat) => {
@@ -201,7 +220,7 @@ export default function MegaMenuButton() {
                       }`}
                     >
                       <span
-                        className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
+                        className={`w-8 h-8 rounded-sm flex items-center justify-center flex-shrink-0 transition-colors ${
                           isActive
                             ? "bg-red-50 text-red-500"
                             : "bg-gray-100 text-gray-500"
@@ -238,7 +257,7 @@ export default function MegaMenuButton() {
                 <Link
                   href={`/sanpham?danh-muc=${encodeURIComponent(activeCategory.slug)}`}
                   onClick={() => setOpen(false)}
-                  className="ml-auto flex-shrink-0 text-[12px] text-red-600 font-medium hover:underline border border-red-200 bg-red-50 px-3 py-1.5 rounded-lg whitespace-nowrap"
+                  className="ml-auto flex-shrink-0 text-[12px] text-red-600 font-medium hover:underline border border-red-200 bg-red-50 px-3 py-1.5 rounded-sm whitespace-nowrap"
                 >
                   Xem tất cả →
                 </Link>
@@ -265,7 +284,7 @@ export default function MegaMenuButton() {
                             href={`/sanpham?danh-muc=${encodeURIComponent(child.slug)}`}
                             onClick={() => setOpen(false)}
                             onMouseEnter={() => setActiveChildSlug(child.slug)}
-                            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-[13px] transition-colors ${
+                            className={`flex items-center gap-2 px-3 py-2 rounded-sm text-[13px] transition-colors ${
                               isChildActive
                                 ? "bg-red-50 text-red-600 font-medium"
                                 : "text-gray-600 hover:bg-gray-50 hover:text-red-600"
@@ -388,10 +407,10 @@ function BrandsSection({
                 onClick={onClose}
                 className="flex flex-col items-center gap-1.5 p-2.5 rounded-xl border border-gray-100 bg-white hover:border-red-200 hover:bg-red-50 transition-all text-center group"
               >
-                {brand.logo ? (
+                {brand.logo || BRAND_LOGOS[brand.brand_name.toLowerCase()] ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={brand.logo}
+                    src={brand.logo || BRAND_LOGOS[brand.brand_name.toLowerCase()]}
                     alt={brand.brand_name}
                     className="w-9 h-9 rounded-xl object-contain p-0.5"
                   />
