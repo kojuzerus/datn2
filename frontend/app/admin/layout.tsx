@@ -46,7 +46,7 @@ const NAV_GROUPS: { section: string; items: NavItem[] }[] = [
     section: "Danh mục",
     items: [
       { href: "/admin/products",   label: "Quản lý sản phẩm",   Icon: Package,      badge: null },
-      { href: "/admin/orders",     label: "Quản lý đơn hàng",   Icon: ShoppingCart, badge: 12   },
+      { href: "/admin/orders",     label: "Quản lý đơn hàng",   Icon: ShoppingCart, badge: null },
       { href: "/admin/users",      label: "Quản lý khách hàng", Icon: Users,        badge: null },
       { href: "/admin/categories", label: "Danh mục",           Icon: FolderOpen,   badge: null },
       { href: "/admin/promotions", label: "Mã giảm giá",        Icon: Tag,          badge: 3    },
