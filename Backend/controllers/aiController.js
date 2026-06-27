@@ -1,50 +1,46 @@
 const Groq  = require("groq-sdk");
 const axios = require("axios");
 
+function decodeHtmlEntities(str) {
+  return str
+    .replace(/&quot;/g, '"')
+    .replace(/&amp;/g, "&")
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">");
+}
+
 exports.searchImage = async (req, res) => {
   const { name } = req.body;
   if (!name?.trim()) {
     return res.status(400).json({ success: false, message: "Thiếu tên sản phẩm" });
   }
 
-  const apiKey = process.env.GOOGLE_SEARCH_API_KEY;
-  const cx     = process.env.GOOGLE_SEARCH_CX;
-  if (!apiKey || !cx) {
-    return res.status(500).json({ success: false, message: "Chưa cấu hình GOOGLE_SEARCH_API_KEY / GOOGLE_SEARCH_CX" });
-  }
-
   try {
-    const { data } = await axios.get("https://www.googleapis.com/customsearch/v1", {
-      params: {
-        key:        apiKey,
-        cx,
-        q:          `${name} official product image`,
-        searchType: "image",
-        num:        5,
-        imgType:    "photo",
-        imgSize:    "large",
-        safe:       "active",
-      },
-    });
+    // Bing không yêu cầu API key/billing - đủ dùng cho mục đích lấy ảnh sản phẩm minh hoạ
+    const query = encodeURIComponent(`${name} chính hãng`);
+    const { data: html } = await axios.get(
+      `https://www.bing.com/images/search?q=${query}&form=HDRSC2`,
+      {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+        },
+        timeout: 10000,
+      }
+    );
 
-    const items = data.items || [];
-    if (!items.length) {
+    const matches = [...html.matchAll(/murl&quot;:&quot;(.*?)&quot;/g)];
+    const urls = matches
+      .map((m) => decodeHtmlEntities(m[1]))
+      .filter((u) => /^https?:\/\//.test(u));
+
+    if (!urls.length) {
       return res.json({ success: false, message: "Không tìm thấy ảnh" });
     }
 
-    // Ưu tiên ảnh từ trang chính hãng hoặc thương mại uy tín
-    const trusted = [
-      "apple.com", "samsung.com", "sony.com", "lg.com",
-      "amazon.com", "bestbuy.com", "tgdd.vn", "cellphones.com.vn",
-    ];
-    const best = items.find(item =>
-      trusted.some(domain => item.displayLink?.includes(domain))
-    ) || items[0];
-
-    res.json({ success: true, imageUrl: best.link });
+    res.json({ success: true, imageUrl: urls[0] });
   } catch (err) {
-    const msg = err.response?.data?.error?.message || err.message;
-    res.status(500).json({ success: false, message: msg });
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
