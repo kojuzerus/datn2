@@ -38,3 +38,4 @@ Trang sản phẩm (sanpham/[slug]/page.tsx):
 Khi khách chọn màu/biến thể, ảnh chính tự đổi sang ảnh riêng của biến thể đó (nếu có), thay vì luôn hiện ảnh chung
 
 Done Ai tự gợi ý sp và tự thêm biến thể tự thêm ảnh (MK)
+Đã tự động thêm biến thể hình ảnh biến thể và giá theo thị trường (MK)
