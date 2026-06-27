@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import {
   Chart,
@@ -36,70 +36,23 @@ Chart.register(
 // ── Types ──────────────────────────────────────────────────────────────────
 type Period = "day" | "week" | "month" | "year";
 
-interface PeriodData {
+interface DashboardData {
   label: string;
   stats: { revenue: string; orders: string; users: string; cancel: string };
   chg:   { revenue: string; orders: string; users: string; cancel: string };
   chgUp: { revenue: boolean; orders: boolean; users: boolean; cancel: boolean };
-  chart1: { data: number[]; vals: string[] };
-  chart2: { data: number[]; vals: string[] };
+  quickStrip: { productsActive: number; pendingOrders: number; outOfStock: number; newUsersToday: number };
+  chart1: { labels: string[]; data: number[]; vals: string[]; colors: string[] };
+  chart2: { vals: string[] };
   bar:   { labels: string[]; data: number[] };
 }
 
-// ── Data ───────────────────────────────────────────────────────────────────
-const PERIOD_DATA: Record<Period, PeriodData> = {
-  day: {
-    label: "Hôm nay, 04/06/2026",
-    stats: { revenue: "12.4M", orders: "183", users: "94", cancel: "7" },
-    chg:   { revenue: "+8.2%", orders: "+5.4%", users: "+3.1%", cancel: "-1.2%" },
-    chgUp: { revenue: true, orders: true, users: true, cancel: false },
-    chart1: { data: [48, 27, 16, 9],  vals: ["5.9M₫", "3.4M₫", "2.0M₫", "1.1M₫"] },
-    chart2: { data: [55, 24, 14, 7],  vals: ["101", "44", "26", "12"] },
-    bar: {
-      labels: ["7h", "9h", "11h", "13h", "15h", "17h", "19h"],
-      data:   [0.8,  1.4,  2.1,  1.9,  2.4,  2.2,  1.6],
-    },
-  },
-  week: {
-    label: "Tuần này, 28/05 - 03/06/2026",
-    stats: { revenue: "68.7M", orders: "921", users: "412", cancel: "34" },
-    chg:   { revenue: "+11.3%", orders: "+7.8%", users: "+4.5%", cancel: "-2.1%" },
-    chgUp: { revenue: true, orders: true, users: true, cancel: false },
-    chart1: { data: [44, 29, 18, 9],  vals: ["30.2M₫", "19.9M₫", "12.4M₫", "6.2M₫"] },
-    chart2: { data: [58, 22, 13, 7],  vals: ["534", "203", "120", "64"] },
-    bar: {
-      labels: ["T2", "T3", "T4", "T5", "T6", "T7", "CN"],
-      data:   [8.4, 10.2, 9.8, 12.4, 11.6, 9.7, 6.6],
-    },
-  },
-  month: {
-    label: "Tháng 5/2026",
-    stats: { revenue: "284M", orders: "3.841", users: "1.623", cancel: "127" },
-    chg:   { revenue: "+14.6%", orders: "+9.2%", users: "+6.3%", cancel: "-3.4%" },
-    chgUp: { revenue: true, orders: true, users: true, cancel: false },
-    chart1: { data: [45, 28, 17, 10], vals: ["127.8M₫", "79.5M₫", "48.3M₫", "28.4M₫"] },
-    chart2: { data: [60, 21, 12, 7],  vals: ["2.305", "807", "461", "268"] },
-    bar: {
-      labels: ["Tuần 1", "Tuần 2", "Tuần 3", "Tuần 4"],
-      data:   [62.4,    74.1,    81.3,    66.2],
-    },
-  },
-  year: {
-    label: "Năm 2026 (đến nay)",
-    stats: { revenue: "1.42T", orders: "19.284", users: "5.631", cancel: "614" },
-    chg:   { revenue: "+22.1%", orders: "+18.4%", users: "+15.7%", cancel: "-5.2%" },
-    chgUp: { revenue: true, orders: true, users: true, cancel: false },
-    chart1: { data: [43, 30, 17, 10], vals: ["610M₫", "426M₫", "241M₫", "143M₫"] },
-    chart2: { data: [61, 20, 12, 7],  vals: ["11.763", "3.857", "2.314", "1.350"] },
-    bar: {
-      labels: ["T1",  "T2",  "T3",  "T4",  "T5",  "T6"],
-      data:   [88,    102,   124,   108,   136,   130],
-    },
-  },
-};
+interface RecentOrder {
+  id: string; orderId: string; customer: string; product: string;
+  amount: string; statusType: OrderStatusType; time: string;
+}
 
-const COLORS1 = ["#D32F2F", "#378ADD", "#1D9E75", "#BA7517"];
-const LABELS1 = ["Điện thoại", "Laptop", "Phụ kiện", "Tivi"];
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 const PERIODS: { key: Period; label: string }[] = [
   { key: "day",   label: "Ngày"  },
@@ -116,17 +69,6 @@ const STATUS_STYLE: Record<OrderStatusType, { bg: string; color: string; border:
   pending: { bg: "#FFFBEB", color: "#92400E", border: "#FDE68A", dot: "#D97706", label: "Chờ xử lý"  },
   cancel:  { bg: "#FEF2F2", color: "#991B1B", border: "#FECACA", dot: "#DC2626", label: "Đã hủy"     },
 };
-
-const RECENT_ORDERS: {
-  id: string; customer: string; product: string;
-  amount: string; statusType: OrderStatusType; time: string;
-}[] = [
-  { id: "#2851", customer: "Nguyễn Văn An",    product: "iPhone 16 Pro Max 256GB",   amount: "34.9M₫", statusType: "done",    time: "5 phút trước"  },
-  { id: "#2850", customer: "Trần Thị Bích",    product: "MacBook Air M3 15\"",        amount: "28.5M₫", statusType: "ship",    time: "18 phút trước" },
-  { id: "#2849", customer: "Lê Minh Đức",      product: "Samsung Galaxy S25 Ultra",   amount: "22.4M₫", statusType: "pending", time: "1 giờ trước"   },
-  { id: "#2848", customer: "Phạm Thu Hà",      product: "AirPods Pro 2",              amount: "5.7M₫",  statusType: "done",    time: "2 giờ trước"   },
-  { id: "#2847", customer: "Hoàng Văn Long",   product: "Apple Watch Series 10",      amount: "9.2M₫",  statusType: "cancel",  time: "3 giờ trước"   },
-];
 
 // ── Stat Card ──────────────────────────────────────────────────────────────
 function StatCard({
@@ -164,12 +106,12 @@ function StatCard({
 }
 
 // ── Quick Strip ────────────────────────────────────────────────────────────
-function QuickStrip() {
+function QuickStrip({ data }: { data: DashboardData["quickStrip"] }) {
   const items: { label: string; value: string; Icon: LucideIcon; bg: string; color: string; border: string }[] = [
-    { label: "Sản phẩm đang bán", value: "48", Icon: Package,       bg: "#FFF5F5", color: "#D32F2F", border: "#FECACA" },
-    { label: "Đơn chờ xử lý",     value: "26", Icon: Clock,         bg: "#FFFBEB", color: "#D97706", border: "#FDE68A" },
-    { label: "Hết hàng",          value: "2",  Icon: AlertTriangle, bg: "#FEF2F2", color: "#B91C1C", border: "#FECACA" },
-    { label: "Khách mới hôm nay", value: "12", Icon: UserPlus,      bg: "#F0FDF4", color: "#15803D", border: "#BBF7D0" },
+    { label: "Sản phẩm đang bán", value: String(data.productsActive), Icon: Package,       bg: "#FFF5F5", color: "#D32F2F", border: "#FECACA" },
+    { label: "Đơn chờ xử lý",     value: String(data.pendingOrders),  Icon: Clock,         bg: "#FFFBEB", color: "#D97706", border: "#FDE68A" },
+    { label: "Hết hàng",          value: String(data.outOfStock),     Icon: AlertTriangle, bg: "#FEF2F2", color: "#B91C1C", border: "#FECACA" },
+    { label: "Khách mới hôm nay", value: String(data.newUsersToday),  Icon: UserPlus,      bg: "#F0FDF4", color: "#15803D", border: "#BBF7D0" },
   ];
 
   return (
@@ -430,13 +372,13 @@ function OrderStatusCard({ vals, subtitle }: { vals: string[]; subtitle: string 
 }
 
 // ── Recent Orders ──────────────────────────────────────────────────────────
-function RecentOrdersCard() {
+function RecentOrdersCard({ orders }: { orders: RecentOrder[] }) {
   return (
     <div className="bg-white border border-gray-200 rounded-sm overflow-hidden" style={{ flex: "2 1 0" }}>
       <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
         <div>
           <div className="text-[14px] font-semibold text-gray-900 tracking-tight">Đơn hàng gần đây</div>
-          <div className="text-[11.5px] text-gray-400 mt-0.5">5 đơn hàng mới nhất</div>
+          <div className="text-[11.5px] text-gray-400 mt-0.5">{orders.length} đơn hàng mới nhất</div>
         </div>
         <Link
           href="/admin/orders"
@@ -445,48 +387,75 @@ function RecentOrdersCard() {
           Xem tất cả <ArrowRight size={13} strokeWidth={2.5} />
         </Link>
       </div>
-      <div className="divide-y divide-gray-50">
-        {RECENT_ORDERS.map((order) => {
-          const s = STATUS_STYLE[order.statusType];
-          return (
-            <div
-              key={order.id}
-              className="flex items-center gap-4 px-5 py-3 hover:bg-gray-50/60 transition-colors"
-            >
-              <div className="text-[12px] font-bold text-[#D32F2F] w-[52px] shrink-0 tabular-nums">
-                {order.id}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-[13px] font-medium text-gray-900 truncate leading-tight">
-                  {order.customer}
-                </div>
-                <div className="text-[11.5px] text-gray-400 truncate mt-0.5">{order.product}</div>
-              </div>
-              <div className="text-[13px] font-bold text-gray-900 tabular-nums shrink-0">
-                {order.amount}
-              </div>
-              <span
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-[11.5px] font-medium shrink-0"
-                style={{ background: s.bg, color: s.color, border: `1px solid ${s.border}` }}
+      {orders.length === 0 ? (
+        <div className="px-5 py-10 text-center text-[13px] text-gray-400">Chưa có đơn hàng nào</div>
+      ) : (
+        <div className="divide-y divide-gray-50">
+          {orders.map((order) => {
+            const s = STATUS_STYLE[order.statusType];
+            return (
+              <Link
+                key={order.orderId}
+                href="/admin/orders"
+                className="flex items-center gap-4 px-5 py-3 hover:bg-gray-50/60 transition-colors no-underline"
               >
-                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: s.dot }} />
-                {s.label}
-              </span>
-              <div className="text-[11px] text-gray-400 shrink-0 w-[90px] text-right tabular-nums">
-                {order.time}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+                <div className="text-[12px] font-bold text-[#D32F2F] w-[52px] shrink-0 tabular-nums">
+                  {order.id}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[13px] font-medium text-gray-900 truncate leading-tight">
+                    {order.customer}
+                  </div>
+                  <div className="text-[11.5px] text-gray-400 truncate mt-0.5">{order.product}</div>
+                </div>
+                <div className="text-[13px] font-bold text-gray-900 tabular-nums shrink-0">
+                  {order.amount}
+                </div>
+                <span
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-[11.5px] font-medium shrink-0"
+                  style={{ background: s.bg, color: s.color, border: `1px solid ${s.border}` }}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: s.dot }} />
+                  {s.label}
+                </span>
+                <div className="text-[11px] text-gray-400 shrink-0 w-[90px] text-right tabular-nums">
+                  {order.time}
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
 
 // ── Page ───────────────────────────────────────────────────────────────────
 export default function AdminDashboardPage() {
-  const [period, setPeriod] = useState<Period>("day");
-  const d = PERIOD_DATA[period];
+  const [period, setPeriod]             = useState<Period>("day");
+  const [data, setData]                 = useState<DashboardData | null>(null);
+  const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
+  const [loading, setLoading]           = useState(true);
+
+  const fetchStats = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [statsRes, ordersRes] = await Promise.all([
+        fetch(`${API_BASE}/api/admin/stats/dashboard?period=${period}`),
+        fetch(`${API_BASE}/api/admin/stats/recent-orders?limit=5`),
+      ]);
+      const statsJson  = await statsRes.json();
+      const ordersJson = await ordersRes.json();
+      if (statsJson.success)  setData(statsJson.data);
+      if (ordersJson.success) setRecentOrders(ordersJson.data);
+    } catch (err) {
+      console.error("[AdminDashboard] fetch error", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [period]);
+
+  useEffect(() => { fetchStats(); }, [fetchStats]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -527,59 +496,67 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* ── Stat cards ── */}
-      <div className="flex gap-3">
-        <StatCard
-          label="Doanh thu"   value={d.stats.revenue}
-          change={d.chg.revenue} isUp={d.chgUp.revenue}
-          accentColor="#D32F2F" iconBg="#FFF5F5" iconColor="#D32F2F" Icon={TrendingUp}
-        />
-        <StatCard
-          label="Đơn hàng"   value={d.stats.orders}
-          change={d.chg.orders}  isUp={d.chgUp.orders}
-          accentColor="#2563EB" iconBg="#EFF6FF" iconColor="#1D4ED8" Icon={ShoppingCart}
-        />
-        <StatCard
-          label="Người dùng" value={d.stats.users}
-          change={d.chg.users}   isUp={d.chgUp.users}
-          accentColor="#15803D" iconBg="#F0FDF4" iconColor="#15803D" Icon={Users}
-        />
-        <StatCard
-          label="Hủy đơn"    value={d.stats.cancel}
-          change={d.chg.cancel}  isUp={d.chgUp.cancel}
-          accentColor="#D97706" iconBg="#FFFBEB" iconColor="#D97706" Icon={AlertCircle}
-        />
-      </div>
+      {!data || loading ? (
+        <div className="flex items-center justify-center py-24 text-[13px] text-gray-400">
+          Đang tải dữ liệu thống kê...
+        </div>
+      ) : (
+        <>
+          {/* ── Stat cards ── */}
+          <div className="flex gap-3">
+            <StatCard
+              label="Doanh thu"   value={data.stats.revenue}
+              change={data.chg.revenue} isUp={data.chgUp.revenue}
+              accentColor="#D32F2F" iconBg="#FFF5F5" iconColor="#D32F2F" Icon={TrendingUp}
+            />
+            <StatCard
+              label="Đơn hàng"   value={data.stats.orders}
+              change={data.chg.orders}  isUp={data.chgUp.orders}
+              accentColor="#2563EB" iconBg="#EFF6FF" iconColor="#1D4ED8" Icon={ShoppingCart}
+            />
+            <StatCard
+              label="Người dùng" value={data.stats.users}
+              change={data.chg.users}   isUp={data.chgUp.users}
+              accentColor="#15803D" iconBg="#F0FDF4" iconColor="#15803D" Icon={Users}
+            />
+            <StatCard
+              label="Hủy đơn"    value={data.stats.cancel}
+              change={data.chg.cancel}  isUp={data.chgUp.cancel}
+              accentColor="#D97706" iconBg="#FFFBEB" iconColor="#D97706" Icon={AlertCircle}
+            />
+          </div>
 
-      {/* ── Quick strip ── */}
-      <QuickStrip />
+          {/* ── Quick strip ── */}
+          <QuickStrip data={data.quickStrip} />
 
-      {/* ── Bar chart + Category bar chart ── */}
-      <div className="flex gap-4">
-        <BarTrendChart
-          id="chart-bar-trend"
-          title="Xu hướng doanh thu"
-          subtitle={d.label}
-          labels={d.bar.labels}
-          data={d.bar.data}
-        />
-        <CategoryBarChart
-          id="chart-revenue"
-          title="Doanh thu theo danh mục"
-          subtitle={d.label}
-          labels={LABELS1} data={d.chart1.data}
-          colors={COLORS1} vals={d.chart1.vals}
-        />
-      </div>
+          {/* ── Bar chart + Category bar chart ── */}
+          <div className="flex gap-4">
+            <BarTrendChart
+              id="chart-bar-trend"
+              title="Xu hướng doanh thu"
+              subtitle={data.label}
+              labels={data.bar.labels}
+              data={data.bar.data}
+            />
+            <CategoryBarChart
+              id="chart-revenue"
+              title="Doanh thu theo danh mục"
+              subtitle={data.label}
+              labels={data.chart1.labels} data={data.chart1.data}
+              colors={data.chart1.colors} vals={data.chart1.vals}
+            />
+          </div>
 
-      {/* ── Recent orders + Order status tiles ── */}
-      <div className="flex gap-4">
-        <RecentOrdersCard />
-        <OrderStatusCard
-          vals={d.chart2.vals}
-          subtitle={d.label}
-        />
-      </div>
+          {/* ── Recent orders + Order status tiles ── */}
+          <div className="flex gap-4">
+            <RecentOrdersCard orders={recentOrders} />
+            <OrderStatusCard
+              vals={data.chart2.vals}
+              subtitle={data.label}
+            />
+          </div>
+        </>
+      )}
     </div>
   );
 }

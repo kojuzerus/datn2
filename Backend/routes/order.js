@@ -10,7 +10,7 @@ router.get("/:id",         auth, ctrl.getOrderById);
 router.put("/:id/cancel",  auth, ctrl.cancelOrder);
 
 // Admin routes
-router.get("/admin/all",           auth, ctrl.getAllOrders);
-router.put("/admin/:id/status",    auth, ctrl.updateOrderStatus);
+router.get("/admin/all",           ctrl.getAllOrders);
+router.put("/admin/:id/status",    ctrl.updateOrderStatus);
 
 module.exports = router;
