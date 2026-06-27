@@ -46,6 +46,16 @@ interface Toast {
 
 const STATUS_FLOW = ["cho_xac_nhan", "da_xac_nhan", "dang_giao", "da_giao", "da_huy"] as const;
 
+// Thứ tự tiến của đơn hàng - không cho phép lùi về trạng thái đã qua
+const FORWARD_FLOW = ["cho_xac_nhan", "da_xac_nhan", "dang_giao", "da_giao"] as const;
+
+function getAvailableStatuses(current: string): string[] {
+  if (current === "da_huy" || current === "da_giao") return [current];
+  const idx = FORWARD_FLOW.indexOf(current as typeof FORWARD_FLOW[number]);
+  if (idx === -1) return [...STATUS_FLOW];
+  return [...FORWARD_FLOW.slice(idx), "da_huy"];
+}
+
 const STATUS_STYLE: Record<string, { bg: string; color: string; border: string; dot: string; label: string }> = {
   cho_xac_nhan: { bg: "#FFFBEB", color: "#92400E", border: "#FDE68A", dot: "#D97706", label: "Chờ xác nhận" },
   da_xac_nhan:  { bg: "#EFF6FF", color: "#1E40AF", border: "#BFDBFE", dot: "#2563EB", label: "Đã xác nhận" },
@@ -285,12 +295,12 @@ export default function AdminOrdersPage() {
                       <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
                         <select
                           value={o.trangThai}
-                          disabled={updating}
+                          disabled={updating || getAvailableStatuses(o.trangThai).length === 1}
                           onChange={(e) => updateStatus(o._id, e.target.value)}
                           className="text-[11.5px] font-medium px-2.5 py-1.5 rounded-sm border outline-none cursor-pointer disabled:cursor-default"
                           style={{ background: s.bg, color: s.color, borderColor: s.border }}
                         >
-                          {STATUS_FLOW.map((st) => (
+                          {getAvailableStatuses(o.trangThai).map((st) => (
                             <option key={st} value={st}>{STATUS_STYLE[st].label}</option>
                           ))}
                         </select>
@@ -343,7 +353,7 @@ export default function AdminOrdersPage() {
                 </div>
                 <select
                   value={detail.trangThai}
-                  disabled={updating}
+                  disabled={updating || getAvailableStatuses(detail.trangThai).length === 1}
                   onChange={(e) => updateStatus(detail._id, e.target.value)}
                   className="text-[12.5px] font-semibold px-3 py-1.5 rounded-sm border outline-none cursor-pointer disabled:cursor-default"
                   style={{
@@ -352,7 +362,7 @@ export default function AdminOrdersPage() {
                     borderColor: (STATUS_STYLE[detail.trangThai] || STATUS_STYLE.cho_xac_nhan).border,
                   }}
                 >
-                  {STATUS_FLOW.map((st) => (
+                  {getAvailableStatuses(detail.trangThai).map((st) => (
                     <option key={st} value={st}>{STATUS_STYLE[st].label}</option>
                   ))}
                 </select>
