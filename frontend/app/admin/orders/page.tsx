@@ -60,9 +60,9 @@ const PAYMENT_LABEL: Record<string, string> = {
   vnpay: "VNPay",
 };
 
-const vnd = (n: number) => n.toLocaleString("vi-VN") + "đ";
-const fmtDate = (s: string) =>
-  new Date(s).toLocaleString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+const vnd = (n?: number) => (n ?? 0).toLocaleString("vi-VN") + "đ";
+const fmtDate = (s?: string) =>
+  s ? new Date(s).toLocaleString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
 
 const inputCls = "w-full border border-gray-200 rounded-sm px-3 py-2.5 text-[13.5px] text-gray-900 bg-white outline-none focus:border-[#D32F2F] focus:ring-[2px] focus:ring-[rgba(211,47,47,0.1)] transition-all placeholder-gray-400 font-sans";
 
@@ -395,7 +395,7 @@ export default function AdminOrdersPage() {
                           {it.variant ? `${it.variant} · ` : ""}SL: {it.soLuong}
                         </div>
                       </div>
-                      <div className="text-[13px] font-bold text-gray-900 shrink-0">{vnd(it.gia * it.soLuong)}</div>
+                      <div className="text-[13px] font-bold text-gray-900 shrink-0">{vnd((it.gia || 0) * (it.soLuong || 0))}</div>
                     </div>
                   ))}
                 </div>
