@@ -24,3 +24,17 @@ mới sửa lại một tí về header và footer trang admin. từ nay dùng c
  làm lại trang giỏ hàng, làm thêm trang thanh toán(Phuoc)
 
 làm trang profile cập nhật địa chit người dùng(Phước)
+
+
+Backend:
+
+Backend/controllers/productController.js: lưu ảnh riêng cho từng biến thể vào bảng product_images (đã có sẵn, gắn theo variant_id). Khi tạo/sửa sản phẩm, xóa ảnh biến thể cũ và lưu ảnh mới tương ứng. formatProduct trả về variant.image cho từng biến thể.
+Admin form (frontend/app/admin/products/page.tsx):
+
+Mỗi dòng biến thể giờ có thêm dòng phụ: ô nhập URL ảnh + thumbnail preview
+AI gợi ý giờ tự động: tìm ảnh sản phẩm chính + gọi tìm ảnh riêng cho từng biến thể (theo tên sản phẩm + màu), chạy song song qua Serper.dev
+Trang sản phẩm (sanpham/[slug]/page.tsx):
+
+Khi khách chọn màu/biến thể, ảnh chính tự đổi sang ảnh riêng của biến thể đó (nếu có), thay vì luôn hiện ảnh chung
+
+Done Ai tự gợi ý sp và tự thêm biến thể tự thêm ảnh (MK)
