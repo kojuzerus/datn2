@@ -31,6 +31,61 @@ exports.searchImage = async (req, res) => {
   }
 };
 
+exports.searchMarketPrice = async (req, res) => {
+  const { name } = req.body;
+  if (!name?.trim()) {
+    return res.status(400).json({ success: false, message: "Thiếu tên sản phẩm" });
+  }
+
+  const apiKey = process.env.SERPER_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ success: false, message: "Chưa cấu hình SERPER_API_KEY" });
+  }
+
+  try {
+    const { data } = await axios.post(
+      "https://google.serper.dev/search",
+      { q: `${name} cellphones.com.vn giá`, gl: "vn", hl: "vi" },
+      { headers: { "X-API-KEY": apiKey, "Content-Type": "application/json" }, timeout: 10000 }
+    );
+
+    const results = (data.organic || []).filter((r) =>
+      r.link?.includes("cellphones.com.vn") &&
+      !r.link.includes("/so-sanh/") &&
+      !r.link.includes("/sforum/")
+    );
+
+    // Giá niêm yết + giá khuyến mãi thường xuất hiện liền kề nhau trong snippet, dạng "X.XXX.XXXđ Y.YYY.YYYđ"
+    const pairPattern  = /(\d{1,3}(?:\.\d{3})+)\s*đ\s+(\d{1,3}(?:\.\d{3})+)\s*đ/;
+    const singlePattern = /(\d{1,3}(?:\.\d{3})+)\s*đ/;
+
+    for (const r of results) {
+      const snippet = r.snippet || "";
+      const pair = snippet.match(pairPattern);
+      if (pair) {
+        const a = parseInt(pair[1].replace(/\./g, ""), 10);
+        const b = parseInt(pair[2].replace(/\./g, ""), 10);
+        const price      = Math.max(a, b);
+        const sale_price = a !== b ? Math.min(a, b) : null;
+        return res.json({ success: true, price, sale_price, source: r.link });
+      }
+    }
+
+    for (const r of results) {
+      const single = (r.snippet || "").match(singlePattern);
+      if (single) {
+        const price = parseInt(single[1].replace(/\./g, ""), 10);
+        return res.json({ success: true, price, sale_price: null, source: r.link });
+      }
+    }
+
+    res.json({ success: false, message: "Không tìm thấy giá trên CellphoneS" });
+  } catch (err) {
+    const msg = err.response?.data?.message || err.message;
+    res.status(500).json({ success: false, message: msg });
+  }
+};
+
 exports.generateProduct = async (req, res) => {
   const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
   const { name, category } = req.body;
