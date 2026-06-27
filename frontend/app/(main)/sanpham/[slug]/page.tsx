@@ -22,6 +22,7 @@ interface Variant {
   sale_price: number | null;
   stock_quantity: number;
   sku: string;
+  image?: string;
 }
 
 interface Product {
@@ -174,6 +175,7 @@ export default function ProductDetailPage() {
   const allImages = product
     ? [product.thumbnail, ...(product.images || [])].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i)
     : [];
+  const mainImageSrc = selectedVariant?.image || allImages[activeImage];
 
   const handleAddToCart = async () => {
     if (!product || !inStock) return;
@@ -277,7 +279,7 @@ export default function ProductDetailPage() {
               </span>
             )}
             <img
-              src={allImages[activeImage] || "https://placehold.co/600x600?text=No+Image"}
+              src={mainImageSrc || "https://placehold.co/600x600?text=No+Image"}
               alt={product.ten}
               className="w-full h-full object-contain p-6 transition-transform duration-300 group-hover:scale-[1.04]"
             />

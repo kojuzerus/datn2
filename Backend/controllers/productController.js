@@ -58,11 +58,14 @@ async function attachProductImages(products) {
 
   return products.map((p) => {
     const productImages = [];
-    for (const v of p.variants || []) {
-      productImages.push(...(imageMap[v.variant_id] || []));
-    }
+    const variants = (p.variants || []).map((v) => {
+      const imgs = imageMap[v.variant_id] || [];
+      productImages.push(...imgs);
+      return { ...v, image: imgs[0] ? normalizeImageUrl(imgs[0].image_url) : "" };
+    });
     return {
       ...p,
+      variants,
       product_images: productImages,
     };
   });
@@ -79,6 +82,11 @@ async function nextProductId() {
 async function nextVariantId() {
   const last = await Variant.findOne().sort({ variant_id: -1 }).select("variant_id").lean();
   return (last?.variant_id ?? 0) + 1;
+}
+
+async function nextImageId() {
+  const last = await ProductImage.findOne().sort({ image_id: -1 }).select("image_id").lean();
+  return (last?.image_id ?? 0) + 1;
 }
 
 // ── Helper: slug generator ────────────────────────────────────────────────
@@ -349,8 +357,26 @@ exports.createProduct = async (req, res) => {
     if (builtVariants.length)
       await Variant.insertMany(builtVariants);
 
+    // Lưu ảnh riêng cho từng biến thể (nếu có)
+    let imageCounter = await nextImageId();
+    const imageDocs = [];
+    variants.forEach((v, idx) => {
+      if (v.image?.trim()) {
+        imageDocs.push({
+          image_id:   imageCounter++,
+          variant_id: builtVariants[idx].variant_id,
+          image_url:  v.image.trim(),
+          sort_order: 0,
+        });
+      }
+    });
+    if (imageDocs.length) await ProductImage.insertMany(imageDocs);
+
+    const imageByVariant = {};
+    imageDocs.forEach((img) => { imageByVariant[img.variant_id] = img.image_url; });
+
     const plain = product.toObject();
-    plain.variants = builtVariants;
+    plain.variants = builtVariants.map((v) => ({ ...v, image: imageByVariant[v.variant_id] || "" }));
     res.status(201).json({ success: true, data: formatProduct(plain) });
   } catch (err) {
     console.error("[createProduct]", err);
@@ -381,8 +407,10 @@ exports.updateProduct = async (req, res) => {
     const slugBase   = toSlug(newName);
     const slug       = await uniqueSlug(`${slugBase}-${product_id}`, product_id);
 
-    // Remove old variants from product_variants collection
+    // Remove old variants + ảnh biến thể cũ
+    const oldVariantIds = (await Variant.find({ product_id }).select("variant_id").lean()).map((v) => v.variant_id);
     await Variant.deleteMany({ product_id });
+    if (oldVariantIds.length) await ProductImage.deleteMany({ variant_id: { $in: oldVariantIds } });
 
     let variantCounter = await nextVariantId();
     const builtVariants = variants.map((v) => ({
@@ -397,6 +425,24 @@ exports.updateProduct = async (req, res) => {
 
     if (builtVariants.length)
       await Variant.insertMany(builtVariants);
+
+    // Lưu ảnh riêng cho từng biến thể (nếu có)
+    let imageCounter = await nextImageId();
+    const imageDocs = [];
+    variants.forEach((v, idx) => {
+      if (v.image?.trim()) {
+        imageDocs.push({
+          image_id:   imageCounter++,
+          variant_id: builtVariants[idx].variant_id,
+          image_url:  v.image.trim(),
+          sort_order: 0,
+        });
+      }
+    });
+    if (imageDocs.length) await ProductImage.insertMany(imageDocs);
+
+    const imageByVariant = {};
+    imageDocs.forEach((img) => { imageByVariant[img.variant_id] = img.image_url; });
 
     const updated = await Product.findOneAndUpdate(
       { product_id },
@@ -421,7 +467,7 @@ exports.updateProduct = async (req, res) => {
       { new: true }
     ).lean();
 
-    updated.variants = builtVariants;
+    updated.variants = builtVariants.map((v) => ({ ...v, image: imageByVariant[v.variant_id] || "" }));
     res.json({ success: true, data: formatProduct(updated) });
   } catch (err) {
     console.error("[updateProduct]", err);
