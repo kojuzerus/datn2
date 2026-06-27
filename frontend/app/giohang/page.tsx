@@ -134,7 +134,7 @@ export default function GioHangPage() {
           </div>
           <h2 className="text-xl font-bold text-gray-800 mb-2">Vui lòng đăng nhập</h2>
           <p className="text-gray-500 text-sm mb-6">Đăng nhập để xem giỏ hàng của bạn</p>
-          <Link href="/login" className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg font-semibold transition">
+          <Link href="/login" className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-sm font-semibold transition">
             Đăng nhập ngay
           </Link>
         </div>
@@ -172,7 +172,7 @@ export default function GioHangPage() {
             <p className="text-gray-400 mb-8">Hãy thêm sản phẩm vào giỏ hàng nhé!</p>
             <Link
               href="/sanpham"
-              className="inline-flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-8 py-3 rounded-lg font-semibold transition"
+              className="inline-flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-8 py-3 rounded-sm font-semibold transition"
             >
               Mua sắm ngay
               <ArrowLeft className="w-4 h-4 rotate-180" />
@@ -185,7 +185,7 @@ export default function GioHangPage() {
             <div className="lg:col-span-2 space-y-3">
 
               {/* Thanh "chọn tất cả" */}
-              <div className="bg-white border border-gray-100 px-4 py-3 flex items-center justify-between rounded-lg">
+              <div className="bg-white border border-gray-100 px-4 py-3 flex items-center justify-between rounded-sm">
                 <label className="flex items-center gap-3 cursor-pointer select-none">
                   <input
                     type="checkbox"
@@ -213,7 +213,7 @@ export default function GioHangPage() {
                 return (
                   <div
                     key={item._id}
-                    className={`bg-white border rounded-lg flex gap-4 p-4 transition ${
+                    className={`bg-white border rounded-sm flex gap-4 p-4 transition ${
                       updating === item._id ? 'opacity-60' : ''
                     } ${isSelected ? 'border-red-300' : 'border-gray-100'}`}
                   >
@@ -228,7 +228,7 @@ export default function GioHangPage() {
                     </div>
 
                     {/* Ảnh */}
-                    <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-100 shrink-0 flex items-center justify-center">
+                    <div className="w-20 h-20 rounded-sm overflow-hidden bg-gray-100 shrink-0 flex items-center justify-center">
                       {item.hinhAnh
                         ? <img src={item.hinhAnh} alt={item.tenSanPham} className="w-full h-full object-cover" />
                         : <Package className="w-8 h-8 text-gray-300" />
@@ -290,7 +290,7 @@ export default function GioHangPage() {
 
             {/* ── Tóm tắt ── */}
             <div className="lg:col-span-1">
-              <div className="bg-white border border-gray-100 rounded-lg p-6 sticky top-24">
+              <div className="bg-white border border-gray-100 rounded-sm p-6 sticky top-24">
                 <h2 className="font-bold text-gray-800 text-lg mb-5">Tóm tắt đơn hàng</h2>
 
                 <div className="space-y-3 mb-5">
@@ -338,7 +338,7 @@ export default function GioHangPage() {
                 <button
                   onClick={handleCheckout}
                   disabled={selected.size === 0}
-                  className="w-full bg-red-500 hover:bg-red-600 disabled:bg-gray-200 disabled:text-gray-400 text-white font-bold py-3.5 rounded-lg transition text-base"
+                  className="w-full bg-red-500 hover:bg-red-600 disabled:bg-gray-200 disabled:text-gray-400 text-white font-bold py-3.5 rounded-sm transition text-base"
                 >
                   Thanh toán ({selected.size})
                 </button>

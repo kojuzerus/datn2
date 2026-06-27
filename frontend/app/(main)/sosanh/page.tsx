@@ -130,7 +130,7 @@ export default function ComparisonPage() {
           </Link>
         </div>
       ) : loading ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-8">
+        <div className="bg-white rounded-sm border border-gray-100 p-8">
           <div className="animate-pulse flex gap-6">
             {Array.from({ length: items.length }).map((_, i) => (
               <div key={i} className="flex-1 space-y-3">
@@ -142,7 +142,7 @@ export default function ComparisonPage() {
           </div>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-sm border border-gray-100 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full" style={{ minWidth: `${colCount * 200 + 160}px` }}>
               {/* ── Product headers ── */}
@@ -156,7 +156,7 @@ export default function ComparisonPage() {
                       {product ? (
                         <div className="flex flex-col items-center gap-3">
                           <div className="relative group/img">
-                            <div className="w-32 h-32 bg-gray-50 rounded-2xl overflow-hidden flex items-center justify-center border border-gray-100">
+                            <div className="w-32 h-32 bg-gray-50 rounded-sm overflow-hidden flex items-center justify-center border border-gray-100">
                               <img
                                 src={product.thumbnail}
                                 alt={product.ten}
@@ -193,7 +193,7 @@ export default function ComparisonPage() {
                         href="/sanpham"
                         className="flex flex-col items-center gap-3 text-gray-400 hover:text-red-600 transition-colors group/add"
                       >
-                        <div className="w-32 h-32 border-2 border-dashed border-gray-200 group-hover/add:border-red-300 rounded-2xl flex items-center justify-center transition-colors">
+                        <div className="w-32 h-32 border-2 border-dashed border-gray-200 group-hover/add:border-red-300 rounded-sm flex items-center justify-center transition-colors">
                           <Plus className="w-8 h-8" />
                         </div>
                         <span className="text-xs font-medium">Thêm sản phẩm</span>

@@ -11,7 +11,7 @@ function SuccessContent() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-10 max-w-md w-full text-center">
+      <div className="bg-white rounded-sm shadow-sm border border-gray-100 p-10 max-w-md w-full text-center">
         {/* Icon thành công */}
         <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
           <CheckCircle2 className="w-11 h-11 text-green-500" />

@@ -159,7 +159,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
           <button
             title="Đăng xuất"
-            className="text-gray-400 hover:text-[#D32F2F] cursor-pointer transition-colors p-1.5 rounded-lg hover:bg-red-50"
+            className="text-gray-400 hover:text-[#D32F2F] cursor-pointer transition-colors p-1.5 rounded-sm hover:bg-red-50"
           >
             <LogOut size={15} />
           </button>

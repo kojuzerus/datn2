@@ -167,7 +167,7 @@ export default function Footer() {
             </div>
           </div>
 
-          <div className="bg-gray-50 rounded-3xl p-6">
+          <div className="bg-gray-50 rounded-sm p-6">
             <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-[0.2em] mb-5">Đăng ký nhận tin</h4>
             <p className="text-sm text-gray-500 leading-relaxed">
               Nhận mã giảm giá và tin khuyến mãi mới nhất từ SMARTHUB.
@@ -176,9 +176,9 @@ export default function Footer() {
               <input
                 type="email"
                 placeholder="Nhập email"
-                className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100"
+                className="w-full rounded-sm border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100"
               />
-              <button className="w-full rounded-2xl bg-red-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-red-700">
+              <button className="w-full rounded-sm bg-red-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-red-700">
                 NHẬN NGAY
               </button>
             </div>

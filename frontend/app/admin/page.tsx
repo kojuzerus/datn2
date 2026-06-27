@@ -137,7 +137,7 @@ function StatCard({
   iconBg: string; iconColor: string; Icon: LucideIcon;
 }) {
   return (
-    <div className="flex-1 min-w-0 bg-white border border-gray-200 rounded-2xl overflow-hidden">
+    <div className="flex-1 min-w-0 bg-white border border-gray-200 rounded-sm overflow-hidden">
       <div className="h-[3px] w-full" style={{ background: accentColor }} />
       <div className="px-5 py-4">
         <div className="flex items-center justify-between mb-3">
@@ -177,7 +177,7 @@ function QuickStrip() {
       {items.map((it) => (
         <div
           key={it.label}
-          className="bg-white rounded-2xl px-4 py-3.5 flex items-center gap-3.5 border"
+          className="bg-white rounded-sm px-4 py-3.5 flex items-center gap-3.5 border"
           style={{ borderColor: it.border }}
         >
           <div
@@ -263,7 +263,7 @@ function BarTrendChart({
   }, [data, labels, maxIdx]);
 
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden" style={{ flex: "2 1 0" }}>
+    <div className="bg-white border border-gray-200 rounded-sm overflow-hidden" style={{ flex: "2 1 0" }}>
       <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
         <div>
           <div className="text-[14px] font-semibold text-gray-900 tracking-tight">{title}</div>
@@ -351,7 +351,7 @@ function CategoryBarChart({
   }, [data, labels, colors, vals]);
 
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden" style={{ flex: "1 1 0" }}>
+    <div className="bg-white border border-gray-200 rounded-sm overflow-hidden" style={{ flex: "1 1 0" }}>
       <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
         <div>
           <div className="text-[14px] font-semibold text-gray-900 tracking-tight">{title}</div>
@@ -394,7 +394,7 @@ const ORDER_STATUS_TILES: {
 
 function OrderStatusCard({ vals, subtitle }: { vals: string[]; subtitle: string }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden" style={{ flex: "1 1 0" }}>
+    <div className="bg-white border border-gray-200 rounded-sm overflow-hidden" style={{ flex: "1 1 0" }}>
       <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
         <div>
           <div className="text-[14px] font-semibold text-gray-900 tracking-tight">
@@ -432,7 +432,7 @@ function OrderStatusCard({ vals, subtitle }: { vals: string[]; subtitle: string 
 // ── Recent Orders ──────────────────────────────────────────────────────────
 function RecentOrdersCard() {
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden" style={{ flex: "2 1 0" }}>
+    <div className="bg-white border border-gray-200 rounded-sm overflow-hidden" style={{ flex: "2 1 0" }}>
       <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
         <div>
           <div className="text-[14px] font-semibold text-gray-900 tracking-tight">Đơn hàng gần đây</div>
@@ -466,7 +466,7 @@ function RecentOrdersCard() {
                 {order.amount}
               </div>
               <span
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11.5px] font-medium shrink-0"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-[11.5px] font-medium shrink-0"
                 style={{ background: s.bg, color: s.color, border: `1px solid ${s.border}` }}
               >
                 <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: s.dot }} />
