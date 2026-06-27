@@ -17,13 +17,14 @@ exports.searchImage = async (req, res) => {
   }
 
   try {
-    // Bing không yêu cầu API key/billing - đủ dùng cho mục đích lấy ảnh sản phẩm minh hoạ
-    const query = encodeURIComponent(`${name} chính hãng`);
+    // Endpoint AJAX của Bing - chỉ trả về lưới kết quả ảnh thật, không lẫn quảng cáo/widget
+    const query = encodeURIComponent(name);
     const { data: html } = await axios.get(
-      `https://www.bing.com/images/search?q=${query}&form=HDRSC2`,
+      `https://www.bing.com/images/async?q=${query}&first=0&count=20&mmasync=1`,
       {
         headers: {
           "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+          "Accept-Language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7",
         },
         timeout: 10000,
       }
@@ -32,7 +33,7 @@ exports.searchImage = async (req, res) => {
     const matches = [...html.matchAll(/murl&quot;:&quot;(.*?)&quot;/g)];
     const urls = matches
       .map((m) => decodeHtmlEntities(m[1]))
-      .filter((u) => /^https?:\/\//.test(u));
+      .filter((u) => /^https?:\/\/.*\.(jpg|jpeg|png|webp)/i.test(u));
 
     if (!urls.length) {
       return res.json({ success: false, message: "Không tìm thấy ảnh" });
