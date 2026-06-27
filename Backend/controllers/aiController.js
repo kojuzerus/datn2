@@ -1,47 +1,33 @@
 const Groq  = require("groq-sdk");
 const axios = require("axios");
 
-function decodeHtmlEntities(str) {
-  return str
-    .replace(/&quot;/g, '"')
-    .replace(/&amp;/g, "&")
-    .replace(/&#39;/g, "'")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">");
-}
-
 exports.searchImage = async (req, res) => {
   const { name } = req.body;
   if (!name?.trim()) {
     return res.status(400).json({ success: false, message: "Thiếu tên sản phẩm" });
   }
 
+  const apiKey = process.env.SERPER_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ success: false, message: "Chưa cấu hình SERPER_API_KEY" });
+  }
+
   try {
-    // Endpoint AJAX của Bing - chỉ trả về lưới kết quả ảnh thật, không lẫn quảng cáo/widget
-    const query = encodeURIComponent(name);
-    const { data: html } = await axios.get(
-      `https://www.bing.com/images/async?q=${query}&first=0&count=20&mmasync=1`,
-      {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
-          "Accept-Language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7",
-        },
-        timeout: 10000,
-      }
+    const { data } = await axios.post(
+      "https://google.serper.dev/images",
+      { q: name },
+      { headers: { "X-API-KEY": apiKey, "Content-Type": "application/json" }, timeout: 10000 }
     );
 
-    const matches = [...html.matchAll(/murl&quot;:&quot;(.*?)&quot;/g)];
-    const urls = matches
-      .map((m) => decodeHtmlEntities(m[1]))
-      .filter((u) => /^https?:\/\/.*\.(jpg|jpeg|png|webp)/i.test(u));
-
-    if (!urls.length) {
+    const images = data.images || [];
+    if (!images.length) {
       return res.json({ success: false, message: "Không tìm thấy ảnh" });
     }
 
-    res.json({ success: true, imageUrl: urls[0] });
+    res.json({ success: true, imageUrl: images[0].imageUrl });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    const msg = err.response?.data?.message || err.message;
+    res.status(500).json({ success: false, message: msg });
   }
 };
 
