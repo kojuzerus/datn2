@@ -14,6 +14,7 @@ interface Variant {
   sale_price: number | null;
   stock_quantity: number;
   sku: string;
+  image?: string;
 }
 
 interface Product {
@@ -56,7 +57,7 @@ interface ProductForm {
   short_description: string;
   thumbnail: string;
   status: "active" | "inactive";
-  variants: { color: string; price: string; sale_price: string; stock_quantity: string }[];
+  variants: { color: string; price: string; sale_price: string; stock_quantity: string; image: string }[];
   specification: { label: string; value: string }[];
 }
 
@@ -80,7 +81,7 @@ const EMPTY_FORM: ProductForm = {
   product_name: "", sku: "", category_id: "", brand_id: "",
   warranty: "", badge: "", short_description: "", thumbnail: "",
   status: "active",
-  variants: [{ color: "", price: "", sale_price: "", stock_quantity: "" }],
+  variants: [{ color: "", price: "", sale_price: "", stock_quantity: "", image: "" }],
   specification: [],
 };
 
@@ -236,6 +237,22 @@ export default function ProductsPage() {
       if (!json.success) throw new Error(json.message);
       const d = json.data;
 
+      // Auto-thêm biến thể (tính trước để tái dùng cho fetch ảnh biến thể)
+      const variantsFromAI = Array.isArray(d.variants) && d.variants.length
+        ? d.variants.map((v: any) => {
+            const price = Number(v.price) || 0;
+            const sp    = Number(v.sale_price);
+            const validSale = sp > 0 && sp < price;
+            return {
+              color:          String(v.color || ""),
+              price:          String(price),
+              sale_price:     validSale ? String(sp) : "",
+              stock_quantity: String(Number(v.stock_quantity) || 0),
+              image:          "",
+            };
+          })
+        : null;
+
       setForm((prev) => {
         const next = { ...prev };
 
@@ -266,19 +283,7 @@ export default function ProductsPage() {
         }
 
         // Auto-thêm biến thể
-        if (Array.isArray(d.variants) && d.variants.length) {
-          next.variants = d.variants.map((v: any) => {
-            const price = Number(v.price) || 0;
-            const sp    = Number(v.sale_price);
-            const validSale = sp > 0 && sp < price;
-            return {
-              color:          String(v.color || ""),
-              price:          String(price),
-              sale_price:     validSale ? String(sp) : "",
-              stock_quantity: String(Number(v.stock_quantity) || 0),
-            };
-          });
-        }
+        if (variantsFromAI) next.variants = variantsFromAI;
 
         // Auto-điền thông số kỹ thuật
         if (Array.isArray(d.specification) && d.specification.length) {
@@ -293,24 +298,41 @@ export default function ProductsPage() {
 
       showToast("success", "AI đã điền thông tin, đang tìm ảnh...");
 
-      // Tự động tìm ảnh sản phẩm
-      try {
-        const imgRes  = await fetch(`${API_BASE}/api/ai/search-image`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: form.product_name }),
-        });
-        const imgJson = await imgRes.json();
-        if (imgJson.success && imgJson.imageUrl) {
-          setForm((prev) => ({ ...prev, thumbnail: imgJson.imageUrl }));
-          showToast("success", "Đã tìm được ảnh sản phẩm!");
-        } else {
-          showToast("error", "Tìm ảnh thất bại: " + (imgJson.message || "Không rõ lỗi"));
+      const fetchImage = async (query: string) => {
+        try {
+          const r = await fetch(`${API_BASE}/api/ai/search-image`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: query }),
+          });
+          const j = await r.json();
+          return j.success ? j.imageUrl : null;
+        } catch {
+          return null;
         }
-      } catch (imgErr: unknown) {
-        const m = imgErr instanceof Error ? imgErr.message : "Lỗi kết nối";
-        showToast("error", "Lỗi tìm ảnh: " + m);
-      }
+      };
+
+      // Tự động tìm ảnh sản phẩm chính + ảnh riêng cho từng biến thể (song song)
+      const [mainImage, ...variantImages] = await Promise.all([
+        fetchImage(form.product_name),
+        ...(variantsFromAI ?? []).map((v: { color: string }) =>
+          v.color ? fetchImage(`${form.product_name} màu ${v.color}`) : Promise.resolve(null)
+        ),
+      ]);
+
+      setForm((prev) => ({
+        ...prev,
+        thumbnail: mainImage || prev.thumbnail,
+        variants: prev.variants.map((v, i) => ({
+          ...v,
+          image: variantImages[i] || v.image,
+        })),
+      }));
+
+      showToast(
+        mainImage ? "success" : "error",
+        mainImage ? "Đã tìm được ảnh sản phẩm và biến thể!" : "Không tìm được ảnh sản phẩm"
+      );
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Lỗi không xác định";
       showToast("error", "AI lỗi: " + msg);
@@ -397,8 +419,9 @@ export default function ProductsPage() {
             price:          String(v.price),
             sale_price:     v.sale_price != null ? String(v.sale_price) : "",
             stock_quantity: String(v.stock_quantity),
+            image:          v.image ?? "",
           }))
-        : [{ color: "", price: "", sale_price: "", stock_quantity: "" }],
+        : [{ color: "", price: "", sale_price: "", stock_quantity: "", image: "" }],
       specification: (p as any).specification?.length
         ? (p as any).specification.map((s: any) => ({ label: s.label || "", value: s.value || "" }))
         : [],
@@ -412,7 +435,7 @@ export default function ProductsPage() {
   const addVariant = () =>
     setForm((f) => ({
       ...f,
-      variants: [...f.variants, { color: "", price: "", sale_price: "", stock_quantity: "" }],
+      variants: [...f.variants, { color: "", price: "", sale_price: "", stock_quantity: "", image: "" }],
     }));
 
   const removeVariant = (i: number) =>
@@ -461,6 +484,7 @@ export default function ProductsPage() {
           price:          parseFloat(v.price)          || 0,
           sale_price:     v.sale_price ? parseFloat(v.sale_price) : null,
           stock_quantity: parseInt(v.stock_quantity)   || 0,
+          image:          v.image || "",
         })),
         specification: form.specification.filter(s => s.label.trim() || s.value.trim()),
       };
@@ -1091,40 +1115,58 @@ export default function ProductsPage() {
                     ))}
                   </div>
                   {form.variants.map((v, idx) => (
-                    <div key={idx} className="grid gap-2 mb-2 items-center" style={{ gridTemplateColumns: "1fr 1fr 1fr 1fr 32px" }}>
-                      <input
-                        value={v.color}
-                        onChange={(e) => updateVariant(idx, "color", e.target.value)}
-                        placeholder="Đen"
-                        className="min-w-0 border border-gray-200 rounded-sm px-2.5 py-2 text-[13px] outline-none focus:border-[#D32F2F] bg-white font-sans"
-                      />
-                      <input
-                        type="number"
-                        value={v.price}
-                        onChange={(e) => updateVariant(idx, "price", e.target.value)}
-                        placeholder="0"
-                        className="min-w-0 border border-gray-200 rounded-sm px-2.5 py-2 text-[13px] outline-none focus:border-[#D32F2F] bg-white font-sans"
-                      />
-                      <input
-                        type="number"
-                        value={v.sale_price}
-                        onChange={(e) => updateVariant(idx, "sale_price", e.target.value)}
-                        placeholder=""
-                        className="min-w-0 border border-gray-200 rounded-sm px-2.5 py-2 text-[13px] outline-none focus:border-[#D32F2F] bg-white font-sans"
-                      />
-                      <input
-                        type="number"
-                        value={v.stock_quantity}
-                        onChange={(e) => updateVariant(idx, "stock_quantity", e.target.value)}
-                        placeholder="0"
-                        className="min-w-0 border border-gray-200 rounded-sm px-2.5 py-2 text-[13px] outline-none focus:border-[#D32F2F] bg-white font-sans"
-                      />
-                      <button
-                        onClick={() => removeVariant(idx)}
-                        className="w-7 h-7 border border-red-200 rounded-sm bg-red-50 hover:bg-red-100 cursor-pointer flex items-center justify-center transition-colors"
-                      >
-                        <X size={12} className="text-red-600" />
-                      </button>
+                    <div key={idx} className="mb-2 pb-2 border-b border-gray-200 last:border-b-0 last:mb-0 last:pb-0">
+                      <div className="grid gap-2 items-center" style={{ gridTemplateColumns: "1fr 1fr 1fr 1fr 32px" }}>
+                        <input
+                          value={v.color}
+                          onChange={(e) => updateVariant(idx, "color", e.target.value)}
+                          placeholder="Đen"
+                          className="min-w-0 border border-gray-200 rounded-sm px-2.5 py-2 text-[13px] outline-none focus:border-[#D32F2F] bg-white font-sans"
+                        />
+                        <input
+                          type="number"
+                          value={v.price}
+                          onChange={(e) => updateVariant(idx, "price", e.target.value)}
+                          placeholder="0"
+                          className="min-w-0 border border-gray-200 rounded-sm px-2.5 py-2 text-[13px] outline-none focus:border-[#D32F2F] bg-white font-sans"
+                        />
+                        <input
+                          type="number"
+                          value={v.sale_price}
+                          onChange={(e) => updateVariant(idx, "sale_price", e.target.value)}
+                          placeholder=""
+                          className="min-w-0 border border-gray-200 rounded-sm px-2.5 py-2 text-[13px] outline-none focus:border-[#D32F2F] bg-white font-sans"
+                        />
+                        <input
+                          type="number"
+                          value={v.stock_quantity}
+                          onChange={(e) => updateVariant(idx, "stock_quantity", e.target.value)}
+                          placeholder="0"
+                          className="min-w-0 border border-gray-200 rounded-sm px-2.5 py-2 text-[13px] outline-none focus:border-[#D32F2F] bg-white font-sans"
+                        />
+                        <button
+                          onClick={() => removeVariant(idx)}
+                          className="w-7 h-7 border border-red-200 rounded-sm bg-red-50 hover:bg-red-100 cursor-pointer flex items-center justify-center transition-colors"
+                        >
+                          <X size={12} className="text-red-600" />
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-2 mt-2">
+                        {v.image && (
+                          <img
+                            src={v.image}
+                            alt={v.color || "variant"}
+                            className="w-9 h-9 rounded-sm border border-gray-200 object-cover shrink-0 bg-white"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                          />
+                        )}
+                        <input
+                          value={v.image}
+                          onChange={(e) => updateVariant(idx, "image", e.target.value)}
+                          placeholder="URL ảnh riêng cho biến thể này (tuỳ chọn)"
+                          className="min-w-0 flex-1 border border-gray-200 rounded-sm px-2.5 py-1.5 text-[12.5px] outline-none focus:border-[#D32F2F] bg-white font-sans"
+                        />
+                      </div>
                     </div>
                   ))}
                   <button
