@@ -170,7 +170,7 @@ const badgeColor: Record<string, string> = {
 // ─── SKELETON CARD ────────────────────────────────────────────────────────────
 function SkeletonCard() {
   return (
-    <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden animate-pulse">
+    <div className="bg-white border border-gray-100 rounded-sm overflow-hidden animate-pulse">
       <div className="bg-gray-200 h-48 w-full" />
       <div className="p-4 space-y-3">
         <div className="h-3 bg-gray-200 rounded w-1/3" />
@@ -187,7 +187,7 @@ function ProductCard({ p }: { p: ProductFeatured }) {
   const displayPrice = p.giaSale ?? p.gia;
   return (
     <Link href={`/sanpham/${p.slug}`}>
-      <div className="group bg-white border border-gray-100 rounded-2xl overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex flex-col relative cursor-pointer h-full">
+      <div className="group bg-white border border-gray-100 rounded-sm overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex flex-col relative cursor-pointer h-full">
         {p.badge && (
           <span className={`absolute top-3 left-3 z-10 text-white text-[10px] font-bold px-2.5 py-1 rounded-full ${badgeColor[p.badge] ?? "bg-gray-500"}`}>
             {p.badge}
@@ -198,11 +198,11 @@ function ProductCard({ p }: { p: ProductFeatured }) {
             -{p.giamGia}%
           </span>
         )}
-        <div className="bg-gray-50 flex items-center justify-center h-48 overflow-hidden rounded-t-2xl">
+        <div className="relative overflow-hidden rounded-t-2xl aspect-[4/3] bg-gray-50">
           <img
             src={p.thumbnail || "https://placehold.co/400x300?text=No+Image"}
             alt={p.ten}
-            className="w-full h-full min-w-full min-h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             loading="lazy"
           />
         </div>
@@ -264,7 +264,7 @@ export default function HomePage() {
   // ── Fetch sản phẩm nổi bật ──────────────────────────────────────────────
   useEffect(() => {
     setLoadingFeat(true);
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/products/featured?limit=6`)
+    fetch(`${BASE_URL}/api/products/featured?limit=6`)
       .then((r) => r.json())
       .then((json) => {
         if (json.success) setFeatured(json.data);
@@ -277,7 +277,7 @@ export default function HomePage() {
   // ── Fetch danh mục từ backend ───────────────────────────────────────────
   useEffect(() => {
     setLoadingCats(true);
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/categories`)
+    fetch(`${BASE_URL}/api/categories`)
       .then((r) => r.json())
       .then((json) => {
         if (json.success) {
@@ -293,7 +293,7 @@ export default function HomePage() {
   // ── Fetch sản phẩm bán chạy ─────────────────────────────────────────────
   useEffect(() => {
     setLoadingBest(true);
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/products/best-selling?limit=4`)
+    fetch(`${BASE_URL}/api/products/best-selling?limit=4`)
       .then((r) => r.json())
       .then((json) => {
         if (json.success) setBestSelling(json.data);
@@ -425,47 +425,36 @@ export default function HomePage() {
                   const displayPrice = p.giaSale ?? p.gia;
                   return (
                     <Link key={p.id} href={`/sanpham/${p.slug}`}>
-                      <div className="group overflow-hidden rounded-[28px] border border-gray-100 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl h-full">
-                        <div className="relative overflow-hidden bg-slate-50">
-                          <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-white/90 to-transparent pointer-events-none" />
-                                  <img
+                      <div className="group bg-white border border-gray-100 rounded-sm overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex flex-col relative cursor-pointer h-full">
+                        <div className="relative overflow-hidden rounded-t-2xl aspect-[4/3] bg-gray-50">
+                          <img
                             src={p.thumbnail || "https://placehold.co/400x300?text=No+Image"}
                             alt={p.ten}
-                            className="w-full h-60 min-w-full min-h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                             loading="lazy"
                           />
-                          <div className={`absolute top-3 left-3 z-20 w-9 h-9 flex items-center justify-center text-sm font-black rounded-br-xl rounded-tl-2xl
-                            ${i === 0 ? "bg-amber-400 text-amber-900"
-                            : i === 1 ? "bg-slate-300 text-slate-700"
-                            : i === 2 ? "bg-orange-300 text-orange-800"
-                            : "bg-slate-100 text-slate-600"}`}>
-                            {i + 1}
-                          </div>
-                          {p.giamGia > 0 && (
-                            <span className="absolute top-3 right-3 z-20 bg-red-500 text-white text-[10px] font-semibold px-2.5 py-1 rounded-full shadow-sm">
-                              -{p.giamGia}%
-                            </span>
-                          )}
                         </div>
-                        <div className="p-4 flex flex-col gap-3 h-[220px]">
-                          <div className="min-h-[68px]">
-                            <h3 className="font-semibold text-gray-900 text-sm leading-snug line-clamp-2">{p.ten}</h3>
-                            <p className="text-sm text-gray-500 mt-2 line-clamp-2">{p.moTa}</p>
+                        {p.giamGia > 0 && (
+                          <span className="absolute top-3 right-3 z-10 bg-red-500 text-white text-[10px] font-semibold px-2.5 py-1 rounded-full">
+                            -{p.giamGia}%
+                          </span>
+                        )}
+                        <div className="p-4 flex flex-col flex-1 gap-3">
+                          <div>
+                            <h3 className="font-semibold text-gray-800 text-sm leading-snug line-clamp-2">{p.ten}</h3>
+                            <p className="text-xs text-gray-400 mt-1 line-clamp-1">{p.moTa}</p>
                           </div>
-                          <div className="mt-auto grid gap-3">
-                            <div className="flex items-end justify-between gap-4">
-                              <div>
-                                <p className="text-lg font-bold text-gray-900">{fmt(displayPrice)}</p>
-                                {p.giamGia > 0 && (
-                                  <p className="text-xs text-gray-400 line-through">{fmt(p.gia)}</p>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-1 text-xs font-semibold text-amber-600">
-                                <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                                <span>{p.danhGia || "—"}</span>
-                              </div>
+                          <div className="mt-auto flex items-center justify-between gap-3">
+                            <div>
+                              <p className="text-base font-bold text-gray-900">{fmt(displayPrice)}</p>
+                              {p.giamGia > 0 && (
+                                <p className="text-xs text-gray-400 line-through">{fmt(p.gia)}</p>
+                              )}
                             </div>
-                            <p className="text-sm text-slate-500">Đã bán: <span className="font-semibold text-slate-700">{p.luotBan}</span></p>
+                            <div className="flex items-center gap-1 text-xs font-semibold text-amber-600">
+                              <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                              <span>{p.danhGia || "—"}</span>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -480,7 +469,7 @@ export default function HomePage() {
       {/* ── MINI BANNER ĐÔI ──────────────────────────────────────────── */}
       <section className="max-w-screen-xl mx-auto px-6 mt-12">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Link href="/sanpham?khuyen-mai" className="group block overflow-hidden rounded-2xl bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all">
+          <Link href="/sanpham?khuyen-mai" className="group block overflow-hidden rounded-sm bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-5 items-center">
               <div>
                 <span className="inline-block bg-red-50 text-red-600 text-[10px] font-semibold uppercase tracking-[0.3em] px-3 py-1 rounded-full mb-3">Sale giữa tháng</span>
@@ -490,13 +479,13 @@ export default function HomePage() {
                   Giảm đến 30%
                 </div>
               </div>
-              <div className="overflow-hidden rounded-2xl bg-gray-100">
+              <div className="overflow-hidden rounded-sm bg-gray-100">
                 <img src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&q=80&fit=crop" alt="sale" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
               </div>
             </div>
           </Link>
 
-          <Link href="/sanpham?gaming" className="group block overflow-hidden rounded-2xl bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all">
+          <Link href="/sanpham?gaming" className="group block overflow-hidden rounded-sm bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-5 items-center">
               <div>
                 <span className="inline-block bg-slate-100 text-slate-700 text-[10px] font-semibold uppercase tracking-[0.3em] px-3 py-1 rounded-full mb-3">Gaming</span>
@@ -504,7 +493,7 @@ export default function HomePage() {
                 <p className="text-sm text-gray-600 mt-3">Máy gaming hiệu năng cao, pin bền lâu cho cả ngày.</p>
                 <p className="text-sm text-red-600 font-semibold mt-4">Pin trâu, hiệu năng đỉnh</p>
               </div>
-              <div className="overflow-hidden rounded-2xl bg-gray-100">
+              <div className="overflow-hidden rounded-sm bg-gray-100">
                 <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&q=80&fit=crop" alt="gaming" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
               </div>
             </div>
@@ -517,7 +506,7 @@ export default function HomePage() {
         <SectionHeader title="Tin tức & Đánh giá" href="/tin-tuc" />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Link href={`/tin-tuc/${baiViet[0].id}`} className="group col-span-1 lg:col-span-2 bg-white border border-gray-100 rounded-[28px] overflow-hidden hover:shadow-xl transition-all duration-300">
+          <Link href={`/tin-tuc/${baiViet[0].id}`} className="group col-span-1 lg:col-span-2 bg-white border border-gray-100 rounded-sm overflow-hidden hover:shadow-xl transition-all duration-300">
             <div className="relative h-[420px] overflow-hidden">
               <img
                 src={baiViet[0].hinhAnh}
@@ -544,7 +533,7 @@ export default function HomePage() {
               <Link
                 key={bv.id}
                 href={`/tin-tuc/${bv.id}`}
-                className="group flex gap-4 bg-white border border-gray-100 rounded-3xl overflow-hidden hover:shadow-md transition-all duration-300"
+                className="group flex gap-4 bg-white border border-gray-100 rounded-sm overflow-hidden hover:shadow-md transition-all duration-300"
               >
                 <div className="h-28 w-28 overflow-hidden rounded-r-none rounded-l-3xl">
                   <img
@@ -569,7 +558,7 @@ export default function HomePage() {
             <Link
               key={item.id}
               href={`/tin-tuc/${item.id}`}
-              className="group bg-white border border-gray-100 rounded-3xl overflow-hidden hover:shadow-md transition-all duration-300"
+              className="group bg-white border border-gray-100 rounded-sm overflow-hidden hover:shadow-md transition-all duration-300"
             >
               <div className="h-32 overflow-hidden">
                 <img
