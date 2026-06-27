@@ -296,7 +296,7 @@ export default function ProductsPage() {
         return next;
       });
 
-      showToast("success", "AI đã điền thông tin, đang tìm ảnh...");
+      showToast("success", "AI đã điền thông tin, đang tìm ảnh và giá thị trường...");
 
       const fetchImage = async (query: string) => {
         try {
@@ -312,26 +312,55 @@ export default function ProductsPage() {
         }
       };
 
-      // Tự động tìm ảnh sản phẩm chính + ảnh riêng cho từng biến thể (song song)
-      const [mainImage, ...variantImages] = await Promise.all([
+      const fetchMarketPrice = async () => {
+        try {
+          const r = await fetch(`${API_BASE}/api/ai/market-price`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: form.product_name }),
+          });
+          const j = await r.json();
+          return j.success ? { price: j.price, sale_price: j.sale_price } : null;
+        } catch {
+          return null;
+        }
+      };
+
+      // Tự động tìm ảnh sản phẩm chính + ảnh riêng cho từng biến thể + giá thị trường CellphoneS (song song)
+      const [mainImage, marketPrice, ...variantImages] = await Promise.all([
         fetchImage(form.product_name),
+        fetchMarketPrice(),
         ...(variantsFromAI ?? []).map((v: { color: string }) =>
           v.color ? fetchImage(`${form.product_name} màu ${v.color}`) : Promise.resolve(null)
         ),
       ]);
 
-      setForm((prev) => ({
-        ...prev,
-        thumbnail: mainImage || prev.thumbnail,
-        variants: prev.variants.map((v, i) => ({
-          ...v,
-          image: variantImages[i] || v.image,
-        })),
-      }));
+      setForm((prev) => {
+        // Hiệu chỉnh giá AI theo tỷ lệ giá thị trường thực tế (CellphoneS), giữ nguyên chênh lệch giữa các biến thể
+        let variants = prev.variants.map((v, i) => ({ ...v, image: variantImages[i] || v.image }));
+        if (marketPrice?.price) {
+          const basePrice = Math.min(...variants.map((v) => Number(v.price) || Infinity));
+          const scale     = basePrice > 0 && basePrice !== Infinity ? marketPrice.price / basePrice : 1;
+          const baseIdx   = variants.findIndex((v) => Number(v.price) === basePrice);
+          variants = variants.map((v, i) => {
+            if (i === baseIdx) {
+              return { ...v, price: String(marketPrice.price), sale_price: marketPrice.sale_price ? String(marketPrice.sale_price) : "" };
+            }
+            const scaledPrice = Math.round((Number(v.price) * scale) / 1000) * 1000;
+            const scaledSale  = v.sale_price ? Math.round((Number(v.sale_price) * scale) / 1000) * 1000 : null;
+            return { ...v, price: String(scaledPrice), sale_price: scaledSale ? String(scaledSale) : "" };
+          });
+        }
+        return { ...prev, thumbnail: mainImage || prev.thumbnail, variants };
+      });
 
+      const parts = [
+        mainImage ? "ảnh sản phẩm" : null,
+        marketPrice?.price ? "giá thị trường" : null,
+      ].filter(Boolean);
       showToast(
-        mainImage ? "success" : "error",
-        mainImage ? "Đã tìm được ảnh sản phẩm và biến thể!" : "Không tìm được ảnh sản phẩm"
+        parts.length ? "success" : "error",
+        parts.length ? `Đã cập nhật ${parts.join(", ")}!` : "Không tìm được ảnh/giá tham khảo"
       );
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Lỗi không xác định";
