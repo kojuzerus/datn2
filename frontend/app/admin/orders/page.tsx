@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import {
   Search, RefreshCw, X, CheckCircle, XCircle, Eye,
-  Package, MapPin, CreditCard, Truck, Clock, FileText,
+  Package, MapPin, CreditCard, Truck, Clock, FileText, AlertTriangle,
 } from "lucide-react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -106,6 +106,40 @@ function ToastContainer({ toasts, onRemove }: { toasts: Toast[]; onRemove: (id: 
   );
 }
 
+function ConfirmDialog({
+  title, message, onConfirm, onCancel,
+}: {
+  title: string; message: string; onConfirm: () => void; onCancel: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 bg-black/40 z-[200] flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl w-[380px] shadow-2xl border border-gray-100 overflow-hidden">
+        <div className="p-6 text-center">
+          <div className="w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center mx-auto mb-4">
+            <AlertTriangle size={22} className="text-amber-600" />
+          </div>
+          <h3 className="text-[15px] font-bold text-gray-900 mb-1.5">{title}</h3>
+          <p className="text-[13px] text-gray-500 leading-relaxed">{message}</p>
+        </div>
+        <div className="flex gap-3 px-6 pb-5">
+          <button
+            onClick={onCancel}
+            className="flex-1 py-2.5 rounded-xl border border-gray-200 text-[13.5px] font-medium text-gray-600 bg-white hover:bg-gray-50 transition-colors cursor-pointer"
+          >
+            Hủy
+          </button>
+          <button
+            onClick={onConfirm}
+            className="flex-1 py-2.5 rounded-xl bg-[#D32F2F] text-white text-[13.5px] font-semibold hover:bg-[#B71C1C] transition-colors cursor-pointer"
+          >
+            Xác nhận
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminOrdersPage() {
   const [orders, setOrders]   = useState<Order[]>([]);
   const [loading, setLoading] = useState(false);
@@ -115,6 +149,7 @@ export default function AdminOrdersPage() {
   const [detail, setDetail]   = useState<Order | null>(null);
   const [updating, setUpdating] = useState(false);
   const [toasts, setToasts]   = useState<Toast[]>([]);
+  const [pendingChange, setPendingChange] = useState<{ orderId: string; from: string; to: string } | null>(null);
 
   const showToast = useCallback((type: Toast["type"], message: string) => {
     const id = Date.now();
@@ -138,6 +173,17 @@ export default function AdminOrdersPage() {
   }, [showToast]);
 
   useEffect(() => { fetchOrders(); }, [fetchOrders]);
+
+  const requestStatusChange = (orderId: string, from: string, to: string) => {
+    if (from === to) return;
+    setPendingChange({ orderId, from, to });
+  };
+
+  const confirmStatusChange = () => {
+    if (!pendingChange) return;
+    updateStatus(pendingChange.orderId, pendingChange.to);
+    setPendingChange(null);
+  };
 
   const updateStatus = async (orderId: string, trangThai: string) => {
     setUpdating(true);
@@ -176,6 +222,17 @@ export default function AdminOrdersPage() {
   return (
     <>
       <ToastContainer toasts={toasts} onRemove={removeToast} />
+
+      {pendingChange && (
+        <ConfirmDialog
+          title="Xác nhận đổi trạng thái"
+          message={`Chuyển đơn hàng từ "${STATUS_STYLE[pendingChange.from]?.label}" sang "${STATUS_STYLE[pendingChange.to]?.label}"?${
+            pendingChange.to === "da_huy" ? " Hành động này không thể hoàn tác." : ""
+          }`}
+          onConfirm={confirmStatusChange}
+          onCancel={() => setPendingChange(null)}
+        />
+      )}
 
       {/* ── Page header ── */}
       <div className="flex items-start justify-between mb-5">
@@ -296,7 +353,7 @@ export default function AdminOrdersPage() {
                         <select
                           value={o.trangThai}
                           disabled={updating || getAvailableStatuses(o.trangThai).length === 1}
-                          onChange={(e) => updateStatus(o._id, e.target.value)}
+                          onChange={(e) => requestStatusChange(o._id, o.trangThai, e.target.value)}
                           className="text-[11.5px] font-medium px-2.5 py-1.5 rounded-sm border outline-none cursor-pointer disabled:cursor-default"
                           style={{ background: s.bg, color: s.color, borderColor: s.border }}
                         >
@@ -354,7 +411,7 @@ export default function AdminOrdersPage() {
                 <select
                   value={detail.trangThai}
                   disabled={updating || getAvailableStatuses(detail.trangThai).length === 1}
-                  onChange={(e) => updateStatus(detail._id, e.target.value)}
+                  onChange={(e) => requestStatusChange(detail._id, detail.trangThai, e.target.value)}
                   className="text-[12.5px] font-semibold px-3 py-1.5 rounded-sm border outline-none cursor-pointer disabled:cursor-default"
                   style={{
                     background: (STATUS_STYLE[detail.trangThai] || STATUS_STYLE.cho_xac_nhan).bg,
