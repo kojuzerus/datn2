@@ -20,6 +20,8 @@ interface ComparisonContextType {
   removeItem: (id: number) => void;
   clearItems: () => void;
   isInComparison: (id: number) => boolean;
+  error: string | null;
+  clearError: () => void;
 }
 
 const ComparisonContext = createContext<ComparisonContextType>({
@@ -28,10 +30,13 @@ const ComparisonContext = createContext<ComparisonContextType>({
   removeItem: () => {},
   clearItems: () => {},
   isInComparison: () => false,
+  error: null,
+  clearError: () => {},
 });
 
 export function ComparisonProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<ComparisonProduct[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -40,10 +45,20 @@ export function ComparisonProvider({ children }: { children: React.ReactNode }) 
     } catch {}
   }, []);
 
+  const clearError = () => setError(null);
+
   const addItem = (p: ComparisonProduct): boolean => {
     let added = false;
     setItems(prev => {
-      if (prev.length >= 3 || prev.some(x => x.id === p.id)) return prev;
+      if (prev.some(x => x.id === p.id)) return prev;
+      if (prev.length > 0 && prev[0].categoryName !== p.categoryName) {
+        setError(`Chỉ có thể so sánh sản phẩm cùng loại (${prev[0].categoryName})`);
+        return prev;
+      }
+      if (prev.length >= 3) {
+        setError('Bạn chỉ có thể so sánh tối đa 3 sản phẩm');
+        return prev;
+      }
       const next = [...prev, p];
       localStorage.setItem('smarthub_compare', JSON.stringify(next));
       added = true;
@@ -68,7 +83,7 @@ export function ComparisonProvider({ children }: { children: React.ReactNode }) 
   const isInComparison = (id: number) => items.some(x => x.id === id);
 
   return (
-    <ComparisonContext.Provider value={{ items, addItem, removeItem, clearItems, isInComparison }}>
+    <ComparisonContext.Provider value={{ items, addItem, removeItem, clearItems, isInComparison, error, clearError }}>
       {children}
     </ComparisonContext.Provider>
   );

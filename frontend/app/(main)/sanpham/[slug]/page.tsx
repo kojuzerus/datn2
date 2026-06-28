@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useCart } from "../../../hooks/useCart";
 import { useComparison } from "../../../components/comparisonContext";
+import { useFavorites, type FavoriteProduct } from "../../../components/favoritesContext";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -137,13 +138,24 @@ export default function ProductDetailPage() {
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
   const [qty, setQty]                       = useState(1);
   const [addedToCart, setAddedToCart]       = useState(false);
-  const [wishlist, setWishlist]             = useState(false);
   const [activeTab, setActiveTab]           = useState<TabKey>("mo-ta");
   const [descExpanded, setDescExpanded]     = useState(false);
 
   const tabRef = useRef<HTMLDivElement>(null);
   const { addToCart, adding } = useCart();
   const { addItem, removeItem, isInComparison } = useComparison();
+  const { isFavorite, toggleItem } = useFavorites();
+  const wishlist = product ? isFavorite(product.id) : false;
+
+  const handleToggleWishlist = () => {
+    if (!product) return;
+    const fav: FavoriteProduct = {
+      id: product.id, ten: product.ten, slug: product.slug, thumbnail: product.thumbnail,
+      gia: product.gia, giaSale: product.giaSale, giamGia: product.giamGia,
+      danhGia: product.danhGia, thuongHieu: product.thuongHieu, categoryName: product.categoryName,
+    };
+    toggleItem(fav);
+  };
 
   useEffect(() => {
     if (!slug) return;
@@ -557,7 +569,7 @@ export default function ProductDetailPage() {
                 {adding ? "Đang thêm..." : addedToCart ? "Đã thêm vào giỏ!" : "Thêm vào giỏ hàng"}
               </button>
               <button
-                onClick={() => setWishlist((w) => !w)}
+                onClick={handleToggleWishlist}
                 title="Yêu thích"
                 className={`w-11 h-11 flex-shrink-0 border-2 rounded-xl flex items-center justify-center transition-all ${
                   wishlist ? "border-red-400 bg-red-50 text-red-500" : "border-gray-200 text-gray-400 hover:border-red-300"

@@ -5,9 +5,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   Star, ChevronRight, X, Package, Home, ChevronDown, Repeat,
-  SlidersHorizontal, Check, Tag,
+  SlidersHorizontal, Check, Tag, Heart,
 } from "lucide-react";
 import { useComparison } from "../../components/comparisonContext";
+import { useFavorites, type FavoriteProduct } from "../../components/favoritesContext";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -46,7 +47,9 @@ type DropdownKey = "" | "filter" | "category" | "brand" | "price" | "rating";
 /* ── Product Card ───────────────────────────────────────────────────────── */
 function ProductCard({ p }: { p: Product }) {
   const { addItem, removeItem, isInComparison } = useComparison();
+  const { isFavorite, toggleItem } = useFavorites();
   const inCompare = isInComparison(p.id);
+  const liked = isFavorite(p.id);
 
   const handleCompare = () => {
     if (inCompare) {
@@ -60,6 +63,17 @@ function ProductCard({ p }: { p: Product }) {
     }
   };
 
+  const handleToggleFavorite = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const fav: FavoriteProduct = {
+      id: p.id, ten: p.ten, slug: p.slug, thumbnail: p.thumbnail,
+      gia: p.gia, giaSale: p.giaSale, giamGia: p.giamGia,
+      danhGia: p.danhGia, thuongHieu: p.thuongHieu, categoryName: p.categoryName,
+    };
+    toggleItem(fav);
+  };
+
   return (
     <div className="group flex flex-col h-full">
       <Link href={`/sanpham/${p.slug}`} className="flex-1 block">
@@ -70,10 +84,19 @@ function ProductCard({ p }: { p: Product }) {
             </span>
           )}
           {p.giamGia > 0 && (
-            <span className="absolute top-3 right-3 z-10 bg-gradient-to-r from-red-500 to-orange-500 text-white text-[10px] font-semibold px-2.5 py-1 rounded-full shadow-sm">
+            <span className="absolute top-3 right-12 z-10 bg-gradient-to-r from-red-500 to-orange-500 text-white text-[10px] font-semibold px-2.5 py-1 rounded-full shadow-sm">
               -{p.giamGia}%
             </span>
           )}
+          <button
+            onClick={handleToggleFavorite}
+            title="Yêu thích"
+            className={`absolute top-2.5 right-2.5 z-10 w-8 h-8 flex items-center justify-center rounded-full backdrop-blur transition-colors ${
+              liked ? "bg-red-500 text-white" : "bg-white/90 text-gray-400 hover:text-red-500"
+            }`}
+          >
+            <Heart className={`w-4 h-4 ${liked ? "fill-white" : ""}`} />
+          </button>
           <div className="bg-gray-50 flex items-center justify-center h-48 overflow-hidden">
             <img
               src={p.thumbnail || "https://placehold.co/400x300?text=No+Image"}
@@ -93,9 +116,9 @@ function ProductCard({ p }: { p: Product }) {
                 )}
               </div>
               {p.danhGia > 0 && (
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 bg-amber-50 rounded-full px-2 py-1">
                   <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                  <span className="text-xs text-gray-600 font-medium">{p.danhGia.toFixed(1)}</span>
+                  <span className="text-xs font-semibold text-amber-700">{p.danhGia.toFixed(1)}</span>
                 </div>
               )}
             </div>
