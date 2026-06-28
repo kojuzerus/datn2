@@ -6,7 +6,16 @@
       "Bash(git add *)",
       "Bash(git commit *)",
       "Bash(git push *)",
-      "Bash(git pull *)"
+      "Bash(git pull *)",
+      "Bash(curl -s -X POST https://datn2.onrender.com/api/ai/search-image -H \"Content-Type: application/json\" -d '{\"name\":\"Tai nghe Bluetooth Apple AirPods 4\"}')",
+      "Bash(node -e ' *)",
+      "Bash(node -e \"require\\('./controllers/productController.js'\\); console.log\\('OK syntax'\\);\")",
+      "Bash(npx tsc *)",
+      "Bash(node -e \"require\\('./controllers/statsController.js'\\); require\\('./routes/stats.js'\\); require\\('./app.js'\\); console.log\\('OK syntax'\\);\")",
+      "Bash(cat /tmp/backend.log | tail -30)",
+      "Read(//tmp/**)",
+      "Bash(pkill -f \"bin/www\")",
+      "Bash(powershell -Command \"Get-Process node -ErrorAction SilentlyContinue | Stop-Process -Force\")"
     ]
   }
 }
