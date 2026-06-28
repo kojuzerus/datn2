@@ -39,3 +39,5 @@ Khi khách chọn màu/biến thể, ảnh chính tự đổi sang ảnh riêng 
 
 Done Ai tự gợi ý sp và tự thêm biến thể tự thêm ảnh (MK)
 Đã tự động thêm biến thể hình ảnh biến thể và giá theo thị trường (MK)
+Done quản lý đơn hàng ( theo luồng tiến logic có popup xác nhận ) (MK)
+

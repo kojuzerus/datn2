@@ -8,9 +8,11 @@ import {
   ChevronRight, Home, ChevronLeft, ChevronDown, ChevronUp,
   ShoppingCart, Heart, Share2, Package, CheckCircle2,
   CreditCard, Gift, ThumbsUp, MessageSquare, Repeat,
+  PackageCheck, Receipt,
 } from "lucide-react";
 import { useCart } from "../../../hooks/useCart";
 import { useComparison } from "../../../components/comparisonContext";
+import { useFavorites, type FavoriteProduct } from "../../../components/favoritesContext";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -61,6 +63,29 @@ const GUARANTEES = [
   { Icon: Headphones,  title: "Hỗ trợ 24/7",     sub: "1800 xxxx (miễn phí)" },
 ];
 
+const COMMITMENTS = [
+  {
+    Icon: Package,
+    text: "Mới, đầy đủ phụ kiện từ nhà sản xuất",
+  },
+  {
+    Icon: ShieldCheck,
+    text: "Bảo hành chính hãng 12 tháng. Đổi 1 đổi 1 trong 30 ngày nếu lỗi phần cứng nhà sản xuất.",
+    linkLabel: "Xem chính sách bảo hành",
+    linkHref: "/chinh-sach-bao-hanh",
+  },
+  {
+    Icon: PackageCheck,
+    text: "Máy, sách hướng dẫn, cáp sạc và phụ kiện đi kèm theo máy",
+  },
+  {
+    Icon: Receipt,
+    text: "Giá sản phẩm đã bao gồm thuế VAT theo quy định",
+    linkLabel: "Chính sách đổi trả",
+    linkHref: "/chinh-sach-doi-tra",
+  },
+];
+
 const RATING_DIST = [
   { stars: 5, pct: 68 },
   { stars: 4, pct: 20 },
@@ -84,7 +109,6 @@ const MOCK_REVIEWS = [
   },
 ];
 
-type TabKey = "mo-ta" | "thong-so" | "danh-gia";
 
 /* ── Skeleton ───────────────────────────────────────────────────────────── */
 function Skeleton() {
@@ -138,13 +162,31 @@ export default function ProductDetailPage() {
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
   const [qty, setQty]                       = useState(1);
   const [addedToCart, setAddedToCart]       = useState(false);
-  const [wishlist, setWishlist]             = useState(false);
-  const [activeTab, setActiveTab]           = useState<TabKey>("mo-ta");
   const [descExpanded, setDescExpanded]     = useState(false);
+  const [openFaq, setOpenFaq]               = useState<number | null>(0);
+  const [showStickyBar, setShowStickyBar]   = useState(false);
 
   const tabRef = useRef<HTMLDivElement>(null);
+  const reviewsRef = useRef<HTMLDivElement>(null);
+  const commitRef = useRef<HTMLDivElement>(null);
+  const topSectionRef = useRef<HTMLDivElement>(null);
+  const scrollCommitments = (dir: 1 | -1) => {
+    commitRef.current?.scrollBy({ left: dir * commitRef.current.clientWidth, behavior: "smooth" });
+  };
   const { addToCart, adding } = useCart();
   const { addItem, removeItem, isInComparison } = useComparison();
+  const { isFavorite, toggleItem } = useFavorites();
+  const wishlist = product ? isFavorite(product.id) : false;
+
+  const handleToggleWishlist = () => {
+    if (!product) return;
+    const fav: FavoriteProduct = {
+      id: product.id, ten: product.ten, slug: product.slug, thumbnail: product.thumbnail,
+      gia: product.gia, giaSale: product.giaSale, giamGia: product.giamGia,
+      danhGia: product.danhGia, thuongHieu: product.thuongHieu, categoryName: product.categoryName,
+    };
+    toggleItem(fav);
+  };
 
   useEffect(() => {
     if (!slug) return;
@@ -162,6 +204,18 @@ export default function ProductDetailPage() {
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
   }, [slug]);
+
+  /* ── Sticky buy bar: hiện khi cuộn qua khỏi khối thông tin chính ── */
+  useEffect(() => {
+    const el = topSectionRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setShowStickyBar(!entry.isIntersecting),
+      { rootMargin: "-72px 0px 0px 0px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [product]);
 
   const displayPrice  = selectedVariant?.sale_price ?? selectedVariant?.price ?? product?.giaSale ?? product?.gia ?? 0;
   const originalPrice = selectedVariant?.price ?? product?.gia ?? 0;
@@ -193,9 +247,9 @@ export default function ProductDetailPage() {
     }
   };
 
-  const scrollToTab = (tab: TabKey) => {
-    setActiveTab(tab);
-    setTimeout(() => tabRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+  const scrollToTab = (tab: "mo-ta" | "danh-gia") => {
+    const ref = tab === "danh-gia" ? reviewsRef : tabRef;
+    ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   /* ── Loading ── */
@@ -235,6 +289,33 @@ export default function ProductDetailPage() {
     { label: "Số phiên bản",   value: `${product.variants?.length ?? 0} phiên bản` },
   ];
 
+  const variantColors = Array.from(new Set((product.variants || []).map((v) => v.color).filter(Boolean)));
+
+  const faqs = [
+    {
+      q: `${product.ten} có bảo hành bao lâu?`,
+      a: `${product.ten} được bảo hành chính hãng ${product.warranty || "12 tháng"}. Trong vòng 30 ngày đầu, nếu phát hiện lỗi phần cứng từ nhà sản xuất, SmartHub hỗ trợ đổi 1 đổi 1.`,
+    },
+    {
+      q: `${product.ten} có mấy phiên bản màu?`,
+      a: variantColors.length
+        ? `${product.ten} hiện có ${variantColors.length} phiên bản màu: ${variantColors.join(", ")}.`
+        : `${product.ten} hiện có 1 phiên bản tiêu chuẩn. Vui lòng chọn phiên bản phù hợp ở phần lựa chọn sản phẩm phía trên.`,
+    },
+    {
+      q: `Mua ${product.ten} có được trả góp 0% không?`,
+      a: `Có. ${product.ten} được hỗ trợ trả góp 0% lãi suất qua các đối tác ${INSTALLMENTS.map((i) => i.name).join(", ")}.`,
+    },
+    {
+      q: `${product.ten} có giao hàng nhanh không?`,
+      a: `SmartHub hỗ trợ giao hàng trong 2 giờ tại nội thành Hà Nội, TP.HCM, và giao toàn quốc trong 1-3 ngày làm việc cho các khu vực khác.`,
+    },
+    {
+      q: `Mua ${product.ten} tại SmartHub có được đổi trả không?`,
+      a: `Có. ${product.ten} được đổi trả miễn phí trong 30 ngày nếu phát hiện lỗi kỹ thuật từ nhà sản xuất, không cần lý do trong 7 ngày đầu theo chính sách đổi trả của SmartHub.`,
+    },
+  ];
+
   return (
     <div className="max-w-screen-xl mx-auto px-4 py-4">
 
@@ -261,7 +342,7 @@ export default function ProductDetailPage() {
       </nav>
 
       {/* ── 2-col main ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-[440px_1fr] gap-6 mb-10">
+      <div ref={topSectionRef} className="grid grid-cols-1 lg:grid-cols-[440px_1fr] gap-6 mb-10">
 
         {/* Gallery */}
         <div className="lg:sticky lg:top-4 lg:self-start">
@@ -559,7 +640,7 @@ export default function ProductDetailPage() {
                 {adding ? "Đang thêm..." : addedToCart ? "Đã thêm vào giỏ!" : "Thêm vào giỏ hàng"}
               </button>
               <button
-                onClick={() => setWishlist((w) => !w)}
+                onClick={handleToggleWishlist}
                 title="Yêu thích"
                 className={`w-11 h-11 flex-shrink-0 border-2 rounded-xl flex items-center justify-center transition-all ${
                   wishlist ? "border-red-400 bg-red-50 text-red-500" : "border-gray-200 text-gray-400 hover:border-red-300"
@@ -610,133 +691,170 @@ export default function ProductDetailPage() {
         </div>
       </div>
 
-      {/* ── Tabs ── */}
-      <div ref={tabRef} className="scroll-mt-4 mb-10">
+      {/* ── Cam kết sản phẩm ── */}
+      <div className="relative mb-10">
+        <h2 className="text-lg font-bold text-gray-800 mb-4">Cam kết sản phẩm</h2>
 
-        {/* Tab nav */}
-        <div className="flex border-b border-gray-200 overflow-x-auto mb-0">
-          {(
-            [
-              { key: "mo-ta",    label: "Mô tả sản phẩm"                          },
-              { key: "thong-so", label: "Thông số kỹ thuật"                       },
-              { key: "danh-gia", label: `Đánh giá (${product.luotDanhGia || 0})` },
-            ] as { key: TabKey; label: string }[]
-          ).map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => setActiveTab(key)}
-              className={`px-5 py-3 text-[13.5px] font-semibold border-b-2 whitespace-nowrap transition-colors -mb-[2px] ${
-                activeTab === key
-                  ? "border-red-500 text-red-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
-              }`}
+        <button
+          onClick={() => scrollCommitments(-1)}
+          className="hidden sm:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 z-10 w-9 h-9 items-center justify-center rounded-full bg-white border border-gray-200 shadow-md text-gray-500 hover:text-red-600 hover:border-red-200 transition-colors"
+          aria-label="Trước"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+        <button
+          onClick={() => scrollCommitments(1)}
+          className="hidden sm:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 z-10 w-9 h-9 items-center justify-center rounded-full bg-white border border-gray-200 shadow-md text-gray-500 hover:text-red-600 hover:border-red-200 transition-colors"
+          aria-label="Sau"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+
+        <div
+          ref={commitRef}
+          className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:overflow-visible overflow-x-auto snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [scrollbar-width:none]"
+        >
+          {COMMITMENTS.map((c, i) => (
+            <div
+              key={i}
+              className="snap-start shrink-0 w-full sm:w-auto flex items-start gap-3 bg-gray-50 rounded-xl p-4"
             >
-              {label}
-            </button>
+              <div className="w-9 h-9 rounded-lg bg-red-600 flex items-center justify-center shrink-0">
+                <c.Icon className="w-4.5 h-4.5 text-white" />
+              </div>
+              <p className="text-[13.5px] text-gray-700 leading-relaxed">
+                {c.text}
+                {c.linkHref && (
+                  <>
+                    {" "}
+                    <Link href={c.linkHref} className="text-red-600 font-medium hover:underline">
+                      {c.linkLabel}
+                    </Link>
+                  </>
+                )}
+              </p>
+            </div>
           ))}
         </div>
+      </div>
 
-        {/* Tab: Mô tả */}
-        {activeTab === "mo-ta" && (
-          <div className="bg-white border border-gray-100 border-t-0 rounded-b-2xl overflow-hidden">
-            <div
-              className={`relative px-6 py-5 transition-all ${
-                !descExpanded && product.moTa && product.moTa.length > 400 ? "max-h-72 overflow-hidden" : ""
-              }`}
-            >
-              {product.moTa ? (
-                <div className="text-[14px] text-gray-600 leading-relaxed whitespace-pre-line">{product.moTa}</div>
-              ) : (
-                <p className="text-[14px] text-gray-400 italic">Chưa có mô tả cho sản phẩm này.</p>
-              )}
-              {!descExpanded && product.moTa && product.moTa.length > 400 && (
-                <div className="absolute bottom-0 inset-x-0 h-24 bg-gradient-to-t from-white to-transparent pointer-events-none" />
-              )}
-            </div>
-            {product.moTa && product.moTa.length > 400 && (
-              <div className="px-6 pb-5 pt-1 text-center border-t border-gray-100">
-                <button
-                  onClick={() => setDescExpanded((v) => !v)}
-                  className="inline-flex items-center gap-1 text-[13px] text-red-600 font-semibold hover:underline"
-                >
-                  {descExpanded ? (
-                    <><ChevronUp className="w-3.5 h-3.5" /> Thu gọn</>
-                  ) : (
-                    <><ChevronDown className="w-3.5 h-3.5" /> Xem thêm nội dung</>
-                  )}
-                </button>
-              </div>
+      {/* ── Mô tả sản phẩm ── */}
+      <div ref={tabRef} className="scroll-mt-4 mb-8">
+        <h2 className="text-lg font-bold text-gray-800 mb-4">Mô tả sản phẩm</h2>
+        <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden">
+          <div
+            className={`relative px-6 py-5 transition-all ${
+              !descExpanded && product.moTa && product.moTa.length > 400 ? "max-h-72 overflow-hidden" : ""
+            }`}
+          >
+            {product.moTa ? (
+              <div className="text-[14px] text-gray-600 leading-relaxed whitespace-pre-line">{product.moTa}</div>
+            ) : (
+              <p className="text-[14px] text-gray-400 italic">Chưa có mô tả cho sản phẩm này.</p>
+            )}
+            {!descExpanded && product.moTa && product.moTa.length > 400 && (
+              <div className="absolute bottom-0 inset-x-0 h-24 bg-gradient-to-t from-white to-transparent pointer-events-none" />
             )}
           </div>
-        )}
-
-        {/* Tab: Thông số */}
-        {activeTab === "thong-so" && (
-          <div className="bg-white border border-gray-100 border-t-0 rounded-b-2xl overflow-hidden">
-            <div className="bg-gray-50 px-6 py-3 border-b border-gray-100">
-              <p className="text-[12.5px] font-bold text-gray-600 uppercase tracking-wide">Thông tin chung</p>
-            </div>
-            {specsRows.map((row, i) => (
-              <div
-                key={i}
-                className={`flex items-center px-6 py-3 border-b border-gray-100 ${i % 2 === 0 ? "bg-white" : "bg-gray-50/40"}`}
+          {product.moTa && product.moTa.length > 400 && (
+            <div className="px-6 pb-5 pt-1 text-center border-t border-gray-100">
+              <button
+                onClick={() => setDescExpanded((v) => !v)}
+                className="inline-flex items-center gap-1 text-[13px] text-red-600 font-semibold hover:underline"
               >
-                <span className="w-2/5 text-[13px] text-gray-500 shrink-0">{row.label}</span>
-                <span className="text-[13px] text-gray-800 font-medium">{row.value}</span>
-              </div>
-            ))}
+                {descExpanded ? (
+                  <><ChevronUp className="w-3.5 h-3.5" /> Thu gọn</>
+                ) : (
+                  <><ChevronDown className="w-3.5 h-3.5" /> Xem thêm nội dung</>
+                )}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
 
-            {product.specification && product.specification.length > 0 && (
-              <>
-                <div className="bg-gray-50 px-6 py-3 border-b border-gray-100">
-                  <p className="text-[12.5px] font-bold text-gray-600 uppercase tracking-wide">Thông số kỹ thuật</p>
-                </div>
-                {product.specification.map((spec, i) => (
-                  <div
-                    key={i}
-                    className={`flex items-center px-6 py-3 border-b border-gray-100 ${i % 2 === 0 ? "bg-white" : "bg-gray-50/40"}`}
-                  >
-                    <span className="w-2/5 text-[13px] text-gray-500 shrink-0">{spec.label}</span>
-                    <span className="text-[13px] text-gray-800 font-medium">{spec.value}</span>
-                  </div>
-                ))}
-              </>
-            )}
-
-            {product.variants?.length > 0 && (
-              <>
-                <div className="bg-gray-50 px-6 py-3 border-b border-gray-100">
-                  <p className="text-[12.5px] font-bold text-gray-600 uppercase tracking-wide">Các phiên bản</p>
-                </div>
-                {product.variants.map((v, i) => (
-                  <div
-                    key={v.variant_id}
-                    className={`flex items-center px-6 py-3 border-b border-gray-100 ${i % 2 === 0 ? "bg-white" : "bg-gray-50/40"}`}
-                  >
-                    <span className="w-2/5 text-[13px] text-gray-500 shrink-0">{v.color || `Phiên bản ${i + 1}`}</span>
-                    <span className="text-[13px] text-gray-800 font-medium">
-                      {fmt(v.sale_price ?? v.price)}
-                      {v.sale_price && v.sale_price < v.price && (
-                        <span className="ml-2 text-gray-400 line-through text-[12px]">{fmt(v.price)}</span>
-                      )}
-                      <span className="ml-3 text-gray-400 text-[12px]">Tồn kho: {v.stock_quantity}</span>
-                    </span>
-                  </div>
-                ))}
-              </>
-            )}
-
-            {(!product.specification || product.specification.length === 0) && (
-              <div className="px-6 py-4 bg-yellow-50/40 border-t border-yellow-100">
-                <p className="text-[12px] text-yellow-700">Thông số kỹ thuật chi tiết đang được cập nhật. Vui lòng liên hệ hotline để biết thêm thông tin.</p>
-              </div>
-            )}
+      {/* ── Thông số kỹ thuật ── */}
+      <div className="mb-8">
+        <h2 className="text-lg font-bold text-gray-800 mb-4">Thông số kỹ thuật</h2>
+        <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden">
+          <div className="bg-gray-50 px-6 py-3 border-b border-gray-100">
+            <p className="text-[12.5px] font-bold text-gray-600 uppercase tracking-wide">Thông tin chung</p>
           </div>
-        )}
 
-        {/* Tab: Đánh giá */}
-        {activeTab === "danh-gia" && (
-          <div className="border border-gray-100 border-t-0 rounded-b-2xl overflow-hidden bg-white">
+          {/* Thương hiệu + Danh mục ngang hàng cho gọn */}
+          <div className="flex items-center px-6 py-3 border-b border-gray-100 bg-white gap-6">
+            <div className="flex items-center flex-1 min-w-0">
+              <span className="w-2/5 text-[13px] text-gray-500 shrink-0">{specsRows[0].label}</span>
+              <span className="text-[13px] text-gray-800 font-medium truncate">{specsRows[0].value}</span>
+            </div>
+            <div className="flex items-center flex-1 min-w-0">
+              <span className="w-2/5 text-[13px] text-gray-500 shrink-0">{specsRows[1].label}</span>
+              <span className="text-[13px] text-gray-800 font-medium truncate">{specsRows[1].value}</span>
+            </div>
+          </div>
+
+          {specsRows.slice(2).map((row, i) => (
+            <div
+              key={i}
+              className={`flex items-center px-6 py-3 border-b border-gray-100 ${i % 2 === 0 ? "bg-gray-50/40" : "bg-white"}`}
+            >
+              <span className="w-2/5 text-[13px] text-gray-500 shrink-0">{row.label}</span>
+              <span className="text-[13px] text-gray-800 font-medium">{row.value}</span>
+            </div>
+          ))}
+
+          {product.specification && product.specification.length > 0 && (
+            <>
+              <div className="bg-gray-50 px-6 py-3 border-b border-gray-100">
+                <p className="text-[12.5px] font-bold text-gray-600 uppercase tracking-wide">Thông số kỹ thuật</p>
+              </div>
+              {product.specification.map((spec, i) => (
+                <div
+                  key={i}
+                  className={`flex items-center px-6 py-3 border-b border-gray-100 ${i % 2 === 0 ? "bg-white" : "bg-gray-50/40"}`}
+                >
+                  <span className="w-2/5 text-[13px] text-gray-500 shrink-0">{spec.label}</span>
+                  <span className="text-[13px] text-gray-800 font-medium">{spec.value}</span>
+                </div>
+              ))}
+            </>
+          )}
+
+          {product.variants?.length > 0 && (
+            <>
+              <div className="bg-gray-50 px-6 py-3 border-b border-gray-100">
+                <p className="text-[12.5px] font-bold text-gray-600 uppercase tracking-wide">Các phiên bản</p>
+              </div>
+              {product.variants.map((v, i) => (
+                <div
+                  key={v.variant_id}
+                  className={`flex items-center px-6 py-3 border-b border-gray-100 ${i % 2 === 0 ? "bg-white" : "bg-gray-50/40"}`}
+                >
+                  <span className="w-2/5 text-[13px] text-gray-500 shrink-0">{v.color || `Phiên bản ${i + 1}`}</span>
+                  <span className="text-[13px] text-gray-800 font-medium">
+                    {fmt(v.sale_price ?? v.price)}
+                    {v.sale_price && v.sale_price < v.price && (
+                      <span className="ml-2 text-gray-400 line-through text-[12px]">{fmt(v.price)}</span>
+                    )}
+                    <span className="ml-3 text-gray-400 text-[12px]">Tồn kho: {v.stock_quantity}</span>
+                  </span>
+                </div>
+              ))}
+            </>
+          )}
+
+          {(!product.specification || product.specification.length === 0) && (
+            <div className="px-6 py-4 bg-yellow-50/40 border-t border-yellow-100">
+              <p className="text-[12px] text-yellow-700">Thông số kỹ thuật chi tiết đang được cập nhật. Vui lòng liên hệ hotline để biết thêm thông tin.</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Đánh giá ── */}
+      <div ref={reviewsRef} className="scroll-mt-4 mb-10">
+        <h2 className="text-lg font-bold text-gray-800 mb-4">Đánh giá ({product.luotDanhGia || 0})</h2>
+        <div className="border border-gray-100 rounded-2xl overflow-hidden bg-white">
 
             {/* Summary */}
             <div className="p-6 border-b border-gray-100">
@@ -796,7 +914,39 @@ export default function ProductDetailPage() {
               </div>
             )}
           </div>
-        )}
+      </div>
+
+      {/* ── Câu hỏi thường gặp ── */}
+      <div className="mb-10">
+        <h2 className="text-lg font-bold text-gray-800 mb-4">Câu hỏi thường gặp</h2>
+        <div className="space-y-2">
+          {faqs.map((faq, i) => {
+            const open = openFaq === i;
+            return (
+              <div
+                key={i}
+                className={`rounded-xl transition-colors ${open ? "bg-gray-100" : "bg-gray-50"}`}
+              >
+                <button
+                  onClick={() => setOpenFaq(open ? null : i)}
+                  className="w-full flex items-center justify-between gap-3 px-5 py-4 text-left"
+                >
+                  <span className="text-[14px] font-bold text-gray-800">{faq.q}</span>
+                  {open ? (
+                    <ChevronUp className="w-4 h-4 text-gray-500 shrink-0" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-gray-400 shrink-0" />
+                  )}
+                </button>
+                {open && (
+                  <div className="px-5 pb-4 text-[13.5px] text-gray-500 leading-relaxed">
+                    {faq.a}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Back */}
@@ -806,6 +956,40 @@ export default function ProductDetailPage() {
       >
         <ChevronLeft className="w-4 h-4" /> Tiếp tục mua sắm
       </Link>
+
+      {/* ── Sticky buy bar (hiện khi cuộn qua khối thông tin chính) ── */}
+      {showStickyBar && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-white rounded-2xl border border-gray-200 shadow-lg p-3 flex items-center gap-4 w-[min(560px,calc(100vw-2rem))]">
+          <img
+            src={product.thumbnail || "https://placehold.co/64x64?text=?"}
+            alt={product.ten}
+            className="w-11 h-11 rounded-lg object-cover bg-gray-50 shrink-0"
+          />
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-semibold text-gray-800 truncate">{product.ten}</p>
+            <div className="flex items-center gap-2">
+              <p className="text-[14px] font-bold text-red-600">{fmt(displayPrice)}</p>
+              {hasDiscount && (
+                <p className="text-[12px] text-gray-400 line-through">{fmt(originalPrice)}</p>
+              )}
+            </div>
+          </div>
+          <button
+            disabled={!inStock || adding}
+            onClick={handleAddToCart}
+            className={`shrink-0 flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl text-[13px] font-semibold transition-all whitespace-nowrap ${
+              addedToCart
+                ? "bg-green-50 text-green-700 border border-green-500"
+                : inStock && !adding
+                ? "bg-red-600 text-white hover:bg-red-700"
+                : "bg-gray-200 text-gray-400 cursor-not-allowed"
+            }`}
+          >
+            <ShoppingCart className="w-3.5 h-3.5" />
+            {adding ? "Đang thêm..." : addedToCart ? "Đã thêm!" : "Thêm vào giỏ"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

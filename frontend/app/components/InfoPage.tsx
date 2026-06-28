@@ -14,12 +14,14 @@ export default function InfoPage({
   cards,
   children,
   action,
+  tag = "Trợ giúp",
 }: {
   title: string;
   subtitle: string;
   cards: InfoCard[];
   children?: ReactNode;
   action?: { label: string; href: string };
+  tag?: string;
 }) {
   return (
     <div className="min-h-screen bg-slate-50">
@@ -27,7 +29,7 @@ export default function InfoPage({
         <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm shadow-slate-200/60 sm:p-12">
           <div className="mb-10 max-w-3xl">
             <span className="inline-flex rounded-full bg-red-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-red-600">
-              Trợ giúp
+              {tag}
             </span>
             <h1 className="mt-6 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
               {title}
