@@ -41,3 +41,13 @@ Done Ai tự gợi ý sp và tự thêm biến thể tự thêm ảnh (MK)
 Đã tự động thêm biến thể hình ảnh biến thể và giá theo thị trường (MK)
 Done quản lý đơn hàng ( theo luồng tiến logic có popup xác nhận ) (MK)
 
+Done quản lý khách hàng (MK)
+Backend:
+Thêm field status (active/banned) vào User model - chặn đăng nhập nếu bị khóa
+API mới: GET /api/admin/users (danh sách + thống kê đơn hàng/chi tiêu mỗi khách), GET /api/admin/users/:id (chi tiết + lịch sử đơn hàng), PUT .../status, PUT .../role, DELETE .../:id
+Frontend:
+Bảng danh sách: avatar chữ cái đầu, tên/loại tài khoản (local/Google/Zalo), SĐT/email, vai trò (badge), trạng thái, số đơn hàng, tổng chi tiêu, ngày tham gia
+Lọc theo tên/email/SĐT, vai trò, trạng thái
+Thao tác nhanh trên bảng: xem chi tiết, khóa/mở khóa, xóa
+Modal chi tiết: thông tin đầy đủ + nút "Đặt làm Admin"/"Khóa tài khoản" + lịch sử đơn hàng
+Mọi hành động nguy hiểm (khóa, xóa, cấp quyền admin) đều có popup xác nhận trước khi thực hiện
