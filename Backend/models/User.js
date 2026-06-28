@@ -9,6 +9,7 @@ const userSchema = new mongoose.Schema({
   googleId:    { type: String, unique: true, sparse: true },
   zaloId:      { type: String, unique: true, sparse: true },
   role:        { type: String, enum: ["user", "admin"], default: "user" },
+  status:      { type: String, enum: ["active", "banned"], default: "active" },
 }, { timestamps: true });
 
 module.exports = mongoose.model("User", userSchema);

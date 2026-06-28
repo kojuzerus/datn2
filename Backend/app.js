@@ -14,6 +14,7 @@ const addressRoutes  = require("./routes/address");
 const orderRoutes    = require("./routes/order");
 const vnpayRoutes    = require("./routes/vnpay");
 const statsRoutes    = require("./routes/stats");
+const userAdminRoutes = require("./routes/user");
 
 const app  = express();
 const PORT = process.env.PORT || 5000;
@@ -45,6 +46,7 @@ app.use("/api/addresses",  addressRoutes);
 app.use("/api/orders",     orderRoutes);
 app.use("/api/vnpay",      vnpayRoutes);
 app.use("/api/admin/stats", statsRoutes);
+app.use("/api/admin/users", userAdminRoutes);
 
 app.get("/api/health", (_, res) =>
   res.json({ status: "ok", time: new Date().toISOString() })
