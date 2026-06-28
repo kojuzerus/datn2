@@ -79,8 +79,8 @@ export default function DangNhapPage() {
         {/* Form */}
         <form onSubmit={handleLogin} className="space-y-3 text-left">
           <input
-            type="tel"
-            placeholder="Số điện thoại"
+            type="text"
+            placeholder="Số điện thoại hoặc email"
             value={soDienThoai}
             onChange={e => setSoDienThoai(e.target.value)}
             required

@@ -12,6 +12,9 @@ exports.register = async (req, res) => {
     if (!hoTen || !soDienThoai || !matKhau)
       return res.status(400).json({ message: "Vui lòng điền đầy đủ thông tin bắt buộc" });
 
+    if (!/^[0-9]{9,11}$/.test(soDienThoai.trim()))
+      return res.status(400).json({ message: "Số điện thoại phải là số, từ 9-11 chữ số" });
+
     if (await User.findOne({ soDienThoai }))
       return res.status(400).json({ message: "Số điện thoại đã được đăng ký" });
 
@@ -22,7 +25,7 @@ exports.register = async (req, res) => {
     const user = await User.create({ hoTen, ngaySinh: ngaySinh || null, soDienThoai, email: email || null, matKhau: hash });
 
     const token = jwt.sign({ id: user._id }, SECRET, { expiresIn: "7d" });
-    res.status(201).json({ message: "Đăng ký thành công", token, user: { id: user._id, hoTen: user.hoTen, soDienThoai: user.soDienThoai, email: user.email } });
+    res.status(201).json({ message: "Đăng ký thành công", token, user: { id: user._id, hoTen: user.hoTen, soDienThoai: user.soDienThoai, email: user.email, role: user.role } });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Lỗi server" });
@@ -37,9 +40,12 @@ exports.login = async (req, res) => {
     if (!soDienThoai || !matKhau)
       return res.status(400).json({ message: "Vui lòng nhập đầy đủ thông tin" });
 
-    const user = await User.findOne({ soDienThoai });
+    const identifier = soDienThoai.trim();
+    const user = await User.findOne({
+      $or: [{ soDienThoai: identifier }, { email: identifier.toLowerCase() }],
+    });
     if (!user || !(await bcrypt.compare(matKhau, user.matKhau)))
-      return res.status(401).json({ message: "Số điện thoại hoặc mật khẩu không đúng" });
+      return res.status(401).json({ message: "Số điện thoại/email hoặc mật khẩu không đúng" });
 
     if (user.status === "banned")
       return res.status(403).json({ message: "Tài khoản của bạn đã bị khóa" });

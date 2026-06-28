@@ -54,6 +54,7 @@ export default function DangKyPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    if (!/^[0-9]{9,11}$/.test(form.soDienThoai.trim())) return setError('Số điện thoại phải là số, từ 9-11 chữ số');
     if (form.matKhau !== form.xacNhan) return setError('Mật khẩu xác nhận không khớp');
     if (form.matKhau.length < 6) return setError('Mật khẩu phải có ít nhất 6 ký tự');
     setLoading(true);
