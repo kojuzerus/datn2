@@ -7,7 +7,8 @@ import {
   User, Phone, Mail, Calendar, Shield, Lock,
   Edit3, Check, X, ChevronRight, Package,
   LogOut, Camera, Eye, EyeOff, MapPin,
-  Plus, Trash2, Star, Home,
+  Plus, Trash2, Star, Home, ShoppingCart,
+  Wallet, LayoutGrid, Truck, Search, Heart,
 } from 'lucide-react';
 import SearchableSelect, { SelectOption } from '../../components/SearchableSelect';
 
@@ -38,7 +39,26 @@ const EMPTY_FORM: AddrForm = {
   detailAddress: '', isDefault: false,
 };
 
-type Tab = 'info' | 'address' | 'password' | 'orders';
+type Tab = 'overview' | 'info' | 'address' | 'password' | 'orders';
+
+interface OrderItem {
+  productId: string; tenSanPham: string; hinhAnh: string; gia: number; soLuong: number; variant?: string;
+}
+interface Order {
+  _id: string; items: OrderItem[]; tongThanhToan: number;
+  trangThai: 'cho_xac_nhan' | 'da_xac_nhan' | 'dang_giao' | 'da_giao' | 'da_huy';
+  createdAt: string;
+}
+
+const ORDER_STATUS_LABEL: Record<Order['trangThai'], string> = {
+  cho_xac_nhan: 'Chờ xác nhận', da_xac_nhan: 'Đã xác nhận',
+  dang_giao: 'Đang giao', da_giao: 'Đã giao', da_huy: 'Đã hủy',
+};
+const ORDER_STATUS_CLASS: Record<Order['trangThai'], string> = {
+  cho_xac_nhan: 'bg-amber-50 text-amber-600', da_xac_nhan: 'bg-blue-50 text-blue-600',
+  dang_giao: 'bg-purple-50 text-purple-600', da_giao: 'bg-green-50 text-green-600',
+  da_huy: 'bg-gray-100 text-gray-500',
+};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -58,7 +78,18 @@ export default function NguoiDungPage() {
   // ── User ──
   const [user, setUser]       = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab]         = useState<Tab>('info');
+  const [tab, setTab]         = useState<Tab>('overview');
+  const [showPhone, setShowPhone] = useState(false);
+
+  // ── Avatar ──
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const uploadInputRef = useRef<HTMLInputElement>(null);
+
+  // ── Orders ──
+  const [orders, setOrders]               = useState<Order[]>([]);
+  const [ordersLoading, setOrdersLoading]  = useState(false);
+  const [orderSearch, setOrderSearch]      = useState('');
+  const [orderRange, setOrderRange]        = useState<'all' | 'day' | 'week' | 'month' | 'year'>('all');
 
   // ── Profile edit ──
   const [editing, setEditing]   = useState(false);
@@ -120,6 +151,15 @@ export default function NguoiDungPage() {
       .finally(() => setLoading(false));
   }, [router]);
 
+  const handleAvatarFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setAvatarPreview(reader.result as string);
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
   // ── Fetch addresses ─────────────────────────────────────────────────────────
   const fetchAddresses = useCallback(async () => {
     setAddrLoading(true);
@@ -133,8 +173,49 @@ export default function NguoiDungPage() {
   }, []);
 
   useEffect(() => {
-    if (tab === 'address' && user) fetchAddresses();
+    if ((tab === 'address' || tab === 'overview') && user) fetchAddresses();
   }, [tab, user, fetchAddresses]);
+
+  // ── Fetch orders ─────────────────────────────────────────────────────────────
+  const fetchOrders = useCallback(async () => {
+    setOrdersLoading(true);
+    try {
+      const r = await fetch(`${API_URL}/api/orders`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      const d = await r.json();
+      if (d.success) setOrders(d.orders);
+    } finally { setOrdersLoading(false); }
+  }, []);
+
+  useEffect(() => {
+    if ((tab === 'overview' || tab === 'orders') && user) fetchOrders();
+  }, [tab, user, fetchOrders]);
+
+  const orderCount     = orders.filter(o => o.trangThai !== 'da_huy').length;
+  const totalSpent      = orders.filter(o => o.trangThai === 'da_giao').reduce((s, o) => s + o.tongThanhToan, 0);
+  const recentOrders    = orders.slice(0, 3);
+
+  const RANGE_DAYS: Record<typeof orderRange, number | null> = {
+    all: null, day: 1, week: 7, month: 30, year: 365,
+  };
+  const filteredOrders = orders.filter(o => {
+    const days = RANGE_DAYS[orderRange];
+    if (days != null) {
+      const diffMs = Date.now() - new Date(o.createdAt).getTime();
+      if (diffMs > days * 24 * 60 * 60 * 1000) return false;
+    }
+    if (orderSearch.trim()) {
+      const kw = orderSearch.trim().toLowerCase();
+      if (!o.items.some(it => it.tenSanPham.toLowerCase().includes(kw))) return false;
+    }
+    return true;
+  });
+  const maskedPhone = (() => {
+    const p = user?.soDienThoai || '';
+    if (!p || p.length < 5) return p;
+    return `${p.slice(0, 3)}${'*'.repeat(p.length - 5)}${p.slice(-2)}`;
+  })();
 
   // ── Geo loaders ─────────────────────────────────────────────────────────────
   const loadProvinces = useCallback(async (): Promise<SelectOption[]> => {
@@ -356,7 +437,7 @@ export default function NguoiDungPage() {
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="max-w-7xl mx-auto">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-1.5 text-xs text-gray-400 mb-5">
         <Link href="/" className="hover:text-red-500 transition-colors">Trang chủ</Link>
@@ -364,33 +445,113 @@ export default function NguoiDungPage() {
         <span className="text-gray-600 font-medium">Tài khoản của tôi</span>
       </nav>
 
+      {/* ══════════ Summary header ══════════ */}
+      <div className="bg-white rounded-sm shadow-sm border border-gray-100 p-5 mb-4 flex flex-col sm:flex-row sm:items-center gap-5">
+        <div className="flex items-center gap-3.5">
+          <div className="relative shrink-0">
+            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center text-white text-xl font-bold overflow-hidden">
+              {avatarPreview ? (
+                <img src={avatarPreview} alt="avatar" className="w-full h-full object-cover" />
+              ) : (
+                getAvatarLetter(user.hoTen)
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => uploadInputRef.current?.click()}
+              className="absolute bottom-0 right-0 w-5 h-5 bg-white rounded-full flex items-center justify-center shadow border border-gray-100 hover:bg-gray-50 transition-colors"
+            >
+              <Camera className="w-2.5 h-2.5 text-gray-500" />
+            </button>
+            <input
+              ref={uploadInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarFile}
+            />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <p className="font-bold text-gray-800 text-base leading-tight">{user.hoTen}</p>
+              {user.role === 'admin' && (
+                <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded-full uppercase tracking-wide">
+                  Quản trị viên
+                </span>
+              )}
+            </div>
+            <button
+              onClick={() => setShowPhone(v => !v)}
+              className="flex items-center gap-1.5 text-sm text-gray-400 mt-1 hover:text-gray-600 transition-colors"
+            >
+              {showPhone ? (user.soDienThoai || '—') : maskedPhone}
+              {showPhone ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+            </button>
+          </div>
+        </div>
+
+        <div className="hidden sm:block w-px h-12 bg-gray-100" />
+
+        <button onClick={() => setTab('orders')} className="flex items-center gap-3 text-left hover:opacity-80 transition-opacity">
+          <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center shrink-0">
+            <ShoppingCart className="w-5 h-5 text-red-500" />
+          </div>
+          <div>
+            <p className="font-bold text-gray-800 text-lg leading-none">{ordersLoading ? '—' : orderCount}</p>
+            <p className="text-xs text-gray-400 mt-1">Tổng số đơn hàng đã mua</p>
+          </div>
+        </button>
+
+        <div className="hidden sm:block w-px h-12 bg-gray-100" />
+
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center shrink-0">
+            <Wallet className="w-5 h-5 text-amber-500" />
+          </div>
+          <div>
+            <p className="font-bold text-gray-800 text-lg leading-none">
+              {ordersLoading ? '—' : new Intl.NumberFormat('vi-VN').format(totalSpent) + 'đ'}
+            </p>
+            <p className="text-xs text-gray-400 mt-1">Tổng tiền tích lũy · Từ {fmtDate(user.createdAt)}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* ══════════ Quick actions ══════════ */}
+      <div className="bg-white rounded-sm shadow-sm border border-gray-100 mb-4 px-2 py-1.5 flex items-center gap-1 overflow-x-auto [&::-webkit-scrollbar]:hidden">
+        {([
+          { key: 'overview', icon: LayoutGrid, label: 'Tổng quan' },
+          { key: 'orders',   icon: Truck,      label: 'Lịch sử mua hàng' },
+          { key: 'address',  icon: MapPin,     label: 'Sổ địa chỉ' },
+          { key: 'info',     icon: User,       label: 'Thông tin tài khoản' },
+        ] as { key: Tab; icon: React.ElementType; label: string }[]).map(item => (
+          <button
+            key={item.key}
+            onClick={() => setTab(item.key)}
+            className="shrink-0 flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-[13px] font-medium text-gray-600 hover:bg-gray-50 hover:text-red-600 transition-colors whitespace-nowrap"
+          >
+            <item.icon className="w-4 h-4 text-gray-400" />
+            {item.label}
+          </button>
+        ))}
+        <Link
+          href="/yeu-thich"
+          className="shrink-0 flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-[13px] font-medium text-gray-600 hover:bg-gray-50 hover:text-red-600 transition-colors whitespace-nowrap"
+        >
+          <Heart className="w-4 h-4 text-gray-400" />
+          Sản phẩm yêu thích
+        </Link>
+      </div>
+
       <div className="flex flex-col md:flex-row gap-6">
 
         {/* ══════════ Sidebar ══════════ */}
         <aside className="w-full md:w-64 shrink-0">
           <div className="bg-white rounded-sm shadow-sm border border-gray-100 overflow-hidden">
-            {/* Avatar block */}
-            <div className="bg-gradient-to-br from-red-500 to-red-700 px-5 py-6 text-center">
-              <div className="relative inline-block">
-                <div className="w-20 h-20 rounded-full bg-white/20 border-2 border-white/60 flex items-center justify-center text-white text-3xl font-bold mx-auto">
-                  {getAvatarLetter(user.hoTen)}
-                </div>
-                <div className="absolute bottom-0 right-0 w-6 h-6 bg-white rounded-full flex items-center justify-center shadow cursor-pointer hover:bg-gray-50 transition-colors">
-                  <Camera className="w-3 h-3 text-gray-500" />
-                </div>
-              </div>
-              <p className="text-white font-semibold mt-3 text-base leading-tight">{user.hoTen}</p>
-              <p className="text-red-200 text-xs mt-1">{user.soDienThoai || user.email || ''}</p>
-              {user.role === 'admin' && (
-                <span className="inline-block mt-2 px-2 py-0.5 bg-amber-400 text-amber-900 text-[10px] font-bold rounded-full uppercase tracking-wide">
-                  Quản trị viên
-                </span>
-              )}
-            </div>
-
             {/* Nav */}
             <nav className="p-2">
               {([
+                { key: 'overview', icon: LayoutGrid, label: 'Tổng quan' },
                 { key: 'info',     icon: User,    label: 'Thông tin cá nhân' },
                 { key: 'address',  icon: MapPin,  label: 'Địa chỉ của tôi' },
                 { key: 'orders',   icon: Package, label: 'Đơn hàng của tôi' },
@@ -412,6 +573,12 @@ export default function NguoiDungPage() {
                     {tab === item.key && <ChevronRight className="w-3.5 h-3.5 ml-auto" />}
                   </button>
                 ))}
+              <Link
+                href="/yeu-thich"
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all text-left text-gray-600 hover:bg-gray-50 hover:text-gray-800"
+              >
+                <Heart className="w-4 h-4 shrink-0" />Sản phẩm yêu thích
+              </Link>
               {user.role === 'admin' && (
                 <Link href="/admin" className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-amber-500 hover:bg-amber-50 transition-all">
                   <Shield className="w-4 h-4 shrink-0" />Trang quản trị
@@ -436,6 +603,108 @@ export default function NguoiDungPage() {
 
         {/* ══════════ Main content ══════════ */}
         <main className="flex-1 min-w-0">
+
+          {/* ── Tab: Tổng quan ── */}
+          {tab === 'overview' && (
+            <div className="space-y-4">
+              {!user.email && (
+                <div className="flex items-center gap-3 bg-blue-50 border border-blue-100 text-blue-700 text-sm px-4 py-3 rounded-xl">
+                  <Mail className="w-4 h-4 shrink-0" />
+                  <span className="flex-1">Thêm email để bảo mật tài khoản và nhận thông báo đơn hàng.</span>
+                  <button onClick={() => setTab('info')} className="font-semibold hover:underline shrink-0">Cập nhật</button>
+                </div>
+              )}
+              {addresses.length === 0 && (
+                <div className="flex items-center gap-3 bg-blue-50 border border-blue-100 text-blue-700 text-sm px-4 py-3 rounded-xl">
+                  <MapPin className="w-4 h-4 shrink-0" />
+                  <span className="flex-1">Thêm địa chỉ để đặt đơn hàng nhanh hơn.</span>
+                  <button onClick={() => setTab('address')} className="font-semibold hover:underline shrink-0">Thêm địa chỉ</button>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                {/* Đơn hàng gần đây */}
+                <div className="lg:col-span-2 bg-white rounded-sm shadow-sm border border-gray-100">
+                  <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                    <h2 className="text-sm font-bold text-gray-800">Đơn hàng gần đây</h2>
+                    <button onClick={() => setTab('orders')} className="text-xs text-red-500 font-medium hover:underline">Xem tất cả</button>
+                  </div>
+                  {ordersLoading ? (
+                    <div className="p-6 space-y-3">
+                      {[1, 2].map(i => <div key={i} className="h-14 bg-gray-100 rounded-xl animate-pulse" />)}
+                    </div>
+                  ) : recentOrders.length === 0 ? (
+                    <div className="px-6 py-14 flex flex-col items-center text-center">
+                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-3">
+                        <Package className="w-7 h-7 text-gray-300" />
+                      </div>
+                      <p className="text-gray-500 font-medium text-sm">Bạn chưa có đơn hàng nào</p>
+                      <Link href="/sanpham" className="mt-3 text-sm text-red-500 font-semibold hover:underline">Mua sắm ngay</Link>
+                    </div>
+                  ) : (
+                    <div className="p-4 space-y-2.5">
+                      {recentOrders.map(o => (
+                        <div key={o._id} className="flex items-center gap-3 border border-gray-100 rounded-xl p-3">
+                          <img
+                            src={o.items[0]?.hinhAnh || 'https://placehold.co/80x80?text=No+Image'}
+                            alt=""
+                            className="w-12 h-12 rounded-lg object-cover bg-gray-50 shrink-0"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-800 truncate">
+                              {o.items[0]?.tenSanPham}{o.items.length > 1 ? ` và ${o.items.length - 1} sản phẩm khác` : ''}
+                            </p>
+                            <p className="text-xs text-gray-400 mt-0.5">{fmtDate(o.createdAt)}</p>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="text-sm font-bold text-gray-800">{new Intl.NumberFormat('vi-VN').format(o.tongThanhToan)}đ</p>
+                            <span className={`inline-block mt-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${ORDER_STATUS_CLASS[o.trangThai]}`}>
+                              {ORDER_STATUS_LABEL[o.trangThai]}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Thông tin tài khoản */}
+                <div className="bg-white rounded-sm shadow-sm border border-gray-100 p-5 space-y-4">
+                  <h2 className="text-sm font-bold text-gray-800">Thông tin tài khoản</h2>
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
+                      <Shield className="w-4 h-4 text-gray-500" />
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-gray-400 leading-none">Loại tài khoản</p>
+                      <p className="text-sm font-medium text-gray-700 mt-0.5">{accountType}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-green-50 flex items-center justify-center shrink-0">
+                      <Calendar className="w-4 h-4 text-green-500" />
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-gray-400 leading-none">Thành viên từ</p>
+                      <p className="text-sm font-medium text-gray-700 mt-0.5">{fmtDate(user.createdAt)}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-purple-50 flex items-center justify-center shrink-0">
+                      <Mail className="w-4 h-4 text-purple-500" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] text-gray-400 leading-none">Email</p>
+                      <p className="text-sm font-medium text-gray-700 mt-0.5 truncate">{user.email || 'Chưa cập nhật'}</p>
+                    </div>
+                  </div>
+                  <button onClick={() => setTab('info')} className="w-full text-sm text-red-500 font-medium border border-red-200 rounded-xl py-2 hover:bg-red-50 transition-colors">
+                    Chỉnh sửa thông tin
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* ── Tab: Thông tin cá nhân ── */}
           {tab === 'info' && (
@@ -721,16 +990,103 @@ export default function NguoiDungPage() {
                 <h1 className="text-base font-bold text-gray-800">Đơn hàng của tôi</h1>
                 <p className="text-xs text-gray-400 mt-0.5">Theo dõi và quản lý đơn hàng</p>
               </div>
-              <div className="px-6 py-16 flex flex-col items-center text-center">
-                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                  <Package className="w-9 h-9 text-gray-300" />
+
+              {orders.length > 0 && (
+                <div className="px-6 py-3 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center gap-3">
+                  <div className="relative flex-1 max-w-xs">
+                    <input
+                      value={orderSearch}
+                      onChange={e => setOrderSearch(e.target.value)}
+                      placeholder="Tìm theo tên sản phẩm..."
+                      className="w-full border border-gray-200 rounded-xl pl-8 pr-3 py-1.5 text-[13px] focus:outline-none focus:border-red-400 focus:ring-1 focus:ring-red-100 transition"
+                    />
+                    <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                  </div>
+                  <div className="flex items-center gap-1.5 overflow-x-auto [&::-webkit-scrollbar]:hidden">
+                    {([
+                      { key: 'all',   label: 'Tất cả' },
+                      { key: 'day',   label: 'Hôm nay' },
+                      { key: 'week',  label: 'Tuần' },
+                      { key: 'month', label: 'Tháng' },
+                      { key: 'year',  label: 'Năm' },
+                    ] as { key: typeof orderRange; label: string }[]).map(r => (
+                      <button
+                        key={r.key}
+                        onClick={() => setOrderRange(r.key)}
+                        className={`shrink-0 px-3 py-1.5 rounded-full text-[12.5px] font-medium border whitespace-nowrap transition-colors ${
+                          orderRange === r.key
+                            ? 'border-red-500 bg-red-50 text-red-600'
+                            : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                        }`}
+                      >
+                        {r.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <p className="text-gray-500 font-medium">Chưa có đơn hàng nào</p>
-                <p className="text-sm text-gray-400 mt-1">Hãy mua sắm và quay lại đây để theo dõi đơn hàng</p>
-                <Link href="/sanpham" className="mt-5 px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-xl transition-colors">
-                  Mua sắm ngay
-                </Link>
-              </div>
+              )}
+
+              {ordersLoading ? (
+                <div className="p-6 space-y-3">
+                  {[1, 2, 3].map(i => <div key={i} className="h-16 bg-gray-100 rounded-xl animate-pulse" />)}
+                </div>
+              ) : orders.length === 0 ? (
+                <div className="px-6 py-16 flex flex-col items-center text-center">
+                  <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                    <Package className="w-9 h-9 text-gray-300" />
+                  </div>
+                  <p className="text-gray-500 font-medium">Chưa có đơn hàng nào</p>
+                  <p className="text-sm text-gray-400 mt-1">Hãy mua sắm và quay lại đây để theo dõi đơn hàng</p>
+                  <Link href="/sanpham" className="mt-5 px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-xl transition-colors">
+                    Mua sắm ngay
+                  </Link>
+                </div>
+              ) : filteredOrders.length === 0 ? (
+                <div className="px-6 py-16 flex flex-col items-center text-center">
+                  <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                    <Search className="w-9 h-9 text-gray-300" />
+                  </div>
+                  <p className="text-gray-500 font-medium">Không tìm thấy đơn hàng phù hợp</p>
+                  <p className="text-sm text-gray-400 mt-1">Thử đổi từ khóa hoặc khoảng thời gian khác</p>
+                </div>
+              ) : (
+                <div className="p-4 space-y-3">
+                  {filteredOrders.map(o => (
+                    <div key={o._id} className="border border-gray-100 rounded-xl p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-xs text-gray-400">Đặt ngày {fmtDate(o.createdAt)}</p>
+                        <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${ORDER_STATUS_CLASS[o.trangThai]}`}>
+                          {ORDER_STATUS_LABEL[o.trangThai]}
+                        </span>
+                      </div>
+                      <div className="space-y-2.5">
+                        {o.items.map((it, idx) => (
+                          <div key={idx} className="flex items-center gap-3">
+                            <img
+                              src={it.hinhAnh || 'https://placehold.co/80x80?text=No+Image'}
+                              alt=""
+                              className="w-12 h-12 rounded-lg object-cover bg-gray-50 shrink-0"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-800 truncate">{it.tenSanPham}</p>
+                              <p className="text-xs text-gray-400">{it.variant ? `${it.variant} · ` : ''}x{it.soLuong}</p>
+                            </div>
+                            <p className="text-sm font-semibold text-gray-700 shrink-0">
+                              {new Intl.NumberFormat('vi-VN').format(it.gia)}đ
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex items-center justify-end gap-2 mt-3 pt-3 border-t border-dashed border-gray-100">
+                        <span className="text-sm text-gray-500">Tổng tiền:</span>
+                        <span className="text-sm font-bold text-red-600">
+                          {new Intl.NumberFormat('vi-VN').format(o.tongThanhToan)}đ
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

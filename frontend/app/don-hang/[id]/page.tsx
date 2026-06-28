@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Clock, MapPin, XCircle } from 'lucide-react';
+import { ArrowLeft, Clock, MapPin, XCircle, Check, Star } from 'lucide-react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -141,50 +141,57 @@ export default function OrderDetailPage() {
                 {/* Timeline line */}
                 <div className="relative">
                   {/* Horizontal line */}
-                  <div className="absolute top-6 left-8 right-8 h-1 bg-gradient-to-r from-emerald-400 via-cyan-400 to-gray-200"></div>
-                  
+                  <div className="absolute top-6 left-8 right-8 h-1 bg-gray-200">
+                    <div
+                      className="h-full bg-red-600 transition-all duration-500"
+                      style={{
+                        width: activeIndex < 0 ? '0%' : `${(activeIndex / statusSteps.length) * 100}%`,
+                      }}
+                    />
+                  </div>
+
                   {/* Steps */}
                   <div className="flex justify-between gap-4 relative z-10">
                     {statusSteps.map((step, index) => {
                       const isCompleted = index < activeIndex;
                       const isActive = index === activeIndex;
-                      
+
                       return (
                         <div key={step.key} className="flex flex-col items-center flex-1">
                           {/* Circle */}
                           <div
-                            className={`h-12 w-12 rounded-full border-4 flex items-center justify-center font-bold text-sm flex-shrink-0 ${
-                              isActive
-                                ? 'border-cyan-400 bg-cyan-50 text-cyan-600'
-                                : isCompleted
-                                ? 'border-emerald-400 bg-emerald-50 text-emerald-600'
+                            className={`h-12 w-12 rounded-full border-4 flex items-center justify-center font-bold text-sm flex-shrink-0 transition-colors ${
+                              isCompleted
+                                ? 'border-red-600 bg-red-600 text-white'
+                                : isActive
+                                ? 'border-red-600 bg-white text-red-600'
                                 : 'border-gray-200 bg-gray-50 text-gray-400'
                             }`}
                           >
-                            {index + 1}
+                            {isCompleted ? <Check className="h-5 w-5" /> : index + 1}
                           </div>
-                          
+
                           {/* Label */}
                           <p className={`mt-3 text-xs font-semibold uppercase text-center ${
                             isActive || isCompleted ? 'text-gray-900' : 'text-gray-500'
                           }`}>
                             {step.label}
                           </p>
-                          
+
                           {/* Description */}
                           <p className={`mt-1 text-xs text-center max-w-[90px] ${
-                            isActive ? 'text-cyan-600 font-medium' : isCompleted ? 'text-emerald-600' : 'text-gray-400'
+                            isActive ? 'text-red-600 font-medium' : isCompleted ? 'text-gray-500' : 'text-gray-400'
                           }`}>
                             {step.description}
                           </p>
                         </div>
                       );
                     })}
-                    
+
                     {/* Rating step */}
                     <div className="flex flex-col items-center flex-1">
                       <div className="h-12 w-12 rounded-full border-4 border-gray-200 bg-gray-50 flex items-center justify-center flex-shrink-0">
-                        <span className="text-gray-400 text-lg">★</span>
+                        <Star className="h-5 w-5 text-gray-400" />
                       </div>
                       <p className="mt-3 text-xs font-semibold uppercase text-center text-gray-500">Đánh Giá</p>
                     </div>
@@ -195,10 +202,10 @@ export default function OrderDetailPage() {
                 {order.trangThai !== 'da_huy' && order.trangThai !== 'da_giao' && (
                   <div className="flex items-center justify-between border-t border-gray-100 pt-6 flex-col sm:flex-row gap-4">
                     <div className="flex items-center gap-2 text-sm text-gray-700">
-                      <Clock className="h-4 w-4 text-cyan-500 flex-shrink-0" />
+                      <Clock className="h-4 w-4 text-red-500 flex-shrink-0" />
                       <span>Ngày nhận hàng dự kiến: <strong className="text-gray-900">22-02-2024</strong></span>
                     </div>
-                    <button className="px-6 py-2 text-sm font-semibold text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition">
+                    <button className="px-6 py-2 text-sm font-semibold text-white bg-red-600 rounded-md hover:bg-red-700 transition">
                       Ghi Nhận Hàng
                     </button>
                   </div>
