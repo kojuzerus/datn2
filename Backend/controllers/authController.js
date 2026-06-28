@@ -41,6 +41,9 @@ exports.login = async (req, res) => {
     if (!user || !(await bcrypt.compare(matKhau, user.matKhau)))
       return res.status(401).json({ message: "Số điện thoại hoặc mật khẩu không đúng" });
 
+    if (user.status === "banned")
+      return res.status(403).json({ message: "Tài khoản của bạn đã bị khóa" });
+
     const token = jwt.sign({ id: user._id }, SECRET, { expiresIn: "7d" });
     res.json({ message: "Đăng nhập thành công", token, user: { id: user._id, hoTen: user.hoTen, soDienThoai: user.soDienThoai, email: user.email } });
   } catch (err) {
