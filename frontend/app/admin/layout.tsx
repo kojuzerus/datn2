@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import {
   LayoutDashboard,
@@ -82,13 +82,42 @@ function getPageLabel(pathname: string): string {
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname  = usePathname();
+  const router    = useRouter();
   const [search, setSearch] = useState("");
+  const [checked, setChecked] = useState(false);
+  const [adminName, setAdminName] = useState("Admin");
   const pageLabel = getPageLabel(pathname ?? "");
+
+  useEffect(() => {
+    const token = localStorage.getItem("smarthub_token");
+    const userRaw = localStorage.getItem("smarthub_user");
+    const user = userRaw ? JSON.parse(userRaw) : null;
+    if (!token || user?.role !== "admin") {
+      router.replace("/login");
+      return;
+    }
+    setAdminName(user.hoTen || "Admin");
+    setChecked(true);
+  }, [router]);
+
+  const handleLogout = () => {
+    localStorage.removeItem("smarthub_token");
+    localStorage.removeItem("smarthub_user");
+    router.replace("/login");
+  };
 
   const isActive = (href: string) =>
     href === "/admin"
       ? pathname === "/admin"
       : pathname === href || pathname.startsWith(href + "/");
+
+  if (!checked) {
+    return (
+      <div className="min-h-screen bg-[#F5F6FA] flex items-center justify-center text-[13px] text-gray-400">
+        Đang kiểm tra quyền truy cập...
+      </div>
+    );
+  }
 
   return (
     <div className={`flex min-h-screen bg-[#F5F6FA] ${plusJakarta.className}`}>
@@ -154,10 +183,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             AD
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-[13px] font-semibold text-gray-900 truncate">Admin</div>
+            <div className="text-[13px] font-semibold text-gray-900 truncate">{adminName}</div>
             <div className="text-[11px] text-gray-400 leading-tight">Quản trị viên</div>
           </div>
           <button
+            onClick={handleLogout}
             title="Đăng xuất"
             className="text-gray-400 hover:text-[#D32F2F] cursor-pointer transition-colors p-1.5 rounded-sm hover:bg-red-50"
           >
@@ -225,7 +255,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 AD
               </div>
               <div>
-                <div className="text-[12.5px] font-semibold text-gray-900 leading-tight">Admin</div>
+                <div className="text-[12.5px] font-semibold text-gray-900 leading-tight">{adminName}</div>
                 <div className="text-[10.5px] text-gray-400 leading-tight">Quản trị viên</div>
               </div>
               <ChevronDown size={13} className="text-gray-400 ml-0.5" />

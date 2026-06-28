@@ -46,7 +46,7 @@ export default function DangNhapPage() {
       if (!res.ok) throw new Error(data.message || 'Đăng nhập thất bại');
       localStorage.setItem('smarthub_token', data.token);
       localStorage.setItem('smarthub_user', JSON.stringify(data.user));
-      router.push('/');
+      router.push(data.user?.role === 'admin' ? '/admin' : '/');
     } catch (err: any) {
       setError(err.message);
     } finally {

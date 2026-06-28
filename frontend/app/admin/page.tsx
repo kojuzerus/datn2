@@ -54,6 +54,11 @@ interface RecentOrder {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
+const authHeaders = (): Record<string, string> => {
+  const token = typeof window !== "undefined" ? localStorage.getItem("smarthub_token") : null;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
 const PERIODS: { key: Period; label: string }[] = [
   { key: "day",   label: "Ngày"  },
   { key: "week",  label: "Tuần"  },
@@ -441,8 +446,8 @@ export default function AdminDashboardPage() {
     setLoading(true);
     try {
       const [statsRes, ordersRes] = await Promise.all([
-        fetch(`${API_BASE}/api/admin/stats/dashboard?period=${period}`),
-        fetch(`${API_BASE}/api/admin/stats/recent-orders?limit=5`),
+        fetch(`${API_BASE}/api/admin/stats/dashboard?period=${period}`, { headers: authHeaders() }),
+        fetch(`${API_BASE}/api/admin/stats/recent-orders?limit=5`, { headers: authHeaders() }),
       ]);
       const statsJson  = await statsRes.json();
       const ordersJson = await ordersRes.json();

@@ -8,6 +8,11 @@ import {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
+const authHeaders = (): Record<string, string> => {
+  const token = typeof window !== "undefined" ? localStorage.getItem("smarthub_token") : null;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
 // ── Types ────────────────────────────────────────────────────────────────────
 interface CustomerRow {
   id: string;
@@ -158,7 +163,7 @@ export default function AdminUsersPage() {
         ...(roleFilter && { role: roleFilter }),
         ...(statusFilter && { status: statusFilter }),
       });
-      const res  = await fetch(`${API_BASE}/api/admin/users?${params}`);
+      const res  = await fetch(`${API_BASE}/api/admin/users?${params}`, { headers: authHeaders() });
       const json = await res.json();
       if (json.success) setUsers(json.data);
       else showToast("error", json.message || "Không thể tải danh sách khách hàng");
@@ -174,7 +179,7 @@ export default function AdminUsersPage() {
   const openDetail = async (id: string) => {
     setDetailLoading(true);
     try {
-      const res  = await fetch(`${API_BASE}/api/admin/users/${id}`);
+      const res  = await fetch(`${API_BASE}/api/admin/users/${id}`, { headers: authHeaders() });
       const json = await res.json();
       if (json.success) setDetail(json.data);
       else showToast("error", json.message || "Không thể tải chi tiết khách hàng");
@@ -189,15 +194,15 @@ export default function AdminUsersPage() {
     try {
       let res: Response;
       if (action.type === "delete") {
-        res = await fetch(`${API_BASE}/api/admin/users/${action.userId}`, { method: "DELETE" });
+        res = await fetch(`${API_BASE}/api/admin/users/${action.userId}`, { method: "DELETE", headers: authHeaders() });
       } else if (action.type === "status") {
         res = await fetch(`${API_BASE}/api/admin/users/${action.userId}/status`, {
-          method: "PUT", headers: { "Content-Type": "application/json" },
+          method: "PUT", headers: { "Content-Type": "application/json", ...authHeaders() },
           body: JSON.stringify({ status: action.value }),
         });
       } else {
         res = await fetch(`${API_BASE}/api/admin/users/${action.userId}/role`, {
-          method: "PUT", headers: { "Content-Type": "application/json" },
+          method: "PUT", headers: { "Content-Type": "application/json", ...authHeaders() },
           body: JSON.stringify({ role: action.value }),
         });
       }

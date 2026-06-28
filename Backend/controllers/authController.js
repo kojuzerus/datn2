@@ -45,7 +45,7 @@ exports.login = async (req, res) => {
       return res.status(403).json({ message: "Tài khoản của bạn đã bị khóa" });
 
     const token = jwt.sign({ id: user._id }, SECRET, { expiresIn: "7d" });
-    res.json({ message: "Đăng nhập thành công", token, user: { id: user._id, hoTen: user.hoTen, soDienThoai: user.soDienThoai, email: user.email } });
+    res.json({ message: "Đăng nhập thành công", token, user: { id: user._id, hoTen: user.hoTen, soDienThoai: user.soDienThoai, email: user.email, role: user.role } });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Lỗi server" });
