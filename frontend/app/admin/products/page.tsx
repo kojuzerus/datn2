@@ -87,6 +87,11 @@ const EMPTY_FORM: ProductForm = {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
+const authHeaders = (): Record<string, string> => {
+  const token = typeof window !== "undefined" ? localStorage.getItem("smarthub_token") : null;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const vnd = (n: number | null) =>
   n != null ? n.toLocaleString("vi-VN") + " đ" : "—";
@@ -230,7 +235,7 @@ export default function ProductsPage() {
     try {
       const res  = await fetch(`${API_BASE}/api/ai/generate-product`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ name: form.product_name, category: form.category_id }),
       });
       const json = await res.json();
@@ -302,7 +307,7 @@ export default function ProductsPage() {
         try {
           const r = await fetch(`${API_BASE}/api/ai/search-image`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", ...authHeaders() },
             body: JSON.stringify({ name: query }),
           });
           const j = await r.json();
@@ -316,7 +321,7 @@ export default function ProductsPage() {
         try {
           const r = await fetch(`${API_BASE}/api/ai/market-price`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", ...authHeaders() },
             body: JSON.stringify({ name: form.product_name }),
           });
           const j = await r.json();
@@ -521,7 +526,7 @@ export default function ProductsPage() {
       const method = editId ? "PUT" : "POST";
       const res    = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify(body),
       });
       const json = await res.json();
@@ -547,7 +552,7 @@ export default function ProductsPage() {
       async () => {
         setConfirmState((s) => ({ ...s, open: false }));
         try {
-          const res  = await fetch(`${API_BASE}/api/products/${id}`, { method: "DELETE" });
+          const res  = await fetch(`${API_BASE}/api/products/${id}`, { method: "DELETE", headers: authHeaders() });
           const json = await res.json();
           if (json.success) {
             fetchProducts();

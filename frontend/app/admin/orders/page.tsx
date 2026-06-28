@@ -8,6 +8,11 @@ import {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
+const authHeaders = (): Record<string, string> => {
+  const token = typeof window !== "undefined" ? localStorage.getItem("smarthub_token") : null;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
 // ── Types ────────────────────────────────────────────────────────────────────
 interface OrderItem {
   _id?: string;
@@ -161,7 +166,7 @@ export default function AdminOrdersPage() {
   const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
-      const res  = await fetch(`${API_BASE}/api/orders/admin/all`);
+      const res  = await fetch(`${API_BASE}/api/orders/admin/all`, { headers: authHeaders() });
       const json = await res.json();
       if (json.success) setOrders(json.orders);
       else showToast("error", json.message || "Không thể tải đơn hàng");
@@ -190,7 +195,7 @@ export default function AdminOrdersPage() {
     try {
       const res  = await fetch(`${API_BASE}/api/orders/admin/${orderId}/status`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ trangThai }),
       });
       const json = await res.json();
