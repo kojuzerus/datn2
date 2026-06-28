@@ -13,6 +13,7 @@ const aiRoutes       = require("./routes/ai");
 const addressRoutes  = require("./routes/address");
 const orderRoutes    = require("./routes/order");
 const vnpayRoutes    = require("./routes/vnpay");
+const statsRoutes    = require("./routes/stats");
 
 const app  = express();
 const PORT = process.env.PORT || 5000;
@@ -43,6 +44,7 @@ app.use("/api/ai",         aiRoutes);
 app.use("/api/addresses",  addressRoutes);
 app.use("/api/orders",     orderRoutes);
 app.use("/api/vnpay",      vnpayRoutes);
+app.use("/api/admin/stats", statsRoutes);
 
 app.get("/api/health", (_, res) =>
   res.json({ status: "ok", time: new Date().toISOString() })
