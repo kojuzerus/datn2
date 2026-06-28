@@ -323,7 +323,7 @@ export default function AdminUsersPage() {
                 </tr>
               ) : (
                 users.map((u) => {
-                  const s = STATUS_STYLE[u.status];
+                  const s = STATUS_STYLE[u.status] || STATUS_STYLE.active;
                   return (
                     <tr key={u.id} className="border-b border-gray-100 hover:bg-gray-50/70 cursor-pointer transition-colors" onClick={() => openDetail(u.id)}>
                       <td className="px-4 py-3.5">
@@ -438,8 +438,8 @@ export default function AdminUsersPage() {
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-medium ${detail.role === "admin" ? "bg-violet-50 text-violet-700 border border-violet-200" : "bg-gray-50 text-gray-600 border border-gray-200"}`}>
                           {detail.role === "admin" ? "Quản trị viên" : "Khách hàng"}
                         </span>
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-[11px] font-medium" style={{ background: STATUS_STYLE[detail.status].bg, color: STATUS_STYLE[detail.status].color, border: `1px solid ${STATUS_STYLE[detail.status].border}` }}>
-                          {STATUS_STYLE[detail.status].label}
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-[11px] font-medium" style={{ background: (STATUS_STYLE[detail.status] || STATUS_STYLE.active).bg, color: (STATUS_STYLE[detail.status] || STATUS_STYLE.active).color, border: `1px solid ${(STATUS_STYLE[detail.status] || STATUS_STYLE.active).border}` }}>
+                          {(STATUS_STYLE[detail.status] || STATUS_STYLE.active).label}
                         </span>
                       </div>
                     </div>
