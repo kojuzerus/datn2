@@ -208,7 +208,11 @@ exports.getBestSelling = async (req, res) => {
 // ── [GET] /api/products ───────────────────────────────────────────────────
 exports.getAll = async (req, res) => {
   try {
-    const { category_id, brand_id, search, sort = "newest", page = 1, limit = 12, status, category_name, category_slug } = req.query;
+    const {
+      category_id, brand_id, search, sort = "newest", page = 1, limit = 12,
+      status, category_name, category_slug,
+      price_min, price_max, rating_min, discount_only,
+    } = req.query;
 
     const filter = {};
     if (status === "all")   { /* no filter */ }
@@ -221,9 +225,13 @@ exports.getAll = async (req, res) => {
       const cat = await Category.findOne({ slug: category_slug }).lean();
       if (cat) filter.category_id = cat.category_id;
     }
-    if (brand_id)      filter.brand_id      = parseInt(brand_id);
+    if (brand_id) {
+      const brandIds = String(brand_id).split(",").map((id) => parseInt(id)).filter(Boolean);
+      filter.brand_id = brandIds.length > 1 ? { $in: brandIds } : brandIds[0];
+    }
     if (category_name) filter.category_name = { $regex: category_name, $options: "i" };
     if (search)        filter.product_name  = { $regex: search, $options: "i" };
+    if (rating_min)     filter.avg_rating    = { $gte: parseFloat(rating_min) };
 
     const sortMap = {
       newest:     { created_at: -1 },
@@ -232,36 +240,64 @@ exports.getAll = async (req, res) => {
       // price_asc / price_desc: sort sau khi join vì giá nằm ở variants
     };
 
-    const skip  = (parseInt(page) - 1) * parseInt(limit);
-    const total = await Product.countDocuments(filter);
+    const hasPriceFilter    = price_min != null || price_max != null;
+    const hasDiscountFilter = discount_only === "1" || discount_only === "true";
+    const needsInMemoryPaging = hasPriceFilter || hasDiscountFilter || sort === "price_asc" || sort === "price_desc";
 
-    let products = await Product.find(filter)
-      .sort(sortMap[sort] || sortMap.newest)
-      .skip(skip)
-      .limit(parseInt(limit))
-      .lean();
+    if (!needsInMemoryPaging) {
+      const skip  = (parseInt(page) - 1) * parseInt(limit);
+      const total = await Product.countDocuments(filter);
 
-    products = await attachVariants(products);  // ← join variants
-    products = await attachProductImages(products); // ← join product_images
+      let products = await Product.find(filter)
+        .sort(sortMap[sort] || sortMap.newest)
+        .skip(skip)
+        .limit(parseInt(limit))
+        .lean();
 
-    // Sort theo giá sau khi đã có variants
-    if (sort === "price_asc") {
-      products.sort((a, b) => {
-        const pa = getDisplayPrice(a.variants).sale_price ?? getDisplayPrice(a.variants).price;
-        const pb = getDisplayPrice(b.variants).sale_price ?? getDisplayPrice(b.variants).price;
-        return pa - pb;
-      });
-    } else if (sort === "price_desc") {
-      products.sort((a, b) => {
-        const pa = getDisplayPrice(a.variants).sale_price ?? getDisplayPrice(a.variants).price;
-        const pb = getDisplayPrice(b.variants).sale_price ?? getDisplayPrice(b.variants).price;
-        return pb - pa;
+      products = await attachVariants(products);
+      products = await attachProductImages(products);
+
+      return res.json({
+        success: true,
+        data: products.map(formatProduct),
+        pagination: {
+          total,
+          page:       parseInt(page),
+          limit:      parseInt(limit),
+          totalPages: Math.ceil(total / parseInt(limit)),
+        },
       });
     }
 
+    // ── Cần lọc theo giá/giảm giá (tính từ variants) → lọc trong bộ nhớ ──
+    let products = await Product.find(filter).sort(sortMap[sort] || sortMap.newest).lean();
+    products = await attachVariants(products);
+    products = await attachProductImages(products);
+
+    products = products.filter((p) => {
+      const { sale_price, price, discount_pct } = getDisplayPrice(p.variants);
+      const effectivePrice = sale_price ?? price;
+      if (price_min != null && effectivePrice < parseFloat(price_min)) return false;
+      if (price_max != null && effectivePrice > parseFloat(price_max)) return false;
+      if (hasDiscountFilter && discount_pct <= 0) return false;
+      return true;
+    });
+
+    if (sort === "price_asc" || sort === "price_desc") {
+      products.sort((a, b) => {
+        const pa = getDisplayPrice(a.variants).sale_price ?? getDisplayPrice(a.variants).price;
+        const pb = getDisplayPrice(b.variants).sale_price ?? getDisplayPrice(b.variants).price;
+        return sort === "price_asc" ? pa - pb : pb - pa;
+      });
+    }
+
+    const total = products.length;
+    const skip  = (parseInt(page) - 1) * parseInt(limit);
+    const paged = products.slice(skip, skip + parseInt(limit));
+
     res.json({
       success: true,
-      data: products.map(formatProduct),
+      data: paged.map(formatProduct),
       pagination: {
         total,
         page:       parseInt(page),
