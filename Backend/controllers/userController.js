@@ -69,7 +69,16 @@ exports.getUserById = async (req, res) => {
     if (!user) return res.status(404).json({ success: false, message: "Không tìm thấy khách hàng" });
 
     const orders = await Order.find({ userId: req.params.id }).sort({ createdAt: -1 }).lean();
-    res.json({ success: true, data: { ...user, orders } });
+    res.json({
+      success: true,
+      data: {
+        ...user,
+        hoTen:  user.hoTen || "(Chưa có tên)",
+        role:   user.role || "user",
+        status: user.status || "active",
+        orders,
+      },
+    });
   } catch (err) {
     console.error("[getUserById]", err);
     res.status(500).json({ success: false, message: "Lỗi server", error: err.message });
