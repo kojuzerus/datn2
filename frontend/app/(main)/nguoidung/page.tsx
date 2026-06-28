@@ -8,7 +8,7 @@ import {
   Edit3, Check, X, ChevronRight, Package,
   LogOut, Camera, Eye, EyeOff, MapPin,
   Plus, Trash2, Star, Home, ShoppingCart,
-  Wallet, LayoutGrid, Truck, Search,
+  Wallet, LayoutGrid, Truck, Search, Heart,
 } from 'lucide-react';
 import SearchableSelect, { SelectOption } from '../../components/SearchableSelect';
 
@@ -534,6 +534,13 @@ export default function NguoiDungPage() {
             {item.label}
           </button>
         ))}
+        <Link
+          href="/yeu-thich"
+          className="shrink-0 flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-[13px] font-medium text-gray-600 hover:bg-gray-50 hover:text-red-600 transition-colors whitespace-nowrap"
+        >
+          <Heart className="w-4 h-4 text-gray-400" />
+          Sản phẩm yêu thích
+        </Link>
       </div>
 
       <div className="flex flex-col md:flex-row gap-6">
@@ -566,6 +573,12 @@ export default function NguoiDungPage() {
                     {tab === item.key && <ChevronRight className="w-3.5 h-3.5 ml-auto" />}
                   </button>
                 ))}
+              <Link
+                href="/yeu-thich"
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all text-left text-gray-600 hover:bg-gray-50 hover:text-gray-800"
+              >
+                <Heart className="w-4 h-4 shrink-0" />Sản phẩm yêu thích
+              </Link>
               {user.role === 'admin' && (
                 <Link href="/admin" className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-amber-500 hover:bg-amber-50 transition-all">
                   <Shield className="w-4 h-4 shrink-0" />Trang quản trị
