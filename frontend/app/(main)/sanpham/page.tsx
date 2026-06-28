@@ -1,10 +1,11 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   Star, ChevronRight, X, Package, Home, ChevronDown, Repeat,
+  SlidersHorizontal, Check, Tag,
 } from "lucide-react";
 import { useComparison } from "../../components/comparisonContext";
 
@@ -27,9 +28,20 @@ const SORT_OPTIONS = [
   { value: "newest",     label: "Mới nhất"     },
   { value: "sold",       label: "Bán chạy"     },
   { value: "rating",     label: "Đánh giá cao" },
-  { value: "price_asc",  label: "Giá tăng dần" },
-  { value: "price_desc", label: "Giá giảm dần" },
+  { value: "price_asc",  label: "Giá thấp - cao" },
+  { value: "price_desc", label: "Giá cao - thấp" },
 ];
+
+const PRICE_PRESETS = [
+  { key: "0-5tr",    label: "Dưới 5 triệu",     min: null,        max: 5_000_000  },
+  { key: "5-10tr",   label: "5 - 10 triệu",     min: 5_000_000,   max: 10_000_000 },
+  { key: "10-20tr",  label: "10 - 20 triệu",    min: 10_000_000,  max: 20_000_000 },
+  { key: "20tr-up",  label: "Trên 20 triệu",    min: 20_000_000,  max: null       },
+];
+
+const RATING_PRESETS = [4, 3, 2];
+
+type DropdownKey = "" | "filter" | "category" | "brand" | "price" | "rating";
 
 /* ── Product Card ───────────────────────────────────────────────────────── */
 function ProductCard({ p }: { p: Product }) {
@@ -51,14 +63,14 @@ function ProductCard({ p }: { p: Product }) {
   return (
     <div className="group flex flex-col h-full">
       <Link href={`/sanpham/${p.slug}`} className="flex-1 block">
-        <div className="bg-white border border-gray-100 rounded-t-2xl overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex flex-col h-full relative">
+        <div className="bg-white border border-gray-100 rounded-t-2xl overflow-hidden hover:shadow-lg hover:border-red-100 hover:-translate-y-1 transition-all duration-300 flex flex-col h-full relative">
           {p.badge && (
-            <span className="absolute top-3 left-3 z-10 bg-red-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full">
+            <span className="absolute top-3 left-3 z-10 bg-red-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm">
               {p.badge}
             </span>
           )}
           {p.giamGia > 0 && (
-            <span className="absolute top-3 right-3 z-10 bg-red-500 text-white text-[10px] font-semibold px-2.5 py-1 rounded-full">
+            <span className="absolute top-3 right-3 z-10 bg-gradient-to-r from-red-500 to-orange-500 text-white text-[10px] font-semibold px-2.5 py-1 rounded-full shadow-sm">
               -{p.giamGia}%
             </span>
           )}
@@ -107,7 +119,7 @@ function ProductCard({ p }: { p: Product }) {
 
 function SkeletonCard() {
   return (
-    <div className="bg-white border border-gray-100 rounded-sm overflow-hidden animate-pulse">
+    <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden animate-pulse">
       <div className="bg-gray-200 h-48" />
       <div className="p-4 space-y-2.5">
         <div className="h-2.5 bg-gray-100 rounded w-1/3" />
@@ -119,6 +131,176 @@ function SkeletonCard() {
   );
 }
 
+/* ── Pill button (toolbar trigger) ─────────────────────────────────────── */
+function Pill({
+  label, icon, active, hasDropdown, onClick,
+}: {
+  label: string;
+  icon?: ReactNode;
+  active: boolean;
+  hasDropdown?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[13px] font-medium border whitespace-nowrap transition-colors ${
+        active
+          ? "border-red-500 bg-red-50 text-red-600"
+          : "border-gray-200 text-gray-700 bg-white hover:border-gray-300 hover:bg-gray-50"
+      }`}
+    >
+      {icon}
+      {label}
+      {hasDropdown && <ChevronDown className={`w-3.5 h-3.5 transition-transform ${active ? "rotate-180" : ""}`} />}
+    </button>
+  );
+}
+
+/* ── Filter content lists (shared between combined panel + single dropdowns) ── */
+function CategoryList({ categories, danhMucSlug, onCategory }: {
+  categories: Category[]; danhMucSlug: string; onCategory: (slug: string | null) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <button
+        onClick={() => onCategory(null)}
+        className={`flex items-center justify-between text-left px-2.5 py-2 rounded-lg text-[13.5px] transition-colors ${
+          !danhMucSlug ? "bg-red-50 text-red-600 font-semibold" : "text-gray-600 hover:bg-gray-50"
+        }`}
+      >
+        Tất cả sản phẩm
+        {!danhMucSlug && <Check className="w-3.5 h-3.5" />}
+      </button>
+      {categories.map((cat) => {
+        const active = danhMucSlug === cat.slug;
+        return (
+          <button
+            key={cat.slug}
+            onClick={() => onCategory(active ? null : cat.slug)}
+            className={`flex items-center justify-between text-left px-2.5 py-2 rounded-lg text-[13.5px] transition-colors ${
+              active ? "bg-red-50 text-red-600 font-semibold" : "text-gray-600 hover:bg-gray-50"
+            }`}
+          >
+            <span className="truncate">{cat.category_name}</span>
+            {active && <Check className="w-3.5 h-3.5 shrink-0" />}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function BrandList({ brands, loadingBrands, brandIds, onToggleBrand }: {
+  brands: Brand[]; loadingBrands: boolean; brandIds: string[]; onToggleBrand: (id: number) => void;
+}) {
+  if (loadingBrands) {
+    return (
+      <div className="space-y-2">
+        {[1, 2, 3, 4].map((i) => <div key={i} className="h-6 bg-gray-100 rounded animate-pulse" />)}
+      </div>
+    );
+  }
+  if (brands.length === 0) {
+    return <p className="text-[12.5px] text-gray-300 italic">Không có thương hiệu</p>;
+  }
+  return (
+    <div className="flex flex-col gap-1.5 max-h-60 overflow-y-auto pr-1">
+      {brands.map((b) => {
+        const active = brandIds.includes(String(b.brand_id));
+        return (
+          <label key={b.brand_id} className="flex items-center gap-2.5 px-1 py-1 cursor-pointer group">
+            <span
+              onClick={() => onToggleBrand(b.brand_id)}
+              className={`w-4 h-4 rounded-[5px] border flex items-center justify-center shrink-0 transition-colors ${
+                active ? "bg-red-600 border-red-600" : "border-gray-300 group-hover:border-red-300"
+              }`}
+            >
+              {active && <Check className="w-3 h-3 text-white" />}
+            </span>
+            <span
+              onClick={() => onToggleBrand(b.brand_id)}
+              className={`text-[13.5px] select-none ${active ? "text-red-600 font-medium" : "text-gray-600"}`}
+            >
+              {b.brand_name}
+            </span>
+          </label>
+        );
+      })}
+    </div>
+  );
+}
+
+function PriceList({ priceKey, onPricePreset }: { priceKey: string; onPricePreset: (key: string | null) => void }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      {PRICE_PRESETS.map((preset) => {
+        const active = priceKey === preset.key;
+        return (
+          <button
+            key={preset.key}
+            onClick={() => onPricePreset(active ? null : preset.key)}
+            className={`flex items-center gap-2.5 px-1 py-1.5 rounded-lg text-[13.5px] text-left transition-colors ${
+              active ? "text-red-600 font-medium" : "text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            <span className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${active ? "border-red-600" : "border-gray-300"}`}>
+              {active && <span className="w-2 h-2 rounded-full bg-red-600" />}
+            </span>
+            {preset.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function RatingList({ ratingMin, onRating }: { ratingMin: string; onRating: (v: number | null) => void }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      {RATING_PRESETS.map((r) => {
+        const active = ratingMin === String(r);
+        return (
+          <button
+            key={r}
+            onClick={() => onRating(active ? null : r)}
+            className={`flex items-center gap-1.5 px-1 py-1.5 rounded-lg transition-colors ${
+              active ? "text-red-600" : "text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Star key={i} className={`w-3.5 h-3.5 ${i < r ? "fill-amber-400 text-amber-400" : "fill-gray-200 text-gray-200"}`} />
+            ))}
+            <span className="text-[13px] font-medium ml-0.5">trở lên</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function DiscountToggle({ discountOnly, onDiscount }: { discountOnly: boolean; onDiscount: (v: boolean) => void }) {
+  return (
+    <label className="flex items-center gap-2.5 px-1 py-1 cursor-pointer group">
+      <span
+        onClick={() => onDiscount(!discountOnly)}
+        className={`w-4 h-4 rounded-[5px] border flex items-center justify-center shrink-0 transition-colors ${
+          discountOnly ? "bg-red-600 border-red-600" : "border-gray-300 group-hover:border-red-300"
+        }`}
+      >
+        {discountOnly && <Check className="w-3 h-3 text-white" />}
+      </span>
+      <span
+        onClick={() => onDiscount(!discountOnly)}
+        className={`text-[13.5px] select-none flex items-center gap-1.5 ${discountOnly ? "text-red-600 font-medium" : "text-gray-600"}`}
+      >
+        <Tag className="w-3.5 h-3.5" />
+        Chỉ hiện sản phẩm giảm giá
+      </span>
+    </label>
+  );
+}
+
 /* ── Main listing content ───────────────────────────────────────────────── */
 function ProductsContent() {
   const searchParams = useSearchParams();
@@ -126,6 +308,10 @@ function ProductsContent() {
 
   const danhMucSlug  = searchParams.get("danh-muc")    || "";
   const thuongHieuId = searchParams.get("thuong-hieu") || "";
+  const brandIds     = thuongHieuId ? thuongHieuId.split(",").filter(Boolean) : [];
+  const priceKey     = searchParams.get("gia")          || "";
+  const ratingMin    = searchParams.get("sao-tu")       || "";
+  const discountOnly = searchParams.get("giam-gia") === "1";
   const sort         = searchParams.get("sort")         || "newest";
   const currentPage  = parseInt(searchParams.get("trang") || "1");
   const keyword      = searchParams.get("tu-khoa")      || "";
@@ -136,8 +322,8 @@ function ProductsContent() {
   const [pagination,    setPagination]    = useState<Pagination>({ total: 0, page: 1, limit: 20, totalPages: 1 });
   const [loading,       setLoading]       = useState(true);
   const [loadingBrands, setLoadingBrands] = useState(false);
-  const [sortOpen,      setSortOpen]      = useState(false);
-  const sortRef = useRef<HTMLDivElement>(null);
+  const [openDropdown,  setOpenDropdown]  = useState<DropdownKey>("");
+  const toolbarRef = useRef<HTMLDivElement>(null);
 
   /* ── push URL ── */
   const pushParams = useCallback(
@@ -152,11 +338,11 @@ function ProductsContent() {
     [searchParams, router],
   );
 
-  /* ── Close sort on outside click ── */
+  /* ── Close dropdowns on outside click ── */
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (sortRef.current && !sortRef.current.contains(e.target as Node))
-        setSortOpen(false);
+      if (toolbarRef.current && !toolbarRef.current.contains(e.target as Node))
+        setOpenDropdown("");
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -181,15 +367,21 @@ function ProductsContent() {
       .finally(() => setLoadingBrands(false));
   }, [danhMucSlug]);
 
+  const selectedPriceRange = PRICE_PRESETS.find((p) => p.key === priceKey);
+
   /* ── Fetch products ── */
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
         page: String(currentPage), limit: "20", sort, status: "active",
-        ...(danhMucSlug  && { category_slug: danhMucSlug }),
-        ...(thuongHieuId && { brand_id: thuongHieuId }),
-        ...(keyword      && { search: keyword }),
+        ...(danhMucSlug       && { category_slug: danhMucSlug }),
+        ...(brandIds.length   && { brand_id: brandIds.join(",") }),
+        ...(keyword           && { search: keyword }),
+        ...(ratingMin         && { rating_min: ratingMin }),
+        ...(discountOnly      && { discount_only: "1" }),
+        ...(selectedPriceRange?.min != null && { price_min: String(selectedPriceRange.min) }),
+        ...(selectedPriceRange?.max != null && { price_max: String(selectedPriceRange.max) }),
       });
       const res  = await fetch(`${API_BASE}/api/products?${params}`);
       const json = await res.json();
@@ -202,13 +394,30 @@ function ProductsContent() {
     } finally {
       setLoading(false);
     }
-  }, [danhMucSlug, thuongHieuId, sort, currentPage, keyword]);
+  }, [danhMucSlug, thuongHieuId, sort, currentPage, keyword, ratingMin, discountOnly, priceKey]);
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
+  /* ── Filter handlers ── */
+  const toggleDropdown = (key: DropdownKey) => setOpenDropdown((cur) => (cur === key ? "" : key));
+  const handleCategory = (slug: string | null) => pushParams({ "danh-muc": slug, "thuong-hieu": null });
+  const handleToggleBrand = (id: number) => {
+    const idStr = String(id);
+    const next = brandIds.includes(idStr) ? brandIds.filter((b) => b !== idStr) : [...brandIds, idStr];
+    pushParams({ "thuong-hieu": next.length ? next.join(",") : null });
+  };
+  const handlePricePreset = (key: string | null) => pushParams({ gia: key });
+  const handleRating = (v: number | null) => pushParams({ "sao-tu": v ? String(v) : null });
+  const handleDiscount = (v: boolean) => pushParams({ "giam-gia": v ? "1" : null });
+  const handleClearAll = () => {
+    pushParams({ "danh-muc": null, "thuong-hieu": null, gia: null, "sao-tu": null, "giam-gia": null, "tu-khoa": null });
+    setOpenDropdown("");
+  };
+
   /* ── Derived ── */
   const selectedCat  = categories.find((c) => c.slug === danhMucSlug);
-  const sortLabel    = SORT_OPTIONS.find((o) => o.value === sort)?.label || "Mới nhất";
+  const activeFilterCount =
+    (danhMucSlug ? 1 : 0) + brandIds.length + (priceKey ? 1 : 0) + (ratingMin ? 1 : 0) + (discountOnly ? 1 : 0);
 
   /* ── Render ── */
   return (
@@ -230,158 +439,210 @@ function ProductsContent() {
         )}
       </nav>
 
-      {/* ── Filter bar ── */}
-      <div className="bg-white border border-gray-100 rounded-sm overflow-hidden mb-5">
-
-        {/* Row 1: Category pills */}
-        <div className="px-4 pt-3 pb-3 border-b border-gray-100">
-          <div className="flex items-center gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
-            <button
-              onClick={() => pushParams({ "danh-muc": null, "thuong-hieu": null })}
-              className={`shrink-0 px-4 py-2 rounded-full text-[13px] font-medium transition-all ${
-                !danhMucSlug
-                  ? "bg-red-600 text-white shadow-sm"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
-            >
-              Tất cả
-            </button>
-            {categories.map((cat) => (
-              <button
-                key={cat.slug}
-                onClick={() => pushParams({ "danh-muc": cat.slug, "thuong-hieu": null })}
-                className={`shrink-0 px-4 py-2 rounded-full text-[13px] font-medium whitespace-nowrap transition-all ${
-                  danhMucSlug === cat.slug
-                    ? "bg-red-600 text-white shadow-sm"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                }`}
-              >
-                {cat.category_name}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Row 2: Brand pills + count + sort */}
-        <div className="px-4 py-2.5 flex items-center gap-3 min-h-[46px]">
-
-          {/* Brand pills (scrollable) */}
-          <div className="flex items-center gap-2 flex-1 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
-            {loadingBrands ? (
-              <>
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="shrink-0 h-7 w-20 bg-gray-100 rounded-full animate-pulse" />
-                ))}
-              </>
-            ) : brands.length > 0 ? (
-              <>
-                <span className="text-[11.5px] font-semibold text-gray-400 uppercase tracking-wide shrink-0">
-                  Hãng:
-                </span>
-                {brands.map((b) => {
-                  const active = thuongHieuId === String(b.brand_id);
-                  return (
-                    <button
-                      key={b.brand_id}
-                      onClick={() => pushParams({ "thuong-hieu": active ? null : String(b.brand_id) })}
-                      className={`shrink-0 px-3.5 py-1.5 rounded-full text-[12.5px] font-medium border transition-all whitespace-nowrap ${
-                        active
-                          ? "border-red-500 bg-red-50 text-red-700"
-                          : "border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
-                      }`}
-                    >
-                      {b.brand_name}
-                    </button>
-                  );
-                })}
-              </>
-            ) : (
-              <span className="text-[12.5px] text-gray-300 italic select-none">
-                Chọn danh mục để lọc theo thương hiệu
-              </span>
-            )}
-          </div>
-
-          {/* Count + Sort */}
-          <div className="shrink-0 flex items-center gap-3 pl-3 border-l border-gray-100">
-            <span className="text-[12.5px] text-gray-400 whitespace-nowrap hidden sm:block">
-              {loading ? "Đang tải..." : `${pagination.total.toLocaleString("vi-VN")} sản phẩm`}
-            </span>
-
-            <div ref={sortRef} className="relative">
-              <button
-                onClick={() => setSortOpen((v) => !v)}
-                className="flex items-center gap-2 border border-gray-200 rounded-xl px-3.5 py-1.5 text-[13px] text-gray-700 bg-white hover:border-red-300 hover:text-red-600 transition-colors whitespace-nowrap"
-              >
-                {sortLabel}
-                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${sortOpen ? "rotate-180" : ""}`} />
-              </button>
-              {sortOpen && (
-                <div className="absolute right-0 top-full mt-1.5 z-30 bg-white border border-gray-100 rounded-sm shadow-lg min-w-[170px] py-1.5 overflow-hidden">
-                  {SORT_OPTIONS.map((o) => (
-                    <button
-                      key={o.value}
-                      onClick={() => { pushParams({ sort: o.value }); setSortOpen(false); }}
-                      className={`w-full text-left text-[13px] px-4 py-2.5 hover:bg-gray-50 transition-colors ${
-                        sort === o.value ? "text-red-600 font-semibold bg-red-50/40" : "text-gray-700"
-                      }`}
-                    >
-                      {o.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+      <div className="flex items-center justify-between mb-2.5">
+        <p className="text-[16px] font-bold text-gray-900">Chọn theo tiêu chí</p>
+        <span className="text-[13px] text-gray-400 whitespace-nowrap">
+          {loading ? "Đang tải..." : `${pagination.total.toLocaleString("vi-VN")} sản phẩm`}
+        </span>
       </div>
 
-      {/* Keyword chip (set by header search) */}
-      {keyword && (
+      {/* ── Filter toolbar ── */}
+      <div ref={toolbarRef} className="relative mb-3">
+        <div className="flex items-center gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none] pb-0.5">
+          <Pill
+            label="Bộ lọc"
+            icon={<SlidersHorizontal className="w-3.5 h-3.5" />}
+            active={openDropdown === "filter" || activeFilterCount > 0}
+            onClick={() => toggleDropdown("filter")}
+          />
+          <Pill
+            label="Giảm giá"
+            icon={<Tag className="w-3.5 h-3.5" />}
+            active={discountOnly}
+            onClick={() => handleDiscount(!discountOnly)}
+          />
+          <Pill
+            label={selectedCat ? selectedCat.category_name : "Danh mục"}
+            active={openDropdown === "category" || !!danhMucSlug}
+            hasDropdown
+            onClick={() => toggleDropdown("category")}
+          />
+          <Pill
+            label={brandIds.length ? `Thương hiệu (${brandIds.length})` : "Thương hiệu"}
+            active={openDropdown === "brand" || brandIds.length > 0}
+            hasDropdown
+            onClick={() => toggleDropdown("brand")}
+          />
+          <Pill
+            label={selectedPriceRange ? selectedPriceRange.label : "Xem theo giá"}
+            active={openDropdown === "price" || !!priceKey}
+            hasDropdown
+            onClick={() => toggleDropdown("price")}
+          />
+          <Pill
+            label={ratingMin ? `${ratingMin}★ trở lên` : "Đánh giá"}
+            active={openDropdown === "rating" || !!ratingMin}
+            hasDropdown
+            onClick={() => toggleDropdown("rating")}
+          />
+        </div>
+
+        {/* ── Combined filter panel ── */}
+        {openDropdown === "filter" && (
+          <div className="absolute left-0 top-full mt-2 z-30 w-[min(820px,calc(100vw-2rem))] bg-white border border-gray-100 rounded-2xl shadow-xl overflow-hidden">
+            <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-gray-100 max-h-[420px] overflow-y-auto p-5 gap-5">
+              <div>
+                <p className="text-[12px] font-semibold text-gray-700 uppercase tracking-wide mb-3">Danh mục</p>
+                <CategoryList categories={categories} danhMucSlug={danhMucSlug} onCategory={handleCategory} />
+              </div>
+              <div className="sm:pl-5 pt-5 sm:pt-0">
+                <p className="text-[12px] font-semibold text-gray-700 uppercase tracking-wide mb-3">Thương hiệu</p>
+                <BrandList brands={brands} loadingBrands={loadingBrands} brandIds={brandIds} onToggleBrand={handleToggleBrand} />
+              </div>
+              <div className="sm:pl-5 pt-5 sm:pt-0 flex flex-col gap-5">
+                <div>
+                  <p className="text-[12px] font-semibold text-gray-700 uppercase tracking-wide mb-3">Khoảng giá</p>
+                  <PriceList priceKey={priceKey} onPricePreset={handlePricePreset} />
+                </div>
+                <div>
+                  <p className="text-[12px] font-semibold text-gray-700 uppercase tracking-wide mb-3">Đánh giá</p>
+                  <RatingList ratingMin={ratingMin} onRating={handleRating} />
+                </div>
+                <div>
+                  <p className="text-[12px] font-semibold text-gray-700 uppercase tracking-wide mb-3">Ưu đãi</p>
+                  <DiscountToggle discountOnly={discountOnly} onDiscount={handleDiscount} />
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 px-5 py-3.5 border-t border-gray-100 bg-gray-50/60">
+              <button
+                onClick={handleClearAll}
+                className="flex-1 sm:flex-none px-5 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-[13px] font-medium hover:bg-gray-100 transition-colors"
+              >
+                Đóng
+              </button>
+              <button
+                onClick={() => setOpenDropdown("")}
+                className="flex-1 sm:flex-none ml-auto px-6 py-2.5 rounded-xl bg-red-600 text-white text-[13px] font-semibold hover:bg-red-700 transition-colors"
+              >
+                Xem kết quả {loading ? "" : `(${pagination.total.toLocaleString("vi-VN")})`}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Single-purpose dropdowns ── */}
+        {openDropdown === "category" && (
+          <div className="absolute left-0 top-full mt-2 z-30 w-64 bg-white border border-gray-100 rounded-2xl shadow-xl p-4 max-h-80 overflow-y-auto">
+            <CategoryList categories={categories} danhMucSlug={danhMucSlug} onCategory={(s) => { handleCategory(s); setOpenDropdown(""); }} />
+          </div>
+        )}
+        {openDropdown === "brand" && (
+          <div className="absolute left-0 top-full mt-2 z-30 w-64 bg-white border border-gray-100 rounded-2xl shadow-xl p-4">
+            <BrandList brands={brands} loadingBrands={loadingBrands} brandIds={brandIds} onToggleBrand={handleToggleBrand} />
+          </div>
+        )}
+        {openDropdown === "price" && (
+          <div className="absolute left-0 top-full mt-2 z-30 w-60 bg-white border border-gray-100 rounded-2xl shadow-xl p-4">
+            <PriceList priceKey={priceKey} onPricePreset={(k) => { handlePricePreset(k); setOpenDropdown(""); }} />
+          </div>
+        )}
+        {openDropdown === "rating" && (
+          <div className="absolute left-0 top-full mt-2 z-30 w-56 bg-white border border-gray-100 rounded-2xl shadow-xl p-4">
+            <RatingList ratingMin={ratingMin} onRating={(v) => { handleRating(v); setOpenDropdown(""); }} />
+          </div>
+        )}
+      </div>
+
+      {/* ── Sort row ── */}
+      <div className="flex items-center gap-2 mb-5 flex-wrap">
+        <span className="text-[13.5px] font-semibold text-gray-700 shrink-0">Sắp xếp theo</span>
+        {SORT_OPTIONS.map((o) => (
+          <Pill key={o.value} label={o.label} active={sort === o.value} onClick={() => pushParams({ sort: o.value })} />
+        ))}
+      </div>
+
+      {/* Active filter chips */}
+      {(keyword || danhMucSlug || brandIds.length > 0 || priceKey || ratingMin || discountOnly) && (
         <div className="flex flex-wrap items-center gap-2 mb-4">
-          <span className="inline-flex items-center gap-1.5 bg-red-50 text-red-700 text-[12.5px] font-medium px-3 py-1.5 rounded-full border border-red-100">
-            Tìm: &ldquo;{keyword}&rdquo;
-            <button
-              onClick={() => pushParams({ "tu-khoa": null })}
-              className="hover:text-red-900 transition-colors"
-            >
-              <X className="w-3 h-3" />
-            </button>
-          </span>
-          {(danhMucSlug || thuongHieuId) && (
-            <button
-              onClick={() => pushParams({ "danh-muc": null, "thuong-hieu": null, "tu-khoa": null })}
-              className="text-[12.5px] text-gray-500 hover:text-red-600 font-medium transition-colors"
-            >
-              Xóa tất cả bộ lọc
-            </button>
+          {keyword && (
+            <span className="inline-flex items-center gap-1.5 bg-red-50 text-red-700 text-[12.5px] font-medium px-3 py-1.5 rounded-full border border-red-100">
+              Tìm: &ldquo;{keyword}&rdquo;
+              <button onClick={() => pushParams({ "tu-khoa": null })} className="hover:text-red-900 transition-colors">
+                <X className="w-3 h-3" />
+              </button>
+            </span>
           )}
+          {selectedCat && (
+            <span className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 text-[12.5px] font-medium px-3 py-1.5 rounded-full">
+              {selectedCat.category_name}
+              <button onClick={() => handleCategory(null)} className="hover:text-red-600 transition-colors">
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          )}
+          {brandIds.map((id) => {
+            const b = brands.find((br) => String(br.brand_id) === id);
+            if (!b) return null;
+            return (
+              <span key={id} className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 text-[12.5px] font-medium px-3 py-1.5 rounded-full">
+                {b.brand_name}
+                <button onClick={() => handleToggleBrand(b.brand_id)} className="hover:text-red-600 transition-colors">
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            );
+          })}
+          {selectedPriceRange && (
+            <span className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 text-[12.5px] font-medium px-3 py-1.5 rounded-full">
+              {selectedPriceRange.label}
+              <button onClick={() => handlePricePreset(null)} className="hover:text-red-600 transition-colors">
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          )}
+          {ratingMin && (
+            <span className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 text-[12.5px] font-medium px-3 py-1.5 rounded-full">
+              {ratingMin}★ trở lên
+              <button onClick={() => handleRating(null)} className="hover:text-red-600 transition-colors">
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          )}
+          {discountOnly && (
+            <span className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 text-[12.5px] font-medium px-3 py-1.5 rounded-full">
+              Giảm giá
+              <button onClick={() => handleDiscount(false)} className="hover:text-red-600 transition-colors">
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          )}
+          <button onClick={handleClearAll} className="text-[12.5px] text-gray-500 hover:text-red-600 font-medium transition-colors">
+            Xóa tất cả bộ lọc
+          </button>
         </div>
       )}
 
       {/* Product grid */}
       {loading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-4">
           {Array.from({ length: 20 }).map((_, i) => <SkeletonCard key={i} />)}
         </div>
       ) : products.length === 0 ? (
-        <div className="bg-white border border-gray-100 rounded-sm py-20 flex flex-col items-center gap-4">
-          <div className="w-16 h-16 bg-gray-100 rounded-sm flex items-center justify-center">
+        <div className="bg-white border border-gray-100 rounded-2xl py-20 flex flex-col items-center gap-4">
+          <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center">
             <Package className="w-8 h-8 text-gray-300" />
           </div>
           <div className="text-center">
             <p className="text-[15px] font-semibold text-gray-700">Không tìm thấy sản phẩm</p>
             <p className="text-[13px] text-gray-400 mt-1">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm</p>
           </div>
-          <button
-            onClick={() => pushParams({ "danh-muc": null, "thuong-hieu": null, "tu-khoa": null })}
-            className="text-sm text-red-600 hover:text-red-700 font-medium transition-colors"
-          >
+          <button onClick={handleClearAll} className="text-sm text-red-600 hover:text-red-700 font-medium transition-colors">
             Xóa bộ lọc
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-4">
           {products.map((p) => <ProductCard key={p.id} p={p} />)}
         </div>
       )}
@@ -446,10 +707,11 @@ export default function SanPhamPage() {
     <Suspense
       fallback={
         <div>
-          <div className="bg-white border border-gray-100 rounded-sm h-28 mb-5 animate-pulse" />
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          <div className="bg-white border border-gray-100 rounded-2xl h-12 mb-3 animate-pulse" />
+          <div className="bg-white border border-gray-100 rounded-2xl h-10 mb-5 animate-pulse" />
+          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-4">
             {Array.from({ length: 20 }).map((_, i) => (
-              <div key={i} className="bg-white border border-gray-100 rounded-sm overflow-hidden animate-pulse">
+              <div key={i} className="bg-white border border-gray-100 rounded-2xl overflow-hidden animate-pulse">
                 <div className="bg-gray-200 h-48" />
                 <div className="p-4 space-y-2">
                   <div className="h-3 bg-gray-100 rounded w-1/3" />

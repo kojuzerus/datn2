@@ -1,6 +1,5 @@
 const Brand = require("../models/brandModel");
 const Category = require("../models/categoryModel");
-const Product = require("../models/productModel");
 
 exports.getAll = async (req, res) => {
   try {
@@ -25,17 +24,8 @@ exports.getAll = async (req, res) => {
         return res.json({ success: true, data: [] });
       }
 
-      const brandIds = await Product.distinct("brand_id", {
-        status: "active",
-        category_id: { $in: categoryIds },
-      });
-
-      if (!brandIds.length) {
-        return res.json({ success: true, data: [] });
-      }
-
       const brands = await Brand.find({
-        brand_id: { $in: brandIds },
+        category_ids: { $in: categoryIds },
         status: "active",
       })
         .sort({ brand_id: 1 })
