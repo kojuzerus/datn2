@@ -8,6 +8,7 @@ import { CheckCircle2, ShoppingBag, ClipboardList, Hash } from 'lucide-react';
 function SuccessContent() {
   const params  = useSearchParams();
   const orderId = params.get('orderId');
+  const isVnpay = params.get('method') === 'vnpay';
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
@@ -17,9 +18,13 @@ function SuccessContent() {
           <CheckCircle2 className="w-11 h-11 text-green-500" />
         </div>
 
-        <h1 className="text-2xl font-bold text-gray-800 mb-2">Đặt hàng thành công!</h1>
+        <h1 className="text-2xl font-bold text-gray-800 mb-2">
+          {isVnpay ? 'Thanh toán thành công!' : 'Đặt hàng thành công!'}
+        </h1>
         <p className="text-gray-500 text-sm mb-6">
-          Cảm ơn bạn đã mua sắm tại SmartHub. Chúng tôi sẽ xử lý và giao hàng sớm nhất có thể.
+          {isVnpay
+            ? 'Giao dịch VNPay của bạn đã được xác nhận. Cảm ơn bạn đã mua sắm tại SmartHub.'
+            : 'Cảm ơn bạn đã mua sắm tại SmartHub. Chúng tôi sẽ xử lý và giao hàng sớm nhất có thể.'}
         </p>
 
         {orderId && (

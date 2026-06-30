@@ -125,7 +125,7 @@ exports.returnHandler = async (req, res) => {
 
       const frontend = process.env.FRONTEND_URL || `${req.protocol}://${req.get('host').replace(/:5000$/, ':3000')}`;
       if (vnpResponseCode === '00') {
-        return res.redirect(`${frontend}/dat-hang-thanh-cong?orderId=${txnRef}`);
+        return res.redirect(`${frontend}/dat-hang-thanh-cong?orderId=${txnRef}&method=vnpay`);
       }
       return res.redirect(`${frontend}/thanhtoan?status=failed&orderId=${txnRef}`);
     }
