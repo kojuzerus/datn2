@@ -56,3 +56,16 @@ Tạo lại tài khoản admin bằng email thật:
 Email: admin@smarthub.vn
 Mật khẩu: Admin@123
 Đăng nhập giờ hỗ trợ cả SĐT hoặc email trong cùng 1 ô (backend tìm theo $or) (MK)
+
+Done quản lý danh mục có brands - fix chức năng đăng ký (không phân biệt chữ hoa chữ thường) - fix (chức năng không bắt buộc nhập email "trước khi fix: không nhập mail dù phần mail không bắt buộc nhập nhưng nếu không nhập sẽ bị lỗi server" sau khi fix: đã có thể không cần nhập).
+Done chức năng yêu thích - bắt buộc đăng nhập mới được yêu thích.
+Done các nút có chức năng click (MK)
+
+
+Phước (làm quá trời luôn không biết note gì cả).
+
+
+
+
+
+Phần chưa làm: Mã giảm - vòng quay may mắn - Flash sale - chức năng nhận xét và đánh giá sau khi mua sản phẩm - chức năng hỏi đáp của khách hàng trước khi mua sản phẩm. 
