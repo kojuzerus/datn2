@@ -638,23 +638,22 @@ export default function ProductDetailPage() {
               )}
             </div>
 
-            <button
-              disabled={!inStock || adding}
-              onClick={handleBuyNow}
-              className={`w-full py-3.5 rounded-xl text-[15px] font-bold transition-all active:scale-[0.99] ${
-                inStock
-                  ? "bg-red-600 hover:bg-red-700 text-white"
-                  : "bg-gray-100 text-gray-300 cursor-not-allowed"
-              }`}
-            >
-              {!inStock ? "Hết hàng" : adding ? "Đang xử lý..." : "Mua ngay"}
-            </button>
-
             <div className="flex gap-2.5">
               <button
                 disabled={!inStock || adding}
+                onClick={handleBuyNow}
+                className={`flex-1 py-3.5 rounded-xl text-[15px] font-bold transition-all active:scale-[0.99] ${
+                  inStock
+                    ? "bg-red-600 hover:bg-red-700 text-white"
+                    : "bg-gray-100 text-gray-300 cursor-not-allowed"
+                }`}
+              >
+                {!inStock ? "Hết hàng" : adding ? "Đang xử lý..." : "Mua ngay"}
+              </button>
+              <button
+                disabled={!inStock || adding}
                 onClick={handleAddToCart}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[13.5px] font-semibold border-2 transition-all ${
+                className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl text-[13.5px] font-semibold border-2 transition-all ${
                   addedToCart
                     ? "border-green-500 bg-green-50 text-green-700"
                     : inStock && !adding
@@ -663,7 +662,7 @@ export default function ProductDetailPage() {
                 }`}
               >
                 <ShoppingCart className="w-4 h-4" />
-                {adding ? "Đang thêm..." : addedToCart ? "Đã thêm vào giỏ!" : "Thêm vào giỏ hàng"}
+                {adding ? "Đang thêm..." : addedToCart ? "Đã thêm!" : "Thêm vào giỏ"}
               </button>
               {product && (() => {
                 const inCompare = isInComparison(product.id);
