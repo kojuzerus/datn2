@@ -336,9 +336,12 @@ export default function ThanhToanPage() {
                     className="w-full border border-gray-200 rounded-sm px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 bg-white"
                   />
                   <input
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={11}
                     placeholder="Số điện thoại *"
                     value={newAddr.phone}
-                    onChange={e => setNewAddr(p => ({ ...p, phone: e.target.value }))}
+                    onChange={e => setNewAddr(p => ({ ...p, phone: e.target.value.replace(/\D/g, '') }))}
                     className="w-full border border-gray-200 rounded-sm px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 bg-white"
                   />
                   <SearchableSelect

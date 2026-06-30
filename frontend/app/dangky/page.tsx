@@ -48,6 +48,10 @@ export default function DangKyPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
+    if (name === 'soDienThoai') {
+      setForm(p => ({ ...p, soDienThoai: value.replace(/\D/g, '') }));
+      return;
+    }
     setForm(p => ({ ...p, [name]: type === 'checkbox' ? checked : value }));
   };
 
@@ -152,7 +156,7 @@ export default function DangKyPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm text-gray-600 mb-1">Số điện thoại</label>
-              <input name="soDienThoai" type="tel" placeholder="Nhập số điện thoại" value={form.soDienThoai} onChange={handleChange} required
+              <input name="soDienThoai" type="tel" inputMode="numeric" maxLength={11} placeholder="Nhập số điện thoại" value={form.soDienThoai} onChange={handleChange} required
                 className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-red-400 transition"/>
             </div>
             <div>

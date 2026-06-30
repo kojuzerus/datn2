@@ -817,8 +817,10 @@ export default function NguoiDungPage() {
                       <label className="block text-xs font-medium text-gray-500 mb-1.5">Số điện thoại *</label>
                       <input
                         type="tel"
+                        inputMode="numeric"
+                        maxLength={11}
                         value={form.phone}
-                        onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
+                        onChange={e => setForm(f => ({ ...f, phone: e.target.value.replace(/\D/g, '') }))}
                         placeholder="0901234567"
                         className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm bg-white focus:outline-none focus:border-red-400 focus:ring-1 focus:ring-red-100 transition"
                       />
