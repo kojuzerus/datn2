@@ -45,6 +45,11 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
   };
 
   const toggleItem = (p: FavoriteProduct) => {
+    const token = localStorage.getItem('smarthub_token');
+    if (!token) {
+      window.location.href = '/login';
+      return;
+    }
     setItems(prev => {
       const exists = prev.some(x => x.id === p.id);
       const next = exists ? prev.filter(x => x.id !== p.id) : [...prev, p];
