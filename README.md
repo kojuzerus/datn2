@@ -51,3 +51,8 @@ Lọc theo tên/email/SĐT, vai trò, trạng thái
 Thao tác nhanh trên bảng: xem chi tiết, khóa/mở khóa, xóa
 Modal chi tiết: thông tin đầy đủ + nút "Đặt làm Admin"/"Khóa tài khoản" + lịch sử đơn hàng
 Mọi hành động nguy hiểm (khóa, xóa, cấp quyền admin) đều có popup xác nhận trước khi thực hiện
+
+Tạo lại tài khoản admin bằng email thật:
+Email: admin@smarthub.vn
+Mật khẩu: Admin@123
+Đăng nhập giờ hỗ trợ cả SĐT hoặc email trong cùng 1 ô (backend tìm theo $or) (MK)
