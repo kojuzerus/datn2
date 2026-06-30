@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Star, ShieldCheck, Truck, RefreshCw, Headphones,
@@ -153,6 +153,7 @@ function Stars({ rating, size = "sm" }: { rating: number; size?: "sm" | "md" }) 
 /* ── Page ───────────────────────────────────────────────────────────────── */
 export default function ProductDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const slug = typeof params.slug === "string" ? params.slug : "";
 
   const [product, setProduct]               = useState<Product | null>(null);
@@ -245,6 +246,19 @@ export default function ProductDetailPage() {
       setAddedToCart(true);
       setTimeout(() => setAddedToCart(false), 2000);
     }
+  };
+
+  const handleBuyNow = async () => {
+    if (!product || !inStock) return;
+    const success = await addToCart({
+      productId: String(product.id),
+      tenSanPham: product.ten,
+      hinhAnh: product.thumbnail,
+      gia: displayPrice,
+      soLuong: qty,
+      variant: selectedVariant?.color || "",
+    });
+    if (success) router.push("/thanhtoan");
   };
 
   const scrollToTab = (tab: "mo-ta" | "danh-gia") => {
@@ -614,14 +628,15 @@ export default function ProductDetailPage() {
             </div>
 
             <button
-              disabled={!inStock}
+              disabled={!inStock || adding}
+              onClick={handleBuyNow}
               className={`w-full py-3.5 rounded-xl text-[15px] font-bold transition-all active:scale-[0.99] ${
                 inStock
                   ? "bg-red-600 hover:bg-red-700 text-white"
                   : "bg-gray-100 text-gray-300 cursor-not-allowed"
               }`}
             >
-              {inStock ? "Mua ngay" : "Hết hàng"}
+              {!inStock ? "Hết hàng" : adding ? "Đang xử lý..." : "Mua ngay"}
             </button>
 
             <div className="flex gap-2.5">

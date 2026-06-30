@@ -19,7 +19,7 @@ export function useCart() {
     const token = localStorage.getItem('smarthub_token');
     if (!token) {
       alert('Vui lòng đăng nhập để thêm vào giỏ hàng!');
-      window.location.href = '/dang-nhap';
+      window.location.href = '/login';
       return false;
     }
 
