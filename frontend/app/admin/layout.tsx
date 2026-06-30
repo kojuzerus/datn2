@@ -213,7 +213,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {/* Về trang chủ */}
           <Link
             href="/"
-            target="_blank"
             className="flex items-center gap-1.5 text-[12.5px] text-gray-500 hover:text-[#D32F2F] border border-gray-200 hover:border-[#D32F2F] rounded-xl px-3 py-1.5 no-underline transition-colors shrink-0"
           >
             <ArrowLeftRight size={13} /> Về trang chủ
