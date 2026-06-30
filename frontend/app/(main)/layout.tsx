@@ -4,6 +4,7 @@ import { SearchProvider } from "../components/searchContext";
 import { ComparisonProvider } from "../components/comparisonContext";
 import { FavoritesProvider } from "../components/favoritesContext";
 import ComparisonBar from "../components/ComparisonBar";
+import LoginPromptModal from "../components/LoginPromptModal";
 
 export default function MainLayout({
   children,
@@ -20,6 +21,7 @@ export default function MainLayout({
           </main>
           <Footer />
           <ComparisonBar />
+          <LoginPromptModal />
         </FavoritesProvider>
       </ComparisonProvider>
     </SearchProvider>
