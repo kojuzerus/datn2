@@ -11,6 +11,7 @@ import {
   Wallet, LayoutGrid, Truck, Search, Heart,
 } from 'lucide-react';
 import SearchableSelect, { SelectOption } from '../../components/SearchableSelect';
+import { useFavorites } from '../../components/favoritesContext';
 
 const API_URL  = process.env.NEXT_PUBLIC_API_URL  || 'http://localhost:5000';
 const GEO_API  = 'https://provinces.open-api.vn/api';
@@ -74,6 +75,7 @@ const getToken = () => (typeof window !== 'undefined' ? localStorage.getItem('sm
 
 export default function NguoiDungPage() {
   const router = useRouter();
+  const { items: favoriteItems, removeItem: removeFavorite } = useFavorites();
 
   // ── User ──
   const [user, setUser]       = useState<UserInfo | null>(null);
@@ -534,13 +536,6 @@ export default function NguoiDungPage() {
             {item.label}
           </button>
         ))}
-        <Link
-          href="/yeu-thich"
-          className="shrink-0 flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-[13px] font-medium text-gray-600 hover:bg-gray-50 hover:text-red-600 transition-colors whitespace-nowrap"
-        >
-          <Heart className="w-4 h-4 text-gray-400" />
-          Sản phẩm yêu thích
-        </Link>
       </div>
 
       <div className="flex flex-col md:flex-row gap-6">
@@ -573,12 +568,6 @@ export default function NguoiDungPage() {
                     {tab === item.key && <ChevronRight className="w-3.5 h-3.5 ml-auto" />}
                   </button>
                 ))}
-              <Link
-                href="/yeu-thich"
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all text-left text-gray-600 hover:bg-gray-50 hover:text-gray-800"
-              >
-                <Heart className="w-4 h-4 shrink-0" />Sản phẩm yêu thích
-              </Link>
               {user.role === 'admin' && (
                 <Link href="/admin" className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-amber-500 hover:bg-amber-50 transition-all">
                   <Shield className="w-4 h-4 shrink-0" />Trang quản trị
@@ -702,6 +691,61 @@ export default function NguoiDungPage() {
                     Chỉnh sửa thông tin
                   </button>
                 </div>
+              </div>
+
+              {/* Sản phẩm yêu thích */}
+              <div className="bg-white rounded-sm shadow-sm border border-gray-100">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                  <h2 className="text-sm font-bold text-gray-800">Sản phẩm yêu thích</h2>
+                  {favoriteItems.length > 0 && (
+                    <span className="text-xs text-gray-400">{favoriteItems.length} sản phẩm</span>
+                  )}
+                </div>
+                {favoriteItems.length === 0 ? (
+                  <div className="px-6 py-14 flex flex-col items-center text-center">
+                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-3">
+                      <Heart className="w-7 h-7 text-gray-300" />
+                    </div>
+                    <p className="text-gray-500 font-medium text-sm">Bạn chưa có sản phẩm yêu thích nào</p>
+                    <Link href="/sanpham" className="mt-3 text-sm text-red-500 font-semibold hover:underline">Mua sắm ngay</Link>
+                  </div>
+                ) : (
+                  <div className="p-4 space-y-2.5">
+                    {favoriteItems.slice(0, 4).map((p) => (
+                      <Link
+                        key={p.id}
+                        href={`/sanpham/${p.slug}`}
+                        className="flex items-center gap-3 border border-gray-100 rounded-xl p-3 hover:border-red-100 hover:bg-red-50/30 transition-colors"
+                      >
+                        <img
+                          src={p.thumbnail || 'https://placehold.co/80x80?text=No+Image'}
+                          alt={p.ten}
+                          className="w-12 h-12 rounded-lg object-cover bg-gray-50 shrink-0"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-800 line-clamp-1">{p.ten}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-sm font-bold text-red-500">
+                              {new Intl.NumberFormat('vi-VN').format(p.giaSale ?? p.gia)}đ
+                            </span>
+                            {p.giamGia > 0 && (
+                              <span className="text-xs text-gray-400 line-through">
+                                {new Intl.NumberFormat('vi-VN').format(p.gia)}đ
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <button
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeFavorite(p.id); }}
+                          title="Bỏ yêu thích"
+                          className="w-8 h-8 flex items-center justify-center rounded-full text-red-500 hover:bg-red-100 transition-colors shrink-0"
+                        >
+                          <Heart className="w-4 h-4 fill-red-500" />
+                        </button>
+                      </Link>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
