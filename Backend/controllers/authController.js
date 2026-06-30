@@ -18,13 +18,15 @@ exports.register = async (req, res) => {
     if (await User.findOne({ soDienThoai }))
       return res.status(400).json({ message: "Số điện thoại đã được đăng ký" });
 
-    const normalizedEmail = email?.trim().toLowerCase() || "";
-    if (normalizedEmail && await User.findOne({ email: normalizedEmail }))
-      return res.status(400).json({ message: "Email đã được sử dụng" });
+    const trimmedEmail = email?.trim() || "";
+    if (trimmedEmail) {
+      const existing = await User.findOne({ email: trimmedEmail }).collation({ locale: "en", strength: 2 });
+      if (existing) return res.status(400).json({ message: "Email đã được sử dụng" });
+    }
 
     const hash = await bcrypt.hash(matKhau, 10);
     const userData = { hoTen, ngaySinh: ngaySinh || null, soDienThoai, matKhau: hash };
-    if (normalizedEmail) userData.email = normalizedEmail;
+    if (trimmedEmail) userData.email = trimmedEmail;
     const user = await User.create(userData);
 
     const token = jwt.sign({ id: user._id }, SECRET, { expiresIn: "7d" });
@@ -45,8 +47,8 @@ exports.login = async (req, res) => {
 
     const identifier = soDienThoai.trim();
     const user = await User.findOne({
-      $or: [{ soDienThoai: identifier }, { email: identifier.toLowerCase() }],
-    });
+      $or: [{ soDienThoai: identifier }, { email: identifier }],
+    }).collation({ locale: "en", strength: 2 });
     if (!user || !(await bcrypt.compare(matKhau, user.matKhau)))
       return res.status(401).json({ message: "Số điện thoại/email hoặc mật khẩu không đúng" });
 
@@ -77,18 +79,22 @@ exports.updateProfile = async (req, res) => {
   try {
     const { hoTen, ngaySinh, email } = req.body;
     const update = {};
+    const unset = {};
     if (hoTen?.trim())  update.hoTen    = hoTen.trim();
     if (ngaySinh)       update.ngaySinh = ngaySinh;
     if (email !== undefined) {
-      if (email && email.trim()) {
-        const existing = await User.findOne({ email: email.trim().toLowerCase(), _id: { $ne: req.userId } });
+      const trimmedEmail = email?.trim() || "";
+      if (trimmedEmail) {
+        const existing = await User.findOne({ email: trimmedEmail, _id: { $ne: req.userId } })
+          .collation({ locale: "en", strength: 2 });
         if (existing) return res.status(400).json({ message: "Email đã được sử dụng bởi tài khoản khác" });
-        update.email = email.trim().toLowerCase();
+        update.email = trimmedEmail;
       } else {
-        update.email = null;
+        unset.email = "";
       }
     }
-    const user = await User.findByIdAndUpdate(req.userId, update, { new: true }).select("-matKhau");
+    const updateQuery = Object.keys(unset).length ? { ...update, $unset: unset } : update;
+    const user = await User.findByIdAndUpdate(req.userId, updateQuery, { new: true }).select("-matKhau");
     if (!user) return res.status(404).json({ message: "Không tìm thấy người dùng" });
     res.json({ message: "Cập nhật thành công", user });
   } catch (err) {
