@@ -447,7 +447,18 @@ export default function ProductDetailPage() {
               )}
             </div>
 
-            <h1 className="text-[20px] font-bold text-gray-900 leading-snug">{product.ten}</h1>
+            <div className="flex items-start justify-between gap-3">
+              <h1 className="text-[20px] font-bold text-gray-900 leading-snug">{product.ten}</h1>
+              <button
+                onClick={handleToggleWishlist}
+                title="Yêu thích"
+                className={`w-9 h-9 flex-shrink-0 border-2 rounded-xl flex items-center justify-center transition-all ${
+                  wishlist ? "border-red-400 bg-red-50 text-red-500" : "border-gray-200 text-gray-400 hover:border-red-300"
+                }`}
+              >
+                <Heart className={`w-4 h-4 ${wishlist ? "fill-red-500" : ""}`} />
+              </button>
+            </div>
 
             {/* Rating + sold */}
             <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-2">
@@ -653,15 +664,6 @@ export default function ProductDetailPage() {
               >
                 <ShoppingCart className="w-4 h-4" />
                 {adding ? "Đang thêm..." : addedToCart ? "Đã thêm vào giỏ!" : "Thêm vào giỏ hàng"}
-              </button>
-              <button
-                onClick={handleToggleWishlist}
-                title="Yêu thích"
-                className={`w-11 h-11 flex-shrink-0 border-2 rounded-xl flex items-center justify-center transition-all ${
-                  wishlist ? "border-red-400 bg-red-50 text-red-500" : "border-gray-200 text-gray-400 hover:border-red-300"
-                }`}
-              >
-                <Heart className={`w-4.5 h-4.5 ${wishlist ? "fill-red-500" : ""}`} />
               </button>
               {product && (() => {
                 const inCompare = isInComparison(product.id);
