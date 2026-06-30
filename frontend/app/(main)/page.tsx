@@ -9,6 +9,7 @@ import {
   Wallet, CreditCard,
 } from "lucide-react";
 import { useFavorites, type FavoriteProduct } from "../components/favoritesContext";
+import { ARTICLES } from "./tin-tuc/data";
 
 // ─── API CONFIG ───────────────────────────────────────────────────────────────
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -149,6 +150,7 @@ const banners = [
     cta: "Đặt trước ngay",
     badge: "Từ 34.990.000đ",
     img: "https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=1400&q=80&fit=crop",
+    href: "/sanpham?tu-khoa=iPhone%2017%20Pro%20Max",
   },
   {
     id: 2,
@@ -158,6 +160,7 @@ const banners = [
     cta: "Mua ngay",
     badge: "Tiết kiệm 3.000.000đ",
     img: "https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=1400&q=80&fit=crop",
+    href: "/sanpham?tu-khoa=Samsung%20S25%20Ultra",
   },
   {
     id: 3,
@@ -167,6 +170,7 @@ const banners = [
     cta: "Khám phá ngay",
     badge: "Tặng AppleCare+ 3 tháng",
     img: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=1400&q=80&fit=crop",
+    href: "/sanpham?tu-khoa=MacBook%20Air%20M4",
   },
 ];
 
@@ -191,57 +195,8 @@ const categoriesIconMap: Record<string, React.ComponentType<{ className?: string
   "phu-kien": Headphones,
 };
 
-const baiViet = [
-  {
-    id: 1, tag: "Đánh giá",
-    tieu_de: "iPhone 17 Pro Max: Đánh giá sau 2 tuần sử dụng",
-    tom_tat: "Chip A19 Bionic mạnh mẽ, camera cải tiến đáng kể, nhưng giá vẫn là rào cản lớn với nhiều người.",
-    ngay: "20/05/2025",
-    hinhAnh: "https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=800&q=80&fit=crop",
-  },
-  {
-    id: 2, tag: "So sánh",
-    tieu_de: "MacBook Air M4 vs Dell XPS 15: Nên chọn cái nào?",
-    tom_tat: "Hai chiếc laptop cao cấp với điểm mạnh khác nhau — Apple hay Windows sẽ phù hợp với bạn hơn?",
-    ngay: "17/05/2025",
-    hinhAnh: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800&q=80&fit=crop",
-  },
-  {
-    id: 3, tag: "Tin tức",
-    tieu_de: "Samsung Galaxy Z Fold 7: Những nâng cấp đáng chú ý nhất",
-    tom_tat: "Thế hệ mới của dòng gập đến gần — Samsung hứa hẹn màn hình bền hơn và pin lâu hơn.",
-    ngay: "14/05/2025",
-    hinhAnh: "https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=800&q=80&fit=crop",
-  },
-  {
-    id: 4, tag: "Đánh giá",
-    tieu_de: "Galaxy Watch 7 Ultra: Smartwatch tốt nhất Android 2025?",
-    tom_tat: "Dòng đồng hồ mới nhất của Samsung có đáng để nâng cấp hay không? Đánh giá nhanh tính năng, pin và thiết kế.",
-    ngay: "11/05/2025",
-    hinhAnh: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800&q=80&fit=crop",
-  },
-];
-
-const baiVietMini = [
-  {
-    id: 4,
-    tag: "Hướng dẫn",
-    tieu_de: "5 cách kéo dài tuổi thọ pin điện thoại hiệu quả nhất",
-    hinhAnh: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800&q=80&fit=crop",
-  },
-  {
-    id: 5,
-    tag: "Kinh nghiệm",
-    tieu_de: "Mua tai nghe chống ồn: Những điều cần biết trước khi xuống tiền",
-    hinhAnh: "https://images.unsplash.com/photo-1517519014922-8fc7eea9b7f1?w=800&q=80&fit=crop",
-  },
-  {
-    id: 6,
-    tag: "Xu hướng",
-    tieu_de: "Laptop gaming tầm giá 20–25 triệu đáng mua nhất 2025",
-    hinhAnh: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800&q=80&fit=crop",
-  },
-];
+const baiViet = ARTICLES.slice(0, 4);
+const baiVietMini = ARTICLES.slice(4, 7);
 
 const tienIch = [
   { icon: ShieldCheck, title: "Hàng chính hãng 100%", sub: "Bảo hành toàn quốc" },
@@ -523,9 +478,9 @@ export default function HomePage() {
           <h1 className="text-4xl md:text-6xl font-bold text-white leading-tight whitespace-pre-line mb-4">{b.title}</h1>
           <p className="text-gray-300 text-sm md:text-base max-w-lg mb-7">{b.sub}</p>
           <div className="flex items-center gap-4">
-            <button className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold text-sm rounded-xl transition-colors">
+            <Link href={b.href} className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold text-sm rounded-xl transition-colors no-underline">
               {b.cta}
-            </button>
+            </Link>
             <span className="text-sm text-gray-300 bg-white/10 px-4 py-3 rounded-xl border border-white/10">{b.badge}</span>
           </div>
         </div>
@@ -618,7 +573,7 @@ export default function HomePage() {
       {/* ── MINI BANNER ĐÔI ──────────────────────────────────────────── */}
       <section className="max-w-screen-xl mx-auto px-6 mt-12">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Link href="/sanpham?khuyen-mai" className="group block overflow-hidden rounded-sm bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all">
+          <Link href="/sanpham?giam-gia=1" className="group block overflow-hidden rounded-sm bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-5 items-center">
               <div>
                 <span className="inline-block bg-red-50 text-red-600 text-[10px] font-semibold uppercase tracking-[0.3em] px-3 py-1 rounded-full mb-3">Sale giữa tháng</span>

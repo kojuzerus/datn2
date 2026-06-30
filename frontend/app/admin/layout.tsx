@@ -20,6 +20,7 @@ import {
   LogOut,
   Home,
   ChevronRight,
+  ArrowLeftRight,
   type LucideIcon,
 } from "lucide-react";
 
@@ -49,7 +50,7 @@ const NAV_GROUPS: { section: string; items: NavItem[] }[] = [
       { href: "/admin/orders",     label: "Quản lý đơn hàng",   Icon: ShoppingCart, badge: null },
       { href: "/admin/users",      label: "Quản lý khách hàng", Icon: Users,        badge: null },
       { href: "/admin/categories", label: "Danh mục",           Icon: FolderOpen,   badge: null },
-      { href: "/admin/promotions", label: "Mã giảm giá",        Icon: Tag,          badge: 3    },
+      { href: "/admin/promotions", label: "Mã giảm giá",        Icon: Tag,          badge: null },
       { href: "/admin/reports",    label: "Báo cáo thống kê",   Icon: BarChart2,    badge: null },
     ],
   },
@@ -208,6 +209,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <ChevronRight size={12} className="text-gray-300" />
             <span className="text-gray-700 font-medium">{pageLabel}</span>
           </div>
+
+          {/* Về trang chủ */}
+          <Link
+            href="/"
+            target="_blank"
+            className="flex items-center gap-1.5 text-[12.5px] text-gray-500 hover:text-[#D32F2F] border border-gray-200 hover:border-[#D32F2F] rounded-xl px-3 py-1.5 no-underline transition-colors shrink-0"
+          >
+            <ArrowLeftRight size={13} /> Về trang chủ
+          </Link>
 
           {/* Search */}
           <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-3.5 py-[7px] border border-gray-200 flex-1 max-w-[440px] ml-2 focus-within:border-[#D32F2F] focus-within:bg-white transition-all duration-200 shadow-none focus-within:shadow-[0_0_0_3px_rgba(211,47,47,0.08)]">
