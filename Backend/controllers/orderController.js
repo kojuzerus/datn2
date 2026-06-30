@@ -1,5 +1,17 @@
-const Order = require("../models/orderModel");
-const Cart  = require("../models/cartModel");
+const Order   = require("../models/orderModel");
+const Cart    = require("../models/cartModel");
+const Product = require("../models/productModel");
+
+// Cộng/trừ lượt bán thật theo số lượng từng sản phẩm trong đơn (delta: 1 khi đặt, -1 khi hủy)
+async function adjustTotalSold(items, delta) {
+  await Promise.all(
+    (items || []).map((i) => {
+      const product_id = parseInt(i.productId);
+      if (isNaN(product_id)) return null;
+      return Product.updateOne({ product_id }, { $inc: { total_sold: delta * i.soLuong } });
+    })
+  );
+}
 
 // POST /api/orders — Tạo đơn hàng từ giỏ hàng
 exports.createOrder = async (req, res) => {
@@ -53,6 +65,8 @@ exports.createOrder = async (req, res) => {
     cart.items = cart.items.filter(i => !orderedIds.has(i._id.toString()));
     await cart.save();
 
+    await adjustTotalSold(order.items, 1);
+
     res.status(201).json({ success: true, message: "Đặt hàng thành công", order });
   } catch (err) {
     console.error(err);
@@ -91,6 +105,7 @@ exports.cancelOrder = async (req, res) => {
 
     order.trangThai = "da_huy";
     await order.save();
+    await adjustTotalSold(order.items, -1);
     res.json({ success: true, message: "Đã hủy đơn hàng", order });
   } catch (err) {
     res.status(500).json({ success: false, message: "Lỗi server" });
@@ -117,9 +132,16 @@ exports.updateOrderStatus = async (req, res) => {
     if (!validStatuses.includes(trangThai))
       return res.status(400).json({ success: false, message: "Trạng thái không hợp lệ" });
 
-    const order = await Order.findByIdAndUpdate(req.params.id, { trangThai }, { new: true });
-    if (!order) return res.status(404).json({ success: false, message: "Không tìm thấy đơn hàng" });
-    res.json({ success: true, order });
+    const existing = await Order.findById(req.params.id);
+    if (!existing) return res.status(404).json({ success: false, message: "Không tìm thấy đơn hàng" });
+
+    if (trangThai === "da_huy" && existing.trangThai !== "da_huy") {
+      await adjustTotalSold(existing.items, -1);
+    }
+
+    existing.trangThai = trangThai;
+    await existing.save();
+    res.json({ success: true, order: existing });
   } catch (err) {
     res.status(500).json({ success: false, message: "Lỗi server" });
   }
