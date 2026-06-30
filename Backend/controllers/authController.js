@@ -22,7 +22,9 @@ exports.register = async (req, res) => {
       return res.status(400).json({ message: "Email đã được sử dụng" });
 
     const hash = await bcrypt.hash(matKhau, 10);
-    const user = await User.create({ hoTen, ngaySinh: ngaySinh || null, soDienThoai, email: email || null, matKhau: hash });
+    const userData = { hoTen, ngaySinh: ngaySinh || null, soDienThoai, matKhau: hash };
+    if (email?.trim()) userData.email = email.trim();
+    const user = await User.create(userData);
 
     const token = jwt.sign({ id: user._id }, SECRET, { expiresIn: "7d" });
     res.status(201).json({ message: "Đăng ký thành công", token, user: { id: user._id, hoTen: user.hoTen, soDienThoai: user.soDienThoai, email: user.email, role: user.role } });
