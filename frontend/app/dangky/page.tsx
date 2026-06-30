@@ -158,6 +158,7 @@ export default function DangKyPage() {
               <label className="block text-sm text-gray-600 mb-1">Số điện thoại</label>
               <input name="soDienThoai" type="tel" inputMode="numeric" maxLength={11} placeholder="Nhập số điện thoại" value={form.soDienThoai} onChange={handleChange} required
                 className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-red-400 transition"/>
+              <p className="text-xs text-gray-400 mt-1">Chỉ nhập số, từ 9-11 chữ số</p>
             </div>
             <div>
               <label className="block text-sm text-gray-600 mb-1">Email <span className="text-gray-400 text-xs">(Không bắt buộc)</span></label>

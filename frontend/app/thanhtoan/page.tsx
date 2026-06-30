@@ -344,6 +344,7 @@ export default function ThanhToanPage() {
                     onChange={e => setNewAddr(p => ({ ...p, phone: e.target.value.replace(/\D/g, '') }))}
                     className="w-full border border-gray-200 rounded-sm px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 bg-white"
                   />
+                  <p className="text-xs text-gray-400 -mt-2">Chỉ nhập số</p>
                   <SearchableSelect
                     options={provinces}
                     value={newAddr.provinceName}
