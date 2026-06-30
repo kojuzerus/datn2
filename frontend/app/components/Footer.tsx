@@ -49,8 +49,8 @@ export default function Footer() {
     { href: "/sanpham?danh-muc=phu-kien", label: "Phụ kiện" },
     { href: "/sanpham?danh-muc=tai-nghe", label: "Tai nghe & Loa" },
     { href: "/sanpham?danh-muc=dong-ho", label: "Đồng hồ thông minh" },
-    { href: "/khuyen-mai", label: "Khuyến mãi 🔥" },
-    { href: "/tra-gop", label: "Trả góp 0%" },
+    { href: "/sanpham?giam-gia=1", label: "Khuyến mãi 🔥" },
+    { href: "/sanpham", label: "Trả góp 0%" },
   ];
 
   const support = [
