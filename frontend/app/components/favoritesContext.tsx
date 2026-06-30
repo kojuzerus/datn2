@@ -1,5 +1,6 @@
 'use client';
 import { createContext, useContext, useState, useEffect } from 'react';
+import { requireLogin } from '../lib/authPrompt';
 
 export interface FavoriteProduct {
   id: number;
@@ -45,13 +46,11 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
   };
 
   const toggleItem = (p: FavoriteProduct) => {
-    const token = localStorage.getItem('smarthub_token');
-    if (!token) {
-      window.location.href = '/login';
-      return;
-    }
     setItems(prev => {
       const exists = prev.some(x => x.id === p.id);
+      if (!exists && !requireLogin('Vui lòng đăng nhập để lưu sản phẩm yêu thích.')) {
+        return prev;
+      }
       const next = exists ? prev.filter(x => x.id !== p.id) : [...prev, p];
       persist(next);
       return next;

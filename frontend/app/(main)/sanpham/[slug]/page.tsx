@@ -447,12 +447,12 @@ export default function ProductDetailPage() {
               )}
             </div>
 
-            <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-2">
               <h1 className="text-[20px] font-bold text-gray-900 leading-snug">{product.ten}</h1>
               <button
                 onClick={handleToggleWishlist}
                 title="Yêu thích"
-                className={`w-9 h-9 flex-shrink-0 border-2 rounded-xl flex items-center justify-center transition-all ${
+                className={`shrink-0 w-7 h-7 mt-0.5 flex items-center justify-center rounded-full border-2 transition-all ${
                   wishlist ? "border-red-400 bg-red-50 text-red-500" : "border-gray-200 text-gray-400 hover:border-red-300"
                 }`}
               >

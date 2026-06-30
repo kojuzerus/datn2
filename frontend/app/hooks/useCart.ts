@@ -2,6 +2,7 @@
 // Hook dùng chung để thêm vào giỏ hàng từ bất kỳ trang nào
 
 import { useState } from 'react';
+import { requireLogin } from '../lib/authPrompt';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -16,12 +17,10 @@ export function useCart() {
     soLuong?: number;
     variant?: string;
   }) => {
-    const token = localStorage.getItem('smarthub_token');
-    if (!token) {
-      alert('Vui lòng đăng nhập để thêm vào giỏ hàng!');
-      window.location.href = '/login';
+    if (!requireLogin('Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng.')) {
       return false;
     }
+    const token = localStorage.getItem('smarthub_token');
 
     setAdding(true);
     try {
