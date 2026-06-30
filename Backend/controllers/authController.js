@@ -18,12 +18,13 @@ exports.register = async (req, res) => {
     if (await User.findOne({ soDienThoai }))
       return res.status(400).json({ message: "Số điện thoại đã được đăng ký" });
 
-    if (email && await User.findOne({ email }))
+    const normalizedEmail = email?.trim().toLowerCase() || "";
+    if (normalizedEmail && await User.findOne({ email: normalizedEmail }))
       return res.status(400).json({ message: "Email đã được sử dụng" });
 
     const hash = await bcrypt.hash(matKhau, 10);
     const userData = { hoTen, ngaySinh: ngaySinh || null, soDienThoai, matKhau: hash };
-    if (email?.trim()) userData.email = email.trim();
+    if (normalizedEmail) userData.email = normalizedEmail;
     const user = await User.create(userData);
 
     const token = jwt.sign({ id: user._id }, SECRET, { expiresIn: "7d" });
