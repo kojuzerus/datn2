@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   Star, ChevronRight, X, Package, Home, ChevronDown, Repeat,
-  Check, Tag, Heart, Truck,
+  SlidersHorizontal, Check, Tag, Heart, Truck,
 } from "lucide-react";
 import { useComparison } from "../../components/comparisonContext";
 import { useFavorites, type FavoriteProduct } from "../../components/favoritesContext";
@@ -463,129 +463,120 @@ function ProductsContent() {
         </span>
       </div>
 
-      {/* ── Sticky toolbar: 1 dòng gộp sort + filter ── */}
-      <div ref={toolbarRef} className="relative sticky top-[88px] z-20 bg-white mb-4">
-        <div className="flex items-center gap-1.5 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none] py-2.5 border-b border-gray-100">
+      {/* ── Sticky toolbar ── */}
+      <div ref={toolbarRef} className="relative sticky top-[88px] z-20 bg-white mb-3">
 
-          {/* Sort (text-style) */}
-          <span className="shrink-0 text-[11px] text-gray-400 font-semibold uppercase tracking-wider">Sắp xếp:</span>
-          {SORT_OPTIONS.map((o) => (
-            <button
-              key={o.value}
-              onClick={() => pushParams({ sort: o.value })}
-              className={`shrink-0 px-2.5 py-1 rounded-lg text-[12.5px] whitespace-nowrap transition-colors ${
-                sort === o.value
-                  ? "bg-red-600 text-white font-semibold"
-                  : "text-gray-500 hover:text-gray-800 font-medium hover:bg-gray-100"
-              }`}
-            >
-              {o.label}
-            </button>
-          ))}
+        {/* Hàng 1: Bộ lọc pills */}
+        <div className="flex items-center gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none] py-3 border-b border-gray-100">
 
-          {/* Separator */}
-          <div className="w-px h-5 bg-gray-200 shrink-0 mx-1" />
-
-          {/* Giảm giá toggle */}
+          {/* Bộ lọc */}
           <button
-            onClick={() => handleDiscount(!discountOnly)}
-            className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium border whitespace-nowrap transition-all ${
-              discountOnly
-                ? "border-red-400 bg-red-50 text-red-600"
-                : "border-gray-200 text-gray-600 bg-white hover:border-gray-300"
+            onClick={() => toggleDropdown("filter")}
+            className={`shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[13px] font-medium border whitespace-nowrap transition-colors ${
+              activeFilterCount > 0 || openDropdown === "filter"
+                ? "border-red-500 text-red-600"
+                : "border-gray-300 text-gray-700 hover:border-gray-400"
             }`}
           >
-            <Tag className="w-3 h-3" />
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            Bộ lọc{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+          </button>
+
+          {/* Giảm giá */}
+          <button
+            onClick={() => handleDiscount(!discountOnly)}
+            className={`shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[13px] font-medium border whitespace-nowrap transition-colors ${
+              discountOnly
+                ? "border-red-500 bg-red-50 text-red-600"
+                : "border-gray-200 text-gray-700 hover:border-gray-400"
+            }`}
+          >
+            <Tag className="w-3.5 h-3.5" />
             Giảm giá
-            {discountOnly && (
-              <span onClick={(e) => { e.stopPropagation(); handleDiscount(false); }} className="ml-0.5">
-                <X className="w-3 h-3" />
-              </span>
-            )}
           </button>
 
           {/* Danh mục */}
           <button
             onClick={() => toggleDropdown("category")}
-            className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium border whitespace-nowrap transition-all ${
+            className={`shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[13px] font-medium border whitespace-nowrap transition-colors ${
               danhMucSlug || openDropdown === "category"
-                ? "border-red-400 bg-red-50 text-red-600"
-                : "border-gray-200 text-gray-600 bg-white hover:border-gray-300"
+                ? "border-red-500 bg-red-50 text-red-600"
+                : "border-gray-200 text-gray-700 hover:border-gray-400"
             }`}
           >
             {selectedCat ? selectedCat.category_name : "Danh mục"}
             {danhMucSlug ? (
-              <span onClick={(e) => { e.stopPropagation(); handleCategory(null); }} className="ml-0.5">
-                <X className="w-3 h-3" />
+              <span onClick={(e) => { e.stopPropagation(); handleCategory(null); }}>
+                <X className="w-3.5 h-3.5" />
               </span>
             ) : (
-              <ChevronDown className={`w-3 h-3 transition-transform ${openDropdown === "category" ? "rotate-180" : ""}`} />
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform ${openDropdown === "category" ? "rotate-180" : ""}`} />
             )}
           </button>
 
           {/* Thương hiệu */}
           <button
             onClick={() => toggleDropdown("brand")}
-            className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium border whitespace-nowrap transition-all ${
+            className={`shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[13px] font-medium border whitespace-nowrap transition-colors ${
               brandIds.length > 0 || openDropdown === "brand"
-                ? "border-red-400 bg-red-50 text-red-600"
-                : "border-gray-200 text-gray-600 bg-white hover:border-gray-300"
+                ? "border-red-500 bg-red-50 text-red-600"
+                : "border-gray-200 text-gray-700 hover:border-gray-400"
             }`}
           >
             {brandIds.length > 0 ? `Thương hiệu (${brandIds.length})` : "Thương hiệu"}
             {brandIds.length > 0 ? (
-              <span onClick={(e) => { e.stopPropagation(); pushParams({ "thuong-hieu": null }); }} className="ml-0.5">
-                <X className="w-3 h-3" />
+              <span onClick={(e) => { e.stopPropagation(); pushParams({ "thuong-hieu": null }); }}>
+                <X className="w-3.5 h-3.5" />
               </span>
             ) : (
-              <ChevronDown className={`w-3 h-3 transition-transform ${openDropdown === "brand" ? "rotate-180" : ""}`} />
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform ${openDropdown === "brand" ? "rotate-180" : ""}`} />
             )}
           </button>
 
-          {/* Giá */}
+          {/* Khoảng giá */}
           <button
             onClick={() => toggleDropdown("price")}
-            className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium border whitespace-nowrap transition-all ${
+            className={`shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[13px] font-medium border whitespace-nowrap transition-colors ${
               priceKey || openDropdown === "price"
-                ? "border-red-400 bg-red-50 text-red-600"
-                : "border-gray-200 text-gray-600 bg-white hover:border-gray-300"
+                ? "border-red-500 bg-red-50 text-red-600"
+                : "border-gray-200 text-gray-700 hover:border-gray-400"
             }`}
           >
             {selectedPriceRange ? selectedPriceRange.label : "Khoảng giá"}
             {priceKey ? (
-              <span onClick={(e) => { e.stopPropagation(); handlePricePreset(null); }} className="ml-0.5">
-                <X className="w-3 h-3" />
+              <span onClick={(e) => { e.stopPropagation(); handlePricePreset(null); }}>
+                <X className="w-3.5 h-3.5" />
               </span>
             ) : (
-              <ChevronDown className={`w-3 h-3 transition-transform ${openDropdown === "price" ? "rotate-180" : ""}`} />
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform ${openDropdown === "price" ? "rotate-180" : ""}`} />
             )}
           </button>
 
           {/* Đánh giá */}
           <button
             onClick={() => toggleDropdown("rating")}
-            className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium border whitespace-nowrap transition-all ${
+            className={`shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[13px] font-medium border whitespace-nowrap transition-colors ${
               ratingMin || openDropdown === "rating"
-                ? "border-red-400 bg-red-50 text-red-600"
-                : "border-gray-200 text-gray-600 bg-white hover:border-gray-300"
+                ? "border-red-500 bg-red-50 text-red-600"
+                : "border-gray-200 text-gray-700 hover:border-gray-400"
             }`}
           >
             {ratingMin ? `${ratingMin}★ trở lên` : "Đánh giá"}
             {ratingMin ? (
-              <span onClick={(e) => { e.stopPropagation(); handleRating(null); }} className="ml-0.5">
-                <X className="w-3 h-3" />
+              <span onClick={(e) => { e.stopPropagation(); handleRating(null); }}>
+                <X className="w-3.5 h-3.5" />
               </span>
             ) : (
-              <ChevronDown className={`w-3 h-3 transition-transform ${openDropdown === "rating" ? "rotate-180" : ""}`} />
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform ${openDropdown === "rating" ? "rotate-180" : ""}`} />
             )}
           </button>
 
           {/* Keyword chip */}
           {keyword && (
-            <span className="shrink-0 inline-flex items-center gap-1.5 bg-gray-100 text-gray-600 text-[12px] font-medium px-3 py-1.5 rounded-full border border-gray-200">
+            <span className="shrink-0 inline-flex items-center gap-1.5 bg-gray-100 text-gray-600 text-[12px] font-medium px-3.5 py-1.5 rounded-full border border-gray-200">
               &ldquo;{keyword}&rdquo;
               <button onClick={() => pushParams({ "tu-khoa": null })} className="hover:text-red-500 transition-colors">
-                <X className="w-3 h-3" />
+                <X className="w-3.5 h-3.5" />
               </button>
             </span>
           )}
@@ -596,13 +587,95 @@ function ProductsContent() {
               <div className="w-px h-4 bg-gray-200 shrink-0 mx-0.5" />
               <button
                 onClick={handleClearAll}
-                className="shrink-0 flex items-center gap-1 px-2 py-1.5 text-[11.5px] text-gray-400 hover:text-red-500 font-medium transition-colors whitespace-nowrap"
+                className="shrink-0 flex items-center gap-1 px-2 text-[12px] text-gray-400 hover:text-red-500 font-medium transition-colors whitespace-nowrap"
               >
-                <X className="w-3 h-3" /> Xóa lọc
+                <X className="w-3.5 h-3.5" /> Xóa lọc
               </button>
             </>
           )}
         </div>
+
+        {/* Hàng 2: Sắp xếp */}
+        <div className="flex items-center justify-between gap-4 py-2.5">
+          <span className="text-[14px] font-bold text-gray-800 shrink-0">Sắp xếp theo</span>
+          <div className="flex items-center gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+            {SORT_OPTIONS.map((o) => (
+              <button
+                key={o.value}
+                onClick={() => pushParams({ sort: o.value })}
+                className={`shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12.5px] font-medium border whitespace-nowrap transition-colors ${
+                  sort === o.value
+                    ? "border-red-500 text-red-600 bg-white"
+                    : "border-gray-200 text-gray-600 bg-white hover:border-gray-400"
+                }`}
+              >
+                {o.value === "rating" && (
+                  <Star className={`w-3.5 h-3.5 ${sort === o.value ? "fill-red-500 text-red-500" : "fill-gray-300 text-gray-300"}`} />
+                )}
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Combined filter panel ── */}
+        {openDropdown === "filter" && (
+          <div className="absolute left-0 top-full mt-1 z-30 w-[min(860px,calc(100vw-2rem))] bg-white border border-gray-100 rounded-2xl shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100">
+              <div className="flex items-center gap-2.5">
+                <SlidersHorizontal className="w-4 h-4 text-gray-500" />
+                <span className="font-semibold text-gray-800 text-[14px]">Bộ lọc tìm kiếm</span>
+                {activeFilterCount > 0 && (
+                  <span className="bg-red-100 text-red-600 text-[11px] font-bold px-2 py-0.5 rounded-full">{activeFilterCount} đang chọn</span>
+                )}
+              </div>
+              {activeFilterCount > 0 && (
+                <button onClick={handleClearAll} className="text-[12.5px] text-gray-400 hover:text-red-600 transition-colors flex items-center gap-1 font-medium">
+                  <X className="w-3 h-3" /> Xóa tất cả
+                </button>
+              )}
+            </div>
+            <div className="grid grid-cols-[220px_1fr_220px] divide-x divide-gray-100" style={{ maxHeight: 400, overflowY: "auto" }}>
+              <div className="p-4">
+                <p className="flex items-center gap-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">
+                  <span className="w-2 h-2 rounded-full bg-blue-400 inline-block" /> Danh mục
+                </p>
+                <CategoryList categories={categories} danhMucSlug={danhMucSlug} onCategory={handleCategory} />
+              </div>
+              <div className="p-4">
+                <p className="flex items-center gap-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">
+                  <span className="w-2 h-2 rounded-full bg-purple-400 inline-block" /> Thương hiệu
+                  {brandIds.length > 0 && (
+                    <span className="ml-1 bg-red-100 text-red-600 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{brandIds.length}</span>
+                  )}
+                </p>
+                <BrandList brands={brands} loadingBrands={loadingBrands} brandIds={brandIds} onToggleBrand={handleToggleBrand} />
+              </div>
+              <div className="p-4 flex flex-col gap-4">
+                <div>
+                  <p className="flex items-center gap-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">
+                    <span className="w-2 h-2 rounded-full bg-green-400 inline-block" /> Khoảng giá
+                  </p>
+                  <PriceList priceKey={priceKey} onPricePreset={handlePricePreset} />
+                </div>
+                <div>
+                  <p className="flex items-center gap-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">
+                    <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" /> Đánh giá
+                  </p>
+                  <RatingList ratingMin={ratingMin} onRating={handleRating} />
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-between px-5 py-3.5 border-t border-gray-100 bg-gray-50/70">
+              <button onClick={() => setOpenDropdown("")} className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-[13px] font-medium hover:bg-gray-100 transition-colors">
+                Đóng
+              </button>
+              <button onClick={() => setOpenDropdown("")} className="px-7 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-[13px] font-semibold transition-colors shadow-sm">
+                {loading ? "Đang tải..." : `Xem ${pagination.total.toLocaleString("vi-VN")} kết quả`}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* ── Dropdowns ── */}
         {openDropdown === "category" && (
