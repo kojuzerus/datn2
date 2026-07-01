@@ -340,6 +340,7 @@ function ProductsContent() {
   const [loading,       setLoading]       = useState(true);
   const [loadingBrands, setLoadingBrands] = useState(false);
   const [openDropdown,  setOpenDropdown]  = useState<DropdownKey>("");
+  const [isSticky,      setIsSticky]      = useState(false);
   const toolbarRef = useRef<HTMLDivElement>(null);
 
   /* ── push URL ── */
@@ -363,6 +364,16 @@ function ProductsContent() {
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  /* ── Detect sticky state ── */
+  useEffect(() => {
+    const onScroll = () => {
+      if (!toolbarRef.current) return;
+      setIsSticky(toolbarRef.current.getBoundingClientRect().top <= 113);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   /* ── Fetch categories (once) ── */
@@ -464,7 +475,7 @@ function ProductsContent() {
       </div>
 
       {/* ── Sticky toolbar ── */}
-      <div ref={toolbarRef} className="relative sticky top-[112px] z-20 mb-3">
+      <div ref={toolbarRef} className={`relative sticky top-[112px] z-20 mb-3 transition-shadow ${isSticky ? "bg-white shadow-sm" : ""}`}>
 
         {/* Hàng 1: Bộ lọc pills */}
         <div className="flex items-center gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none] py-3 border-b border-gray-100">
@@ -596,26 +607,24 @@ function ProductsContent() {
         </div>
 
         {/* Hàng 2: Sắp xếp */}
-        <div className="flex items-center justify-between gap-4 py-2.5">
+        <div className="flex items-center gap-3 py-2.5 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
           <span className="text-[14px] font-bold text-gray-800 shrink-0">Sắp xếp theo</span>
-          <div className="flex items-center gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
-            {SORT_OPTIONS.map((o) => (
-              <button
-                key={o.value}
-                onClick={() => pushParams({ sort: o.value })}
-                className={`shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12.5px] font-medium border whitespace-nowrap transition-colors ${
-                  sort === o.value
-                    ? "border-red-500 text-red-600 bg-white"
-                    : "border-gray-200 text-gray-600 bg-white hover:border-gray-400"
-                }`}
-              >
-                {o.value === "rating" && (
-                  <Star className={`w-3.5 h-3.5 ${sort === o.value ? "fill-red-500 text-red-500" : "fill-gray-300 text-gray-300"}`} />
-                )}
-                {o.label}
-              </button>
-            ))}
-          </div>
+          {SORT_OPTIONS.map((o) => (
+            <button
+              key={o.value}
+              onClick={() => pushParams({ sort: o.value })}
+              className={`shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12.5px] font-medium border whitespace-nowrap transition-colors ${
+                sort === o.value
+                  ? "border-red-500 text-red-600 bg-white"
+                  : "border-gray-200 text-gray-600 bg-white hover:border-gray-400"
+              }`}
+            >
+              {o.value === "rating" && (
+                <Star className={`w-3.5 h-3.5 ${sort === o.value ? "fill-red-500 text-red-500" : "fill-gray-300 text-gray-300"}`} />
+              )}
+              {o.label}
+            </button>
+          ))}
         </div>
 
         {/* ── Combined filter panel ── */}
