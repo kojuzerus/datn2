@@ -8,11 +8,11 @@ import {
   Edit3, Check, X, ChevronRight, Package,
   LogOut, Camera, Eye, EyeOff, MapPin,
   Plus, Trash2, Star, Home, ShoppingCart,
-  Wallet, LayoutGrid, Truck, Search, Heart,
+  Wallet, LayoutGrid, Search, Heart,
 } from 'lucide-react';
 import SearchableSelect, { SelectOption } from '../../components/SearchableSelect';
 import { useFavorites } from '../../components/favoritesContext';
-import ConfirmModal from '../../components/ConfirmModal';
+import CancelOrderModal from '../../components/CancelOrderModal';
 
 const API_URL  = process.env.NEXT_PUBLIC_API_URL  || 'http://localhost:5000';
 const GEO_API  = 'https://provinces.open-api.vn/api';
@@ -216,16 +216,18 @@ export default function NguoiDungPage() {
     if ((tab === 'overview' || tab === 'orders') && user) fetchOrders();
   }, [tab, user, fetchOrders]);
 
-  const handleCancelOrder = async (orderId: string) => {
-    setCancellingOrderId(orderId);
+  const handleCancelOrder = async (lyDoHuy: string) => {
+    if (!confirmCancelId) return;
+    setCancellingOrderId(confirmCancelId);
     try {
-      const r = await fetch(`${API_URL}/api/orders/${orderId}/cancel`, {
+      const r = await fetch(`${API_URL}/api/orders/${confirmCancelId}/cancel`, {
         method: 'PUT',
-        headers: { Authorization: `Bearer ${getToken()}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+        body: JSON.stringify({ lyDoHuy }),
       });
       const d = await r.json();
       if (d.success) {
-        setOrders(prev => prev.map(o => o._id === orderId ? { ...o, trangThai: 'da_huy' } : o));
+        setOrders(prev => prev.map(o => o._id === confirmCancelId ? { ...o, trangThai: 'da_huy' } : o));
       } else {
         alert(d.message || 'Không thể hủy đơn hàng');
       }
@@ -437,7 +439,7 @@ export default function NguoiDungPage() {
   };
 
   // ── Change password ──────────────────────────────────────────────────────────
-  const handleChangePassword = async (e: React.FormEvent) => {
+  const handleChangePassword = async (e: React.SyntheticEvent) => {
     e.preventDefault(); setPwMsg(''); setPwErr('');
     if (matKhauMoi !== xacNhan) { setPwErr('Mật khẩu xác nhận không khớp'); return; }
     if (matKhauMoi.length < 6)  { setPwErr('Mật khẩu mới phải có ít nhất 6 ký tự'); return; }
@@ -1210,15 +1212,11 @@ export default function NguoiDungPage() {
         </main>
       </div>
 
-      <ConfirmModal
+      <CancelOrderModal
         open={!!confirmCancelId}
-        title="Hủy đơn hàng?"
-        message="Bạn có chắc muốn hủy đơn hàng này không? Hành động này không thể hoàn tác."
-        confirmLabel="Hủy đơn"
-        cancelLabel="Giữ đơn"
-        onConfirm={() => confirmCancelId && handleCancelOrder(confirmCancelId)}
-        onCancel={() => setConfirmCancelId(null)}
         loading={!!cancellingOrderId}
+        onConfirm={handleCancelOrder}
+        onCancel={() => setConfirmCancelId(null)}
       />
     </div>
   );
