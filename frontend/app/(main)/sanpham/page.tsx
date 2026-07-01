@@ -13,13 +13,14 @@ import { useFavorites, type FavoriteProduct } from "../../components/favoritesCo
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 /* ── Types ─────────────────────────────────────────────────────────────── */
+interface Variant { variant_id: number; color: string; config: string; price: number; sale_price: number | null; }
 interface Product {
   id: number; ten: string; slug: string; thuongHieu: string;
   thumbnail: string; moTa: string; gia: number; giaSale: number | null;
   giamGia: number; danhGia: number; luotBan: number; badge: string;
-  categoryName: string;
+  categoryName: string; variants?: Variant[];
 }
-interface Category { category_id: number; category_name: string; slug: string; }
+interface Category { category_id: number; category_name: string; slug: string; parent_id?: number | null; }
 interface Brand    { brand_id: number; brand_name: string; }
 interface Pagination { total: number; page: number; limit: number; totalPages: number; }
 
@@ -74,57 +75,94 @@ function ProductCard({ p }: { p: Product }) {
     toggleItem(fav);
   };
 
+  const configs = p.variants
+    ? [...new Set(p.variants.map((v) => v.config).filter(Boolean))].slice(0, 3)
+    : [];
+
   return (
-    <div className="group flex flex-col h-full">
+    <div className="group flex flex-col relative">
+      {/* Heart button – absolute, outside Link */}
+      <button
+        onClick={handleToggleFavorite}
+        title="Yêu thích"
+        className={`absolute bottom-[44px] right-2.5 z-10 w-7 h-7 flex items-center justify-center rounded-full bg-white shadow border border-gray-100 transition-colors ${
+          liked ? "text-red-500 border-red-200" : "text-gray-300 hover:text-red-400"
+        }`}
+      >
+        <Heart className={`w-3.5 h-3.5 ${liked ? "fill-red-500" : ""}`} />
+      </button>
+
       <Link href={`/sanpham/${p.slug}`} className="flex-1 block">
-        <div className="bg-white border border-gray-100 rounded-t-2xl overflow-hidden hover:shadow-lg hover:border-red-100 hover:-translate-y-1 transition-all duration-300 flex flex-col h-full relative">
-          {p.badge && (
-            <span className="absolute top-3 left-3 z-10 bg-red-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm">
-              {p.badge}
+        <div className="bg-white border border-gray-100 rounded-t-2xl overflow-hidden hover:shadow-lg hover:border-red-100 hover:-translate-y-0.5 transition-all duration-300 flex flex-col">
+          {/* Badge row */}
+          <div className="flex items-center justify-between px-2.5 pt-2.5 min-h-[26px]">
+            {p.giamGia > 0 ? (
+              <span className="bg-red-500 text-white text-[11px] font-bold px-2 py-0.5 rounded">
+                Giảm {p.giamGia}%
+              </span>
+            ) : <span />}
+            <span className="bg-blue-50 text-blue-600 text-[10px] font-semibold px-2 py-0.5 rounded border border-blue-100 whitespace-nowrap">
+              Trả góp 0%
             </span>
-          )}
-          {p.giamGia > 0 && (
-            <span className="absolute top-3 right-12 z-10 bg-gradient-to-r from-red-500 to-orange-500 text-white text-[10px] font-semibold px-2.5 py-1 rounded-full shadow-sm">
-              -{p.giamGia}%
-            </span>
-          )}
-          <button
-            onClick={handleToggleFavorite}
-            title="Yêu thích"
-            className={`absolute top-2.5 right-2.5 z-10 w-8 h-8 flex items-center justify-center rounded-full backdrop-blur transition-colors ${
-              liked ? "bg-red-500 text-white" : "bg-white/90 text-gray-400 hover:text-red-500"
-            }`}
-          >
-            <Heart className={`w-4 h-4 ${liked ? "fill-white" : ""}`} />
-          </button>
-          <div className="bg-white flex items-center justify-center h-48 p-3 overflow-hidden">
+          </div>
+
+          {/* Image */}
+          <div className="bg-white flex items-center justify-center h-36 px-4 py-1.5 overflow-hidden">
             <img
-              src={p.thumbnail || "https://placehold.co/400x300?text=No+Image"}
+              src={p.thumbnail || "https://placehold.co/300x300?text=No+Image"}
               alt={p.ten}
               className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
               loading="lazy"
             />
           </div>
-          <div className="p-4 flex flex-col flex-1 gap-2">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-red-500">{p.thuongHieu}</p>
-            <h3 className="font-semibold text-gray-800 text-sm leading-snug line-clamp-2 flex-1">{p.ten}</h3>
-            <div className="flex items-center justify-between pt-2.5 border-t border-gray-100 mt-auto">
-              <div>
-                <p className="font-bold text-gray-900 text-[15px]">{fmt(p.giaSale ?? p.gia)}</p>
-                {p.giamGia > 0 && (
-                  <p className="text-xs text-gray-400 line-through">{fmt(p.gia)}</p>
-                )}
+
+          {/* Content */}
+          <div className="px-2.5 pb-2.5 flex flex-col gap-1.5">
+            {/* Short description */}
+            {p.moTa && (
+              <p className="text-[10.5px] text-gray-400 line-clamp-1 leading-tight">{p.moTa}</p>
+            )}
+
+            {/* Product name */}
+            <h3 className="font-semibold text-gray-800 text-[12.5px] leading-snug line-clamp-2 min-h-[36px]">
+              {p.ten}
+            </h3>
+
+            {/* Price */}
+            <div className="flex items-baseline gap-1.5">
+              <p className="text-[14px] font-bold text-red-600">{fmt(p.giaSale ?? p.gia)}</p>
+              {p.giamGia > 0 && (
+                <p className="text-[10.5px] text-gray-400 line-through">{fmt(p.gia)}</p>
+              )}
+            </div>
+
+            {/* Config pills */}
+            {configs.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {configs.map((c, i) => (
+                  <span key={i} className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-medium">
+                    {c}
+                  </span>
+                ))}
               </div>
+            )}
+
+            {/* Delivery + rating */}
+            <div className="flex items-center justify-between pt-1.5 mt-0.5 border-t border-gray-50">
+              <span className="flex items-center gap-1 text-[10.5px] text-blue-600 font-semibold bg-blue-50 px-2 py-1 rounded-lg">
+                🚚 Giao 2 Giờ
+              </span>
               {p.danhGia > 0 && (
-                <div className="flex items-center gap-1 bg-amber-50 rounded-full px-2 py-1">
-                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                  <span className="text-xs font-semibold text-amber-700">{p.danhGia.toFixed(1)}</span>
-                </div>
+                <span className="flex items-center gap-0.5">
+                  <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                  <span className="text-[11px] font-semibold text-gray-600">{p.danhGia.toFixed(1)}</span>
+                </span>
               )}
             </div>
           </div>
         </div>
       </Link>
+
       <button
         onClick={handleCompare}
         className={`flex items-center justify-center gap-1.5 py-2 text-[11px] font-medium rounded-b-2xl border border-t-0 transition-all ${
@@ -195,7 +233,7 @@ function CategoryList({ categories, danhMucSlug, onCategory }: {
         Tất cả sản phẩm
         {!danhMucSlug && <Check className="w-3.5 h-3.5 shrink-0" />}
       </button>
-      {categories.filter(c => !c.slug.includes("-") || ["dien-thoai","tai-nghe","sac-cap"].includes(c.slug)).map((cat) => {
+      {categories.filter(c => !c.parent_id).map((cat) => {
         const active = danhMucSlug === cat.slug;
         return (
           <button
@@ -473,7 +511,7 @@ function ProductsContent() {
       </div>
 
       {/* ── Filter toolbar ── */}
-      <div ref={toolbarRef} className="relative mb-3">
+      <div ref={toolbarRef} className="sticky top-[88px] z-20 bg-white -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-2.5 mb-3 border-b border-gray-100 shadow-sm relative">
         <div className="flex items-center gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none] pb-0.5">
           <Pill
             label="Bộ lọc"
