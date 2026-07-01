@@ -370,7 +370,7 @@ function ProductsContent() {
   useEffect(() => {
     const onScroll = () => {
       if (!toolbarRef.current) return;
-      setIsSticky(toolbarRef.current.getBoundingClientRect().top <= 113);
+      setIsSticky(toolbarRef.current.getBoundingClientRect().top <= 109);
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
@@ -475,7 +475,7 @@ function ProductsContent() {
       </div>
 
       {/* ── Sticky toolbar ── */}
-      <div ref={toolbarRef} className={`relative sticky top-[112px] z-20 mb-3 transition-shadow ${isSticky ? "bg-white shadow-sm" : ""}`}>
+      <div ref={toolbarRef} className={`relative sticky top-[108px] z-20 mb-3 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 transition-shadow ${isSticky ? "bg-white shadow-sm" : ""}`}>
 
         {/* Hàng 1: Bộ lọc pills */}
         <div className="flex items-center gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none] py-3 border-b border-gray-100">
