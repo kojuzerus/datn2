@@ -258,28 +258,6 @@ export default function Header() {
 
   return (
     <>
-      {/* ── Ticker (NOT sticky — cuộn ra ngoài khi scroll) ── */}
-      <div className="bg-red-50 dark:bg-slate-800 border-b border-red-100 dark:border-slate-700 overflow-hidden">
-        <div className="max-w-screen-xl mx-auto px-6 py-1.5 flex items-center gap-3">
-          <span className="flex-shrink-0 bg-red-600 text-white text-[11px] font-bold px-2 py-0.5 rounded">
-            HOT
-          </span>
-          <div className="overflow-hidden flex-1">
-            <div className="flex gap-8 animate-ticker whitespace-nowrap">
-              {[...HOT_PRODUCTS, ...HOT_PRODUCTS].map((p, i) => (
-                <button
-                  key={i}
-                  onClick={() => handleTrendingClick(p)}
-                  className="text-xs text-gray-500 hover:text-red-600 transition-colors"
-                >
-                  {p}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
       <header className="sticky top-0 z-50 w-full bg-white dark:bg-slate-900 shadow-sm dark:shadow-slate-900/50">
 
       {/* ── Top bar ── */}
@@ -598,6 +576,28 @@ export default function Header() {
         </div>
       )}
     </header>
+
+    {/* ── Ticker — nằm dưới header, cuộn ra ngoài khi scroll ── */}
+    <div className="bg-red-50 dark:bg-slate-800 border-b border-red-100 dark:border-slate-700 overflow-hidden">
+      <div className="max-w-screen-xl mx-auto px-6 py-1.5 flex items-center gap-3">
+        <span className="flex-shrink-0 bg-red-600 text-white text-[11px] font-bold px-2 py-0.5 rounded">
+          HOT
+        </span>
+        <div className="overflow-hidden flex-1">
+          <div className="flex gap-8 animate-ticker whitespace-nowrap">
+            {[...HOT_PRODUCTS, ...HOT_PRODUCTS].map((p, i) => (
+              <button
+                key={i}
+                onClick={() => handleTrendingClick(p)}
+                className="text-xs text-gray-500 hover:text-red-600 transition-colors"
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
     </>
   );
 }

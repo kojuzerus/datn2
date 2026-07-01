@@ -510,15 +510,18 @@ function ProductsContent() {
         </span>
       </div>
 
-      {/* ── Filter toolbar ── */}
-      <div ref={toolbarRef} className="sticky top-[88px] z-20 bg-white -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 pt-2.5 pb-2 mb-3 border-b border-gray-100 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.08)]">
-        <div className="flex items-center gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none] pb-0.5">
+      {/* ── Sticky filter + sort bar (2 hàng) ── */}
+      <div ref={toolbarRef} className="sticky top-[88px] z-20 bg-white -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 mb-4 border-b border-gray-100 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.1)]">
+
+        {/* Hàng 1: Bộ lọc */}
+        <div className="flex items-center gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none] pt-2.5 pb-2 border-b border-gray-50">
           <Pill
-            label="Bộ lọc"
+            label={activeFilterCount > 0 ? `Bộ lọc (${activeFilterCount})` : "Bộ lọc"}
             icon={<SlidersHorizontal className="w-3.5 h-3.5" />}
             active={openDropdown === "filter" || activeFilterCount > 0}
             onClick={() => toggleDropdown("filter")}
           />
+          <div className="w-px h-4 bg-gray-200 shrink-0" />
           <Pill
             label="Giảm giá"
             icon={<Tag className="w-3.5 h-3.5" />}
@@ -549,6 +552,35 @@ function ProductsContent() {
             hasDropdown
             onClick={() => toggleDropdown("rating")}
           />
+          {activeFilterCount > 0 && (
+            <>
+              <div className="w-px h-4 bg-gray-200 shrink-0" />
+              <button
+                onClick={handleClearAll}
+                className="shrink-0 flex items-center gap-1 text-[12px] text-gray-400 hover:text-red-500 font-medium transition-colors whitespace-nowrap"
+              >
+                <X className="w-3 h-3" /> Xóa lọc
+              </button>
+            </>
+          )}
+        </div>
+
+        {/* Hàng 2: Sắp xếp */}
+        <div className="flex items-center gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none] py-2">
+          <span className="text-[11.5px] font-semibold text-gray-400 shrink-0 uppercase tracking-wide">Sắp xếp:</span>
+          {SORT_OPTIONS.map((o) => (
+            <button
+              key={o.value}
+              onClick={() => pushParams({ sort: o.value })}
+              className={`shrink-0 px-3 py-1 rounded-full text-[12px] font-medium border transition-colors whitespace-nowrap ${
+                sort === o.value
+                  ? "bg-red-600 text-white border-red-600"
+                  : "border-gray-200 text-gray-600 hover:border-red-300 hover:text-red-600 bg-white"
+              }`}
+            >
+              {o.label}
+            </button>
+          ))}
         </div>
 
         {/* ── Combined filter panel ── */}
@@ -662,14 +694,6 @@ function ProductsContent() {
             <RatingList ratingMin={ratingMin} onRating={(v) => { handleRating(v); setOpenDropdown(""); }} />
           </div>
         )}
-      </div>
-
-      {/* ── Sort row ── */}
-      <div className="flex items-center gap-2 mb-5 flex-wrap">
-        <span className="text-[13.5px] font-semibold text-gray-700 shrink-0">Sắp xếp theo</span>
-        {SORT_OPTIONS.map((o) => (
-          <Pill key={o.value} label={o.label} active={sort === o.value} onClick={() => pushParams({ sort: o.value })} />
-        ))}
       </div>
 
       {/* Active filter chips */}
