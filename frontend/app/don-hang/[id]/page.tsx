@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Clock, MapPin, XCircle, Check, Star } from 'lucide-react';
-import ConfirmModal from '../../components/ConfirmModal';
+import CancelOrderModal from '../../components/CancelOrderModal';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -106,12 +106,13 @@ export default function OrderDetailPage() {
     fetchOrder();
   }, [params.id, router]);
 
-  const handleCancel = async () => {
+  const handleCancel = async (lyDoHuy: string) => {
     setCancelling(true);
     try {
       const res = await fetch(`${API_URL}/api/orders/${params.id}/cancel`, {
         method: 'PUT',
-        headers: { Authorization: `Bearer ${getToken()}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+        body: JSON.stringify({ lyDoHuy }),
       });
       const data = await res.json();
       if (data.success) {
@@ -343,15 +344,11 @@ export default function OrderDetailPage() {
         )}
       </div>
 
-      <ConfirmModal
+      <CancelOrderModal
         open={showCancelModal}
-        title="Hủy đơn hàng?"
-        message="Bạn có chắc muốn hủy đơn hàng này không? Hành động này không thể hoàn tác."
-        confirmLabel="Hủy đơn"
-        cancelLabel="Giữ đơn"
+        loading={cancelling}
         onConfirm={handleCancel}
         onCancel={() => setShowCancelModal(false)}
-        loading={cancelling}
       />
     </div>
   );

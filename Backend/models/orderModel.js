@@ -31,7 +31,8 @@ const orderSchema = new mongoose.Schema({
   phiGiaoHang:   { type: Number, default: 0 },
   tongThanhToan:  { type: Number, required: true },
 
-  ghiChu: { type: String, default: "" },
+  ghiChu:     { type: String, default: "" },
+  lyDoHuy:    { type: String, default: "" },
 
   trangThai: {
     type: String,

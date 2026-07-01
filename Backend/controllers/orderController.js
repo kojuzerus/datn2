@@ -104,6 +104,7 @@ exports.cancelOrder = async (req, res) => {
       return res.status(400).json({ success: false, message: "Không thể hủy đơn hàng đang xử lý" });
 
     order.trangThai = "da_huy";
+    if (req.body.lyDoHuy) order.lyDoHuy = req.body.lyDoHuy;
     await order.save();
     await adjustTotalSold(order.items, -1);
     res.json({ success: true, message: "Đã hủy đơn hàng", order });
