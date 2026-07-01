@@ -1,11 +1,11 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   Star, ChevronRight, X, Package, Home, ChevronDown, Repeat,
-  SlidersHorizontal, Check, Tag, Heart, Truck,
+  Check, Tag, Heart, Truck,
 } from "lucide-react";
 import { useComparison } from "../../components/comparisonContext";
 import { useFavorites, type FavoriteProduct } from "../../components/favoritesContext";
@@ -192,33 +192,7 @@ function SkeletonCard() {
   );
 }
 
-/* ── Pill button (toolbar trigger) ─────────────────────────────────────── */
-function Pill({
-  label, icon, active, hasDropdown, onClick,
-}: {
-  label: string;
-  icon?: ReactNode;
-  active: boolean;
-  hasDropdown?: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[13px] font-medium border whitespace-nowrap transition-colors ${
-        active
-          ? "border-red-500 bg-red-50 text-red-600"
-          : "border-gray-200 text-gray-700 bg-white hover:border-gray-300 hover:bg-gray-50"
-      }`}
-    >
-      {icon}
-      {label}
-      {hasDropdown && <ChevronDown className={`w-3.5 h-3.5 transition-transform ${active ? "rotate-180" : ""}`} />}
-    </button>
-  );
-}
-
-/* ── Filter content lists (shared between combined panel + single dropdowns) ── */
+/* ── Filter content lists ───────────────────────────────────────────────── */
 function CategoryList({ categories, danhMucSlug, onCategory }: {
   categories: Category[]; danhMucSlug: string; onCategory: (slug: string | null) => void;
 }) {
@@ -341,27 +315,6 @@ function RatingList({ ratingMin, onRating }: { ratingMin: string; onRating: (v: 
         );
       })}
     </div>
-  );
-}
-
-function DiscountToggle({ discountOnly, onDiscount }: { discountOnly: boolean; onDiscount: (v: boolean) => void }) {
-  return (
-    <button
-      onClick={() => onDiscount(!discountOnly)}
-      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border transition-all ${
-        discountOnly ? "border-red-300 bg-red-50" : "border-gray-200 hover:border-red-200 hover:bg-red-50/40"
-      }`}
-    >
-      <div className="flex items-center gap-2">
-        <Tag className="w-4 h-4 text-red-500" />
-        <span className={`text-[13px] font-medium ${discountOnly ? "text-red-600" : "text-gray-700"}`}>
-          Đang giảm giá
-        </span>
-      </div>
-      <div className={`relative inline-flex items-center w-9 h-5 rounded-full transition-colors shrink-0 ${discountOnly ? "bg-red-500" : "bg-gray-200"}`}>
-        <span className={`inline-block w-3.5 h-3.5 rounded-full bg-white shadow-sm transition-transform mx-[3px] ${discountOnly ? "translate-x-4" : "translate-x-0"}`} />
-      </div>
-    </button>
   );
 }
 
@@ -510,54 +463,140 @@ function ProductsContent() {
         </span>
       </div>
 
-      {/* ── Sticky filter + sort bar (2 hàng) ── */}
-      <div ref={toolbarRef} className="sticky top-[88px] z-20 bg-white mb-4">
+      {/* ── Sticky toolbar: 1 dòng gộp sort + filter ── */}
+      <div ref={toolbarRef} className="relative sticky top-[88px] z-20 bg-white mb-4">
+        <div className="flex items-center gap-1.5 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none] py-2.5 border-b border-gray-100">
 
-        {/* Hàng 1: Bộ lọc */}
-        <div className="flex items-center gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none] pt-1 pb-2 border-b border-gray-100">
-          <Pill
-            label={activeFilterCount > 0 ? `Bộ lọc (${activeFilterCount})` : "Bộ lọc"}
-            icon={<SlidersHorizontal className="w-3.5 h-3.5" />}
-            active={openDropdown === "filter" || activeFilterCount > 0}
-            onClick={() => toggleDropdown("filter")}
-          />
-          <div className="w-px h-4 bg-gray-200 shrink-0" />
-          <Pill
-            label="Giảm giá"
-            icon={<Tag className="w-3.5 h-3.5" />}
-            active={discountOnly}
+          {/* Sort (text-style) */}
+          <span className="shrink-0 text-[11px] text-gray-400 font-semibold uppercase tracking-wider">Sắp xếp:</span>
+          {SORT_OPTIONS.map((o) => (
+            <button
+              key={o.value}
+              onClick={() => pushParams({ sort: o.value })}
+              className={`shrink-0 px-2.5 py-1 rounded-lg text-[12.5px] whitespace-nowrap transition-colors ${
+                sort === o.value
+                  ? "bg-red-600 text-white font-semibold"
+                  : "text-gray-500 hover:text-gray-800 font-medium hover:bg-gray-100"
+              }`}
+            >
+              {o.label}
+            </button>
+          ))}
+
+          {/* Separator */}
+          <div className="w-px h-5 bg-gray-200 shrink-0 mx-1" />
+
+          {/* Giảm giá toggle */}
+          <button
             onClick={() => handleDiscount(!discountOnly)}
-          />
-          <Pill
-            label={selectedCat ? selectedCat.category_name : "Danh mục"}
-            active={openDropdown === "category" || !!danhMucSlug}
-            hasDropdown
+            className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium border whitespace-nowrap transition-all ${
+              discountOnly
+                ? "border-red-400 bg-red-50 text-red-600"
+                : "border-gray-200 text-gray-600 bg-white hover:border-gray-300"
+            }`}
+          >
+            <Tag className="w-3 h-3" />
+            Giảm giá
+            {discountOnly && (
+              <span onClick={(e) => { e.stopPropagation(); handleDiscount(false); }} className="ml-0.5">
+                <X className="w-3 h-3" />
+              </span>
+            )}
+          </button>
+
+          {/* Danh mục */}
+          <button
             onClick={() => toggleDropdown("category")}
-          />
-          <Pill
-            label={brandIds.length ? `Thương hiệu (${brandIds.length})` : "Thương hiệu"}
-            active={openDropdown === "brand" || brandIds.length > 0}
-            hasDropdown
+            className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium border whitespace-nowrap transition-all ${
+              danhMucSlug || openDropdown === "category"
+                ? "border-red-400 bg-red-50 text-red-600"
+                : "border-gray-200 text-gray-600 bg-white hover:border-gray-300"
+            }`}
+          >
+            {selectedCat ? selectedCat.category_name : "Danh mục"}
+            {danhMucSlug ? (
+              <span onClick={(e) => { e.stopPropagation(); handleCategory(null); }} className="ml-0.5">
+                <X className="w-3 h-3" />
+              </span>
+            ) : (
+              <ChevronDown className={`w-3 h-3 transition-transform ${openDropdown === "category" ? "rotate-180" : ""}`} />
+            )}
+          </button>
+
+          {/* Thương hiệu */}
+          <button
             onClick={() => toggleDropdown("brand")}
-          />
-          <Pill
-            label={selectedPriceRange ? selectedPriceRange.label : "Xem theo giá"}
-            active={openDropdown === "price" || !!priceKey}
-            hasDropdown
+            className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium border whitespace-nowrap transition-all ${
+              brandIds.length > 0 || openDropdown === "brand"
+                ? "border-red-400 bg-red-50 text-red-600"
+                : "border-gray-200 text-gray-600 bg-white hover:border-gray-300"
+            }`}
+          >
+            {brandIds.length > 0 ? `Thương hiệu (${brandIds.length})` : "Thương hiệu"}
+            {brandIds.length > 0 ? (
+              <span onClick={(e) => { e.stopPropagation(); pushParams({ "thuong-hieu": null }); }} className="ml-0.5">
+                <X className="w-3 h-3" />
+              </span>
+            ) : (
+              <ChevronDown className={`w-3 h-3 transition-transform ${openDropdown === "brand" ? "rotate-180" : ""}`} />
+            )}
+          </button>
+
+          {/* Giá */}
+          <button
             onClick={() => toggleDropdown("price")}
-          />
-          <Pill
-            label={ratingMin ? `${ratingMin}★ trở lên` : "Đánh giá"}
-            active={openDropdown === "rating" || !!ratingMin}
-            hasDropdown
+            className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium border whitespace-nowrap transition-all ${
+              priceKey || openDropdown === "price"
+                ? "border-red-400 bg-red-50 text-red-600"
+                : "border-gray-200 text-gray-600 bg-white hover:border-gray-300"
+            }`}
+          >
+            {selectedPriceRange ? selectedPriceRange.label : "Khoảng giá"}
+            {priceKey ? (
+              <span onClick={(e) => { e.stopPropagation(); handlePricePreset(null); }} className="ml-0.5">
+                <X className="w-3 h-3" />
+              </span>
+            ) : (
+              <ChevronDown className={`w-3 h-3 transition-transform ${openDropdown === "price" ? "rotate-180" : ""}`} />
+            )}
+          </button>
+
+          {/* Đánh giá */}
+          <button
             onClick={() => toggleDropdown("rating")}
-          />
+            className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium border whitespace-nowrap transition-all ${
+              ratingMin || openDropdown === "rating"
+                ? "border-red-400 bg-red-50 text-red-600"
+                : "border-gray-200 text-gray-600 bg-white hover:border-gray-300"
+            }`}
+          >
+            {ratingMin ? `${ratingMin}★ trở lên` : "Đánh giá"}
+            {ratingMin ? (
+              <span onClick={(e) => { e.stopPropagation(); handleRating(null); }} className="ml-0.5">
+                <X className="w-3 h-3" />
+              </span>
+            ) : (
+              <ChevronDown className={`w-3 h-3 transition-transform ${openDropdown === "rating" ? "rotate-180" : ""}`} />
+            )}
+          </button>
+
+          {/* Keyword chip */}
+          {keyword && (
+            <span className="shrink-0 inline-flex items-center gap-1.5 bg-gray-100 text-gray-600 text-[12px] font-medium px-3 py-1.5 rounded-full border border-gray-200">
+              &ldquo;{keyword}&rdquo;
+              <button onClick={() => pushParams({ "tu-khoa": null })} className="hover:text-red-500 transition-colors">
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          )}
+
+          {/* Xóa lọc */}
           {activeFilterCount > 0 && (
             <>
-              <div className="w-px h-4 bg-gray-200 shrink-0" />
+              <div className="w-px h-4 bg-gray-200 shrink-0 mx-0.5" />
               <button
                 onClick={handleClearAll}
-                className="shrink-0 flex items-center gap-1 text-[12px] text-gray-400 hover:text-red-500 font-medium transition-colors whitespace-nowrap"
+                className="shrink-0 flex items-center gap-1 px-2 py-1.5 text-[11.5px] text-gray-400 hover:text-red-500 font-medium transition-colors whitespace-nowrap"
               >
                 <X className="w-3 h-3" /> Xóa lọc
               </button>
@@ -565,200 +604,42 @@ function ProductsContent() {
           )}
         </div>
 
-        {/* Hàng 2: Sắp xếp */}
-        <div className="flex items-center gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none] py-2">
-          <span className="text-[11.5px] font-semibold text-gray-400 shrink-0 uppercase tracking-wide">Sắp xếp:</span>
-          {SORT_OPTIONS.map((o) => (
-            <button
-              key={o.value}
-              onClick={() => pushParams({ sort: o.value })}
-              className={`shrink-0 px-3 py-1 rounded-full text-[12px] font-medium border transition-colors whitespace-nowrap ${
-                sort === o.value
-                  ? "bg-red-600 text-white border-red-600"
-                  : "border-gray-200 text-gray-600 hover:border-red-300 hover:text-red-600 bg-white"
-              }`}
-            >
-              {o.label}
-            </button>
-          ))}
-        </div>
-
-        {/* ── Combined filter panel ── */}
-        {openDropdown === "filter" && (
-          <div className="absolute left-0 top-full mt-2 z-30 w-[min(860px,calc(100vw-2rem))] bg-white border border-gray-100 rounded-2xl shadow-2xl overflow-hidden">
-            {/* Panel header */}
-            <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100">
-              <div className="flex items-center gap-2.5">
-                <SlidersHorizontal className="w-4 h-4 text-gray-500" />
-                <span className="font-semibold text-gray-800 text-[14px]">Bộ lọc tìm kiếm</span>
-                {activeFilterCount > 0 && (
-                  <span className="bg-red-100 text-red-600 text-[11px] font-bold px-2 py-0.5 rounded-full">{activeFilterCount} đang chọn</span>
-                )}
-              </div>
-              {activeFilterCount > 0 && (
-                <button onClick={handleClearAll} className="text-[12.5px] text-gray-400 hover:text-red-600 transition-colors flex items-center gap-1 font-medium">
-                  <X className="w-3 h-3" /> Xóa tất cả
-                </button>
-              )}
-            </div>
-
-            {/* Panel body - 3 columns */}
-            <div className="grid grid-cols-[220px_1fr_220px] divide-x divide-gray-100" style={{ maxHeight: 400, overflowY: "auto" }}>
-              {/* Col 1: Danh mục */}
-              <div className="p-4">
-                <p className="flex items-center gap-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">
-                  <span className="w-2 h-2 rounded-full bg-blue-400 inline-block" />
-                  Danh mục
-                </p>
-                <CategoryList categories={categories} danhMucSlug={danhMucSlug} onCategory={handleCategory} />
-              </div>
-
-              {/* Col 2: Thương hiệu */}
-              <div className="p-4">
-                <p className="flex items-center gap-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">
-                  <span className="w-2 h-2 rounded-full bg-purple-400 inline-block" />
-                  Thương hiệu
-                  {brandIds.length > 0 && (
-                    <span className="ml-1 bg-red-100 text-red-600 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{brandIds.length}</span>
-                  )}
-                </p>
-                <BrandList brands={brands} loadingBrands={loadingBrands} brandIds={brandIds} onToggleBrand={handleToggleBrand} />
-              </div>
-
-              {/* Col 3: Price + Rating + Discount */}
-              <div className="p-4 flex flex-col gap-4">
-                <div>
-                  <p className="flex items-center gap-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">
-                    <span className="w-2 h-2 rounded-full bg-green-400 inline-block" />
-                    Khoảng giá
-                  </p>
-                  <PriceList priceKey={priceKey} onPricePreset={handlePricePreset} />
-                </div>
-                <div>
-                  <p className="flex items-center gap-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">
-                    <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
-                    Đánh giá
-                  </p>
-                  <RatingList ratingMin={ratingMin} onRating={handleRating} />
-                </div>
-                <div>
-                  <p className="flex items-center gap-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">
-                    <span className="w-2 h-2 rounded-full bg-red-400 inline-block" />
-                    Ưu đãi
-                  </p>
-                  <DiscountToggle discountOnly={discountOnly} onDiscount={handleDiscount} />
-                </div>
-              </div>
-            </div>
-
-            {/* Panel footer */}
-            <div className="flex items-center justify-between px-5 py-3.5 border-t border-gray-100 bg-gray-50/70">
-              <button
-                onClick={() => setOpenDropdown("")}
-                className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-[13px] font-medium hover:bg-gray-100 transition-colors"
-              >
-                Đóng
-              </button>
-              <button
-                onClick={() => setOpenDropdown("")}
-                className="px-7 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-[13px] font-semibold transition-colors shadow-sm"
-              >
-                {loading ? "Đang tải..." : `Xem ${pagination.total.toLocaleString("vi-VN")} kết quả`}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── Single-purpose dropdowns ── */}
+        {/* ── Dropdowns ── */}
         {openDropdown === "category" && (
-          <div className="absolute left-0 top-full mt-2 z-30 w-56 bg-white border border-gray-100 rounded-2xl shadow-xl p-3 max-h-80 overflow-y-auto">
+          <div className="absolute left-0 top-full mt-1 z-30 w-56 bg-white border border-gray-100 rounded-2xl shadow-xl p-3 max-h-80 overflow-y-auto">
             <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2.5 px-1">Danh mục</p>
             <CategoryList categories={categories} danhMucSlug={danhMucSlug} onCategory={(s) => { handleCategory(s); setOpenDropdown(""); }} />
           </div>
         )}
         {openDropdown === "brand" && (
-          <div className="absolute left-0 top-full mt-2 z-30 w-72 bg-white border border-gray-100 rounded-2xl shadow-xl p-3">
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2.5 px-1">Thương hiệu</p>
+          <div className="absolute left-0 top-full mt-1 z-30 w-72 bg-white border border-gray-100 rounded-2xl shadow-xl p-3">
+            <div className="flex items-center justify-between mb-2.5 px-1">
+              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Thương hiệu</p>
+              {brandIds.length > 0 && (
+                <button onClick={() => { pushParams({ "thuong-hieu": null }); setOpenDropdown(""); }} className="text-[11px] text-red-500 hover:text-red-700 font-medium">Xóa</button>
+              )}
+            </div>
             <BrandList brands={brands} loadingBrands={loadingBrands} brandIds={brandIds} onToggleBrand={handleToggleBrand} />
+            {brandIds.length > 0 && (
+              <button onClick={() => setOpenDropdown("")} className="mt-3 w-full py-2 bg-red-600 hover:bg-red-700 text-white text-[12.5px] font-semibold rounded-xl transition-colors">
+                Xem kết quả
+              </button>
+            )}
           </div>
         )}
         {openDropdown === "price" && (
-          <div className="absolute left-0 top-full mt-2 z-30 w-64 bg-white border border-gray-100 rounded-2xl shadow-xl p-3">
+          <div className="absolute left-0 top-full mt-1 z-30 w-60 bg-white border border-gray-100 rounded-2xl shadow-xl p-3">
             <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2.5 px-1">Khoảng giá</p>
             <PriceList priceKey={priceKey} onPricePreset={(k) => { handlePricePreset(k); setOpenDropdown(""); }} />
           </div>
         )}
         {openDropdown === "rating" && (
-          <div className="absolute left-0 top-full mt-2 z-30 w-60 bg-white border border-gray-100 rounded-2xl shadow-xl p-3">
+          <div className="absolute left-0 top-full mt-1 z-30 w-60 bg-white border border-gray-100 rounded-2xl shadow-xl p-3">
             <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2.5 px-1">Đánh giá</p>
             <RatingList ratingMin={ratingMin} onRating={(v) => { handleRating(v); setOpenDropdown(""); }} />
           </div>
         )}
       </div>
-
-      {/* Active filter chips */}
-      {(keyword || danhMucSlug || brandIds.length > 0 || priceKey || ratingMin || discountOnly) && (
-        <div className="flex flex-wrap items-center gap-1.5 mb-4">
-          {keyword && (
-            <span className="inline-flex items-center gap-1.5 bg-red-50 text-red-600 text-[12px] font-medium px-3 py-1.5 rounded-full border border-red-200">
-              🔍 &ldquo;{keyword}&rdquo;
-              <button onClick={() => pushParams({ "tu-khoa": null })} className="hover:text-red-800 transition-colors ml-0.5">
-                <X className="w-3 h-3" />
-              </button>
-            </span>
-          )}
-          {selectedCat && (
-            <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 text-[12px] font-medium px-3 py-1.5 rounded-full border border-blue-100">
-              {selectedCat.category_name}
-              <button onClick={() => handleCategory(null)} className="hover:text-blue-900 transition-colors ml-0.5">
-                <X className="w-3 h-3" />
-              </button>
-            </span>
-          )}
-          {brandIds.map((id) => {
-            const b = brands.find((br) => String(br.brand_id) === id);
-            if (!b) return null;
-            return (
-              <span key={id} className="inline-flex items-center gap-1.5 bg-purple-50 text-purple-700 text-[12px] font-medium px-3 py-1.5 rounded-full border border-purple-100">
-                {b.brand_name}
-                <button onClick={() => handleToggleBrand(b.brand_id)} className="hover:text-purple-900 transition-colors ml-0.5">
-                  <X className="w-3 h-3" />
-                </button>
-              </span>
-            );
-          })}
-          {selectedPriceRange && (
-            <span className="inline-flex items-center gap-1.5 bg-green-50 text-green-700 text-[12px] font-medium px-3 py-1.5 rounded-full border border-green-100">
-              💰 {selectedPriceRange.label}
-              <button onClick={() => handlePricePreset(null)} className="hover:text-green-900 transition-colors ml-0.5">
-                <X className="w-3 h-3" />
-              </button>
-            </span>
-          )}
-          {ratingMin && (
-            <span className="inline-flex items-center gap-1.5 bg-amber-50 text-amber-700 text-[12px] font-medium px-3 py-1.5 rounded-full border border-amber-100">
-              ⭐ {ratingMin}+ sao
-              <button onClick={() => handleRating(null)} className="hover:text-amber-900 transition-colors ml-0.5">
-                <X className="w-3 h-3" />
-              </button>
-            </span>
-          )}
-          {discountOnly && (
-            <span className="inline-flex items-center gap-1.5 bg-red-50 text-red-600 text-[12px] font-medium px-3 py-1.5 rounded-full border border-red-200">
-              🏷️ Giảm giá
-              <button onClick={() => handleDiscount(false)} className="hover:text-red-800 transition-colors ml-0.5">
-                <X className="w-3 h-3" />
-              </button>
-            </span>
-          )}
-          <button
-            onClick={handleClearAll}
-            className="text-[12px] text-gray-400 hover:text-red-500 font-medium transition-colors flex items-center gap-1 px-2 py-1.5"
-          >
-            <X className="w-3 h-3" /> Xóa tất cả
-          </button>
-        </div>
-      )}
 
       {/* Product grid */}
       {loading ? (
