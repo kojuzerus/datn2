@@ -48,6 +48,12 @@ const CATEGORY_ICON_MAP: Record<string, React.ElementType> = {
 
 const CAT_ORDER = ["dien-thoai", "laptop", "dien-may", "phu-kien", "tablet"];
 
+const HOT_PRODUCTS = [
+  "iPhone 17 Pro Max", "Samsung Galaxy Z Fold7 5G", "MacBook Air M4 2025",
+  "Laptop Lenovo LOQ 15IRR9", "iPad Pro M4", "Apple Watch Ultra 3",
+  "ASUS ROG Zephyrus G16", "Sony WH-1000XM6",
+];
+
 const TRENDING_KEYWORDS = [
   "iPhone 16", "Samsung Galaxy", "MacBook", "AirPods", "iPad", "Laptop gaming",
 ];
@@ -251,7 +257,30 @@ export default function Header() {
   const showDropdown  = showTrending || showResults || (suggestLoading && !!searchInput.trim());
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-white dark:bg-slate-900 shadow-sm dark:shadow-slate-900/50">
+    <>
+      {/* ── Ticker (NOT sticky — cuộn ra ngoài khi scroll) ── */}
+      <div className="bg-red-50 dark:bg-slate-800 border-b border-red-100 dark:border-slate-700 overflow-hidden">
+        <div className="max-w-screen-xl mx-auto px-6 py-1.5 flex items-center gap-3">
+          <span className="flex-shrink-0 bg-red-600 text-white text-[11px] font-bold px-2 py-0.5 rounded">
+            HOT
+          </span>
+          <div className="overflow-hidden flex-1">
+            <div className="flex gap-8 animate-ticker whitespace-nowrap">
+              {[...HOT_PRODUCTS, ...HOT_PRODUCTS].map((p, i) => (
+                <button
+                  key={i}
+                  onClick={() => handleTrendingClick(p)}
+                  className="text-xs text-gray-500 hover:text-red-600 transition-colors"
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <header className="sticky top-0 z-50 w-full bg-white dark:bg-slate-900 shadow-sm dark:shadow-slate-900/50">
 
       {/* ── Top bar ── */}
       <div className="bg-red-700 dark:bg-red-900">
@@ -569,5 +598,6 @@ export default function Header() {
         </div>
       )}
     </header>
+    </>
   );
 }
