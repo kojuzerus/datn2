@@ -66,6 +66,7 @@ export default function OrderDetailPage() {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
     const token = getToken();
@@ -102,6 +103,27 @@ export default function OrderDetailPage() {
 
     fetchOrder();
   }, [params.id, router]);
+
+  const handleCancel = async () => {
+    if (!confirm('Bạn có chắc muốn hủy đơn hàng này không?')) return;
+    setCancelling(true);
+    try {
+      const res = await fetch(`${API_URL}/api/orders/${params.id}/cancel`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setOrder(prev => prev ? { ...prev, trangThai: 'da_huy' } : prev);
+      } else {
+        alert(data.message || 'Không thể hủy đơn hàng');
+      }
+    } catch {
+      alert('Lỗi kết nối, vui lòng thử lại');
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   const activeIndex = order ? statusSteps.findIndex((s) => s.key === order.trangThai) : -1;
 
@@ -205,9 +227,20 @@ export default function OrderDetailPage() {
                       <Clock className="h-4 w-4 text-red-500 flex-shrink-0" />
                       <span>Ngày nhận hàng dự kiến: <strong className="text-gray-900">22-02-2024</strong></span>
                     </div>
-                    <button className="px-6 py-2 text-sm font-semibold text-white bg-red-600 rounded-md hover:bg-red-700 transition">
-                      Ghi Nhận Hàng
-                    </button>
+                    <div className="flex items-center gap-3">
+                      {order.trangThai === 'cho_xac_nhan' && (
+                        <button
+                          onClick={handleCancel}
+                          disabled={cancelling}
+                          className="px-5 py-2 text-sm font-semibold text-red-600 border border-red-300 bg-white rounded-md hover:bg-red-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {cancelling ? 'Đang hủy...' : 'Hủy đơn hàng'}
+                        </button>
+                      )}
+                      <button className="px-6 py-2 text-sm font-semibold text-white bg-red-600 rounded-md hover:bg-red-700 transition">
+                        Ghi Nhận Hàng
+                      </button>
+                    </div>
                   </div>
                 )}
 
