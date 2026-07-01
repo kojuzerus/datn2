@@ -464,10 +464,10 @@ function ProductsContent() {
       </div>
 
       {/* ── Sticky toolbar ── */}
-      <div ref={toolbarRef} className="relative sticky top-[88px] z-20 bg-white mb-3">
+      <div ref={toolbarRef} className="relative sticky top-[96px] z-20 mb-3">
 
         {/* Hàng 1: Bộ lọc pills */}
-        <div className="flex items-center gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none] py-3 border-b border-gray-100">
+        <div className="flex items-center gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none] py-3 border-b border-gray-100 bg-white">
 
           {/* Bộ lọc */}
           <button
@@ -596,7 +596,7 @@ function ProductsContent() {
         </div>
 
         {/* Hàng 2: Sắp xếp */}
-        <div className="flex items-center justify-between gap-4 py-2.5">
+        <div className="flex items-center justify-between gap-4 py-2.5 bg-white">
           <span className="text-[14px] font-bold text-gray-800 shrink-0">Sắp xếp theo</span>
           <div className="flex items-center gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
             {SORT_OPTIONS.map((o) => (
