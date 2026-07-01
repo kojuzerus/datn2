@@ -146,7 +146,7 @@ const banners = [
     id: 1,
     tag: "Ra mắt độc quyền",
     title: "iPhone 17\nPro Max",
-    sub: "Chip A19 Bionic • Camera 200MP • Titanium Desert",
+    specs: ["Chip A19 Bionic", "Camera 200MP", "Titanium Desert"],
     cta: "Đặt trước ngay",
     badge: "Từ 34.990.000đ",
     img: "https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=1400&q=80&fit=crop",
@@ -156,7 +156,7 @@ const banners = [
     id: 2,
     tag: "Galaxy AI Flagship",
     title: "Samsung S25\nUltra",
-    sub: "Galaxy AI • S Pen Pro • Camera 200MP • Snapdragon 8 Elite",
+    specs: ["Galaxy AI", "S Pen Pro", "Camera 200MP", "Snapdragon 8 Elite"],
     cta: "Mua ngay",
     badge: "Tiết kiệm 3.000.000đ",
     img: "https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=1400&q=80&fit=crop",
@@ -166,7 +166,7 @@ const banners = [
     id: 3,
     tag: "Apple Silicon M4",
     title: "MacBook Air\nM4 2025",
-    sub: "Chip M4 • 16GB RAM • 13.6 inch Liquid Retina • 18h pin",
+    specs: ["Chip M4", "16GB RAM", "Liquid Retina 13.6\"", "18h pin"],
     cta: "Khám phá ngay",
     badge: "Tặng AppleCare+ 3 tháng",
     img: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=1400&q=80&fit=crop",
@@ -467,32 +467,77 @@ export default function HomePage() {
     <div className="bg-gray-50 min-h-screen">
 
       {/* ── BANNER ───────────────────────────────────────────────────── */}
-      <section className="relative bg-gray-900 overflow-hidden" style={{ minHeight: 420 }}>
+      <section className="relative overflow-hidden bg-gray-950" style={{ minHeight: 480 }}>
+        {/* Background image */}
         <div
-          className={`absolute inset-0 bg-cover bg-center transition-opacity duration-300 ${isAnimating ? "opacity-0" : "opacity-100"}`}
+          className={`absolute inset-0 bg-cover bg-center transition-opacity duration-500 ${isAnimating ? "opacity-0" : "opacity-100"}`}
           style={{ backgroundImage: `url(${b.img})` }}
         />
-        <div className="absolute inset-0 bg-gray-900/65" />
-        <div className={`relative z-10 max-w-screen-xl mx-auto px-6 py-16 md:py-24 transition-all duration-300 ${isAnimating ? "opacity-0 translate-y-2" : "opacity-100 translate-y-0"}`}>
-          <span className="inline-block text-xs font-semibold text-red-400 uppercase tracking-widest mb-3">{b.tag}</span>
-          <h1 className="text-4xl md:text-6xl font-bold text-white leading-tight whitespace-pre-line mb-4">{b.title}</h1>
-          <p className="text-gray-300 text-sm md:text-base max-w-lg mb-7">{b.sub}</p>
-          <div className="flex items-center gap-4">
-            <Link href={b.href} className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold text-sm rounded-xl transition-colors no-underline">
-              {b.cta}
-            </Link>
-            <span className="text-sm text-gray-300 bg-white/10 px-4 py-3 rounded-xl border border-white/10">{b.badge}</span>
+        {/* Left-to-right gradient so text stays readable */}
+        <div className="absolute inset-0 bg-gradient-to-r from-gray-950 via-gray-950/80 to-gray-900/10" />
+        {/* Bottom fade */}
+        <div className="absolute inset-0 bg-gradient-to-t from-gray-950/70 via-transparent to-transparent" />
+
+        {/* Content */}
+        <div className={`relative z-10 max-w-screen-xl mx-auto px-6 flex items-center min-h-[480px] transition-all duration-400 ${isAnimating ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"}`}>
+          <div className="max-w-2xl py-14">
+            {/* Tag line */}
+            <div className="flex items-center gap-3 mb-5">
+              <span className="w-8 h-px bg-red-500 shrink-0" />
+              <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-red-400">{b.tag}</span>
+            </div>
+            {/* Title */}
+            <h1 className="text-5xl md:text-7xl font-black text-white leading-[1.02] whitespace-pre-line mb-6 tracking-tight">
+              {b.title}
+            </h1>
+            {/* Spec pills */}
+            <div className="flex flex-wrap gap-2 mb-9">
+              {b.specs.map((s, i) => (
+                <span key={i} className="text-[12px] text-gray-300 bg-white/10 border border-white/15 px-3.5 py-1.5 rounded-full">
+                  {s}
+                </span>
+              ))}
+            </div>
+            {/* CTAs */}
+            <div className="flex items-center gap-5 flex-wrap">
+              <Link
+                href={b.href}
+                className="group inline-flex items-center gap-2.5 px-8 py-3.5 bg-red-600 hover:bg-red-500 text-white font-bold text-sm rounded-full transition-all duration-200 hover:-translate-y-0.5 hover:shadow-2xl hover:shadow-red-600/40 no-underline"
+              >
+                {b.cta}
+                <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5" />
+              </Link>
+              <div className="border-l border-white/20 pl-5">
+                <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-0.5">Ưu đãi đặc biệt</p>
+                <p className="text-sm font-semibold text-gray-200">{b.badge}</p>
+              </div>
+            </div>
           </div>
         </div>
-        <button onClick={() => goTo(current - 1)} className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-white transition-all">
-          <ChevronLeft className="w-4 h-4" />
+
+        {/* Prev / Next */}
+        <button onClick={() => goTo(current - 1)} className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/10 hover:bg-white/25 border border-white/20 flex items-center justify-center text-white transition-all backdrop-blur-sm">
+          <ChevronLeft className="w-5 h-5" />
         </button>
-        <button onClick={() => goTo(current + 1)} className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-white transition-all">
-          <ChevronRight className="w-4 h-4" />
+        <button onClick={() => goTo(current + 1)} className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/10 hover:bg-white/25 border border-white/20 flex items-center justify-center text-white transition-all backdrop-blur-sm">
+          <ChevronRight className="w-5 h-5" />
         </button>
-        <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-2 z-20">
-          {banners.map((_, i) => (
-            <button key={i} onClick={() => goTo(i)} className={`h-1.5 rounded-full transition-all duration-300 ${i === current ? "w-8 bg-red-500" : "w-2 bg-white/30"}`} />
+
+        {/* Thumbnail navigation (bottom-right) */}
+        <div className="absolute bottom-6 right-6 z-20 flex items-end gap-2">
+          {banners.map((bn, i) => (
+            <button
+              key={i}
+              onClick={() => goTo(i)}
+              className={`relative overflow-hidden rounded-xl transition-all duration-300 ${
+                i === current
+                  ? "w-20 h-14 ring-2 ring-red-500 ring-offset-1 ring-offset-gray-950"
+                  : "w-14 h-10 opacity-40 hover:opacity-70 ring-1 ring-white/20"
+              }`}
+            >
+              <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${bn.img})` }} />
+              {i !== current && <div className="absolute inset-0 bg-black/40" />}
+            </button>
           ))}
         </div>
       </section>
