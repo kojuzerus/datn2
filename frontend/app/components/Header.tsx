@@ -48,12 +48,6 @@ const CATEGORY_ICON_MAP: Record<string, React.ElementType> = {
 
 const CAT_ORDER = ["dien-thoai", "laptop", "dien-may", "phu-kien", "tablet"];
 
-const HOT_PRODUCTS = [
-  "iPhone 17 Pro Max", "Samsung Galaxy Z Fold7 5G", "MacBook Air M4 2025",
-  "Laptop Lenovo LOQ 15IRR9", "iPad Pro M4", "Apple Watch Ultra 3",
-  "ASUS ROG Zephyrus G16", "Sony WH-1000XM6",
-];
-
 const TRENDING_KEYWORDS = [
   "iPhone 16", "Samsung Galaxy", "MacBook", "AirPods", "iPad", "Laptop gaming",
 ];
@@ -64,7 +58,6 @@ const fmtPrice = (n: number) =>
 // ─── COMPONENT ────────────────────────────────────────────────────────────────
 
 export default function Header() {
-  const cartItems: unknown[] = [];
   const cartCount = 0;
   const { items: compareItems } = useComparison();
 
@@ -220,7 +213,7 @@ export default function Header() {
     }
   };
 
-  const handleSubmit = (e?: React.FormEvent) => {
+  const handleSubmit = (e?: React.SyntheticEvent) => {
     e?.preventDefault();
     const q = searchInput.trim();
     if (!q) return;
@@ -497,27 +490,6 @@ export default function Header() {
         </div>
       </div>
 
-      {/* ── Ticker ── */}
-      <div className="bg-red-50 dark:bg-slate-800 border-b border-red-100 dark:border-slate-700 overflow-hidden">
-        <div className="max-w-screen-xl mx-auto px-6 py-1.5 flex items-center gap-3">
-          <span className="flex-shrink-0 bg-red-600 text-white text-[11px] font-bold px-2 py-0.5 rounded">
-            HOT
-          </span>
-          <div className="overflow-hidden flex-1">
-            <div className="flex gap-8 animate-ticker whitespace-nowrap">
-              {[...HOT_PRODUCTS, ...HOT_PRODUCTS].map((p, i) => (
-                <button
-                  key={i}
-                  onClick={() => handleTrendingClick(p)}
-                  className="text-xs text-gray-500 hover:text-red-600 transition-colors"
-                >
-                  {p}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* ── Mobile menu ── */}
       {mobileOpen && (
