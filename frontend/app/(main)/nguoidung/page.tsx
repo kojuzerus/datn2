@@ -147,6 +147,7 @@ export default function NguoiDungPage() {
           setHoTen(d.user.hoTen || '');
           setEmail(d.user.email || '');
           setNgaySinh(toInputDate(d.user.ngaySinh));
+          if (d.user.avatar) setAvatarPreview(d.user.avatar);
         } else router.replace('/login');
       })
       .catch(() => router.replace('/login'))
@@ -156,8 +157,26 @@ export default function NguoiDungPage() {
   const handleAvatarFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Ảnh quá lớn, vui lòng chọn ảnh dưới 2MB');
+      return;
+    }
     const reader = new FileReader();
-    reader.onload = () => setAvatarPreview(reader.result as string);
+    reader.onload = async () => {
+      const base64 = reader.result as string;
+      setAvatarPreview(base64);
+      try {
+        const r = await fetch(`${API_URL}/api/auth/profile`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+          body: JSON.stringify({ avatar: base64 }),
+        });
+        const d = await r.json();
+        if (d.user) setUser(d.user);
+      } catch {
+        // preview vẫn hiển thị dù lưu thất bại
+      }
+    };
     reader.readAsDataURL(file);
     e.target.value = '';
   };
@@ -517,25 +536,6 @@ export default function NguoiDungPage() {
             <p className="text-xs text-gray-400 mt-1">Tổng tiền tích lũy · Từ {fmtDate(user.createdAt)}</p>
           </div>
         </div>
-      </div>
-
-      {/* ══════════ Quick actions ══════════ */}
-      <div className="bg-white rounded-sm shadow-sm border border-gray-100 mb-4 px-2 py-1.5 flex items-center gap-1 overflow-x-auto [&::-webkit-scrollbar]:hidden">
-        {([
-          { key: 'overview', icon: LayoutGrid, label: 'Tổng quan' },
-          { key: 'orders',   icon: Truck,      label: 'Lịch sử mua hàng' },
-          { key: 'address',  icon: MapPin,     label: 'Sổ địa chỉ' },
-          { key: 'info',     icon: User,       label: 'Thông tin tài khoản' },
-        ] as { key: Tab; icon: React.ElementType; label: string }[]).map(item => (
-          <button
-            key={item.key}
-            onClick={() => setTab(item.key)}
-            className="shrink-0 flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-[13px] font-medium text-gray-600 hover:bg-gray-50 hover:text-red-600 transition-colors whitespace-nowrap"
-          >
-            <item.icon className="w-4 h-4 text-gray-400" />
-            {item.label}
-          </button>
-        ))}
       </div>
 
       <div className="flex flex-col md:flex-row gap-6">

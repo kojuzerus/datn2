@@ -77,11 +77,12 @@ exports.getMe = async (req, res) => {
 // ── Cập nhật thông tin user ───────────────────────────────────────────────
 exports.updateProfile = async (req, res) => {
   try {
-    const { hoTen, ngaySinh, email } = req.body;
+    const { hoTen, ngaySinh, email, avatar } = req.body;
     const update = {};
     const unset = {};
     if (hoTen?.trim())  update.hoTen    = hoTen.trim();
     if (ngaySinh)       update.ngaySinh = ngaySinh;
+    if (avatar !== undefined) update.avatar = avatar || null;
     if (email !== undefined) {
       const trimmedEmail = email?.trim() || "";
       if (trimmedEmail) {
