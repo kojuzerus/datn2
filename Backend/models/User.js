@@ -8,6 +8,7 @@ const userSchema = new mongoose.Schema({
   matKhau:     { type: String, default: null },
   googleId:    { type: String, unique: true, sparse: true },
   zaloId:      { type: String, unique: true, sparse: true },
+  avatar:      { type: String, default: null },
   role:        { type: String, enum: ["user", "admin"], default: "user" },
   status:      { type: String, enum: ["active", "banned"], default: "active" },
 }, { timestamps: true });
