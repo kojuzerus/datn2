@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   Star, ChevronRight, X, Package, Home, ChevronDown, Repeat,
-  SlidersHorizontal, Check, Tag, Heart,
+  SlidersHorizontal, Check, Tag, Heart, Truck,
 } from "lucide-react";
 import { useComparison } from "../../components/comparisonContext";
 import { useFavorites, type FavoriteProduct } from "../../components/favoritesContext";
@@ -150,7 +150,7 @@ function ProductCard({ p }: { p: Product }) {
             {/* Delivery + rating */}
             <div className="flex items-center justify-between pt-1.5 mt-0.5 border-t border-gray-50">
               <span className="flex items-center gap-1 text-[10.5px] text-blue-600 font-semibold bg-blue-50 px-2 py-1 rounded-lg">
-                🚚 Giao 2 Giờ
+                <Truck className="w-3 h-3" /> Giao 2 Giờ
               </span>
               {p.danhGia > 0 && (
                 <span className="flex items-center gap-0.5">
@@ -511,7 +511,7 @@ function ProductsContent() {
       </div>
 
       {/* ── Filter toolbar ── */}
-      <div ref={toolbarRef} className="sticky top-[88px] z-20 bg-white -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-2.5 mb-3 border-b border-gray-100 shadow-sm relative">
+      <div ref={toolbarRef} className="sticky top-[88px] z-20 bg-white -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 pt-2.5 pb-2 mb-3 border-b border-gray-100 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.08)]">
         <div className="flex items-center gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none] pb-0.5">
           <Pill
             label="Bộ lọc"
