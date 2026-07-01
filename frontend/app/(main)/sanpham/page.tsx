@@ -97,11 +97,11 @@ function ProductCard({ p }: { p: Product }) {
           >
             <Heart className={`w-4 h-4 ${liked ? "fill-white" : ""}`} />
           </button>
-          <div className="bg-gray-50 flex items-center justify-center h-48 overflow-hidden">
+          <div className="bg-white flex items-center justify-center h-48 p-3 overflow-hidden">
             <img
               src={p.thumbnail || "https://placehold.co/400x300?text=No+Image"}
               alt={p.ten}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
               loading="lazy"
             />
           </div>
