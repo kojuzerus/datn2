@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import SearchableSelect, { SelectOption } from '../../components/SearchableSelect';
 import { useFavorites } from '../../components/favoritesContext';
+import ConfirmModal from '../../components/ConfirmModal';
 
 const API_URL  = process.env.NEXT_PUBLIC_API_URL  || 'http://localhost:5000';
 const GEO_API  = 'https://provinces.open-api.vn/api';
@@ -93,6 +94,7 @@ export default function NguoiDungPage() {
   const [orderSearch, setOrderSearch]      = useState('');
   const [orderRange, setOrderRange]        = useState<'all' | 'day' | 'week' | 'month' | 'year'>('all');
   const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
+  const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
 
   // ── Profile edit ──
   const [editing, setEditing]   = useState(false);
@@ -215,7 +217,6 @@ export default function NguoiDungPage() {
   }, [tab, user, fetchOrders]);
 
   const handleCancelOrder = async (orderId: string) => {
-    if (!confirm('Bạn có chắc muốn hủy đơn hàng này không?')) return;
     setCancellingOrderId(orderId);
     try {
       const r = await fetch(`${API_URL}/api/orders/${orderId}/cancel`, {
@@ -232,6 +233,7 @@ export default function NguoiDungPage() {
       alert('Lỗi kết nối, vui lòng thử lại');
     } finally {
       setCancellingOrderId(null);
+      setConfirmCancelId(null);
     }
   };
 
@@ -1150,11 +1152,10 @@ export default function NguoiDungPage() {
                         <div>
                           {o.trangThai === 'cho_xac_nhan' && (
                             <button
-                              onClick={() => handleCancelOrder(o._id)}
-                              disabled={cancellingOrderId === o._id}
-                              className="px-3.5 py-1.5 rounded-full text-[12.5px] font-medium border border-gray-300 text-gray-600 hover:border-red-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              onClick={() => setConfirmCancelId(o._id)}
+                              className="px-3.5 py-1.5 rounded-full text-[12.5px] font-medium border border-gray-300 text-gray-600 hover:border-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
                             >
-                              {cancellingOrderId === o._id ? 'Đang hủy...' : 'Hủy đơn'}
+                              Hủy đơn
                             </button>
                           )}
                         </div>
@@ -1208,6 +1209,17 @@ export default function NguoiDungPage() {
 
         </main>
       </div>
+
+      <ConfirmModal
+        open={!!confirmCancelId}
+        title="Hủy đơn hàng?"
+        message="Bạn có chắc muốn hủy đơn hàng này không? Hành động này không thể hoàn tác."
+        confirmLabel="Hủy đơn"
+        cancelLabel="Giữ đơn"
+        onConfirm={() => confirmCancelId && handleCancelOrder(confirmCancelId)}
+        onCancel={() => setConfirmCancelId(null)}
+        loading={!!cancellingOrderId}
+      />
     </div>
   );
 }
