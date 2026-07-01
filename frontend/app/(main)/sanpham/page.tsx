@@ -511,10 +511,10 @@ function ProductsContent() {
       </div>
 
       {/* ── Sticky filter + sort bar (2 hàng) ── */}
-      <div ref={toolbarRef} className="sticky top-[88px] z-20 bg-white -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 mb-4 border-b border-gray-100 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.1)]">
+      <div ref={toolbarRef} className="sticky top-[88px] z-20 bg-white mb-4">
 
         {/* Hàng 1: Bộ lọc */}
-        <div className="flex items-center gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none] pt-2.5 pb-2 border-b border-gray-50">
+        <div className="flex items-center gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none] pt-1 pb-2 border-b border-gray-100">
           <Pill
             label={activeFilterCount > 0 ? `Bộ lọc (${activeFilterCount})` : "Bộ lọc"}
             icon={<SlidersHorizontal className="w-3.5 h-3.5" />}
