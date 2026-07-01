@@ -188,25 +188,25 @@ function CategoryList({ categories, danhMucSlug, onCategory }: {
     <div className="flex flex-col gap-0.5">
       <button
         onClick={() => onCategory(null)}
-        className={`flex items-center justify-between text-left px-2.5 py-2 rounded-lg text-[13.5px] transition-colors ${
-          !danhMucSlug ? "bg-red-50 text-red-600 font-semibold" : "text-gray-600 hover:bg-gray-50"
+        className={`flex items-center justify-between text-left px-3 py-2 rounded-xl text-[13px] font-medium transition-all ${
+          !danhMucSlug ? "bg-red-600 text-white shadow-sm" : "text-gray-600 hover:bg-gray-50"
         }`}
       >
         Tất cả sản phẩm
-        {!danhMucSlug && <Check className="w-3.5 h-3.5" />}
+        {!danhMucSlug && <Check className="w-3.5 h-3.5 shrink-0" />}
       </button>
-      {categories.map((cat) => {
+      {categories.filter(c => !c.slug.includes("-") || ["dien-thoai","tai-nghe","sac-cap"].includes(c.slug)).map((cat) => {
         const active = danhMucSlug === cat.slug;
         return (
           <button
             key={cat.slug}
             onClick={() => onCategory(active ? null : cat.slug)}
-            className={`flex items-center justify-between text-left px-2.5 py-2 rounded-lg text-[13.5px] transition-colors ${
-              active ? "bg-red-50 text-red-600 font-semibold" : "text-gray-600 hover:bg-gray-50"
+            className={`flex items-center justify-between text-left px-3 py-2 rounded-xl text-[13px] font-medium transition-all ${
+              active ? "bg-red-50 text-red-600 border border-red-100" : "text-gray-600 hover:bg-gray-50 border border-transparent"
             }`}
           >
             <span className="truncate">{cat.category_name}</span>
-            {active && <Check className="w-3.5 h-3.5 shrink-0" />}
+            {active && <Check className="w-3.5 h-3.5 shrink-0 text-red-500" />}
           </button>
         );
       })}
@@ -219,35 +219,35 @@ function BrandList({ brands, loadingBrands, brandIds, onToggleBrand }: {
 }) {
   if (loadingBrands) {
     return (
-      <div className="space-y-2">
-        {[1, 2, 3, 4].map((i) => <div key={i} className="h-6 bg-gray-100 rounded animate-pulse" />)}
+      <div className="grid grid-cols-2 gap-2">
+        {[1, 2, 3, 4, 5, 6].map((i) => <div key={i} className="h-9 bg-gray-100 rounded-xl animate-pulse" />)}
       </div>
     );
   }
   if (brands.length === 0) {
-    return <p className="text-[12.5px] text-gray-300 italic">Không có thương hiệu</p>;
+    return <p className="text-[12.5px] text-gray-400 italic text-center py-4">Không có thương hiệu</p>;
   }
   return (
-    <div className="flex flex-col gap-1.5 max-h-60 overflow-y-auto pr-1">
+    <div className="grid grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-0.5">
       {brands.map((b) => {
         const active = brandIds.includes(String(b.brand_id));
         return (
-          <label key={b.brand_id} className="flex items-center gap-2.5 px-1 py-1 cursor-pointer group">
-            <span
-              onClick={() => onToggleBrand(b.brand_id)}
-              className={`w-4 h-4 rounded-[5px] border flex items-center justify-center shrink-0 transition-colors ${
-                active ? "bg-red-600 border-red-600" : "border-gray-300 group-hover:border-red-300"
-              }`}
-            >
-              {active && <Check className="w-3 h-3 text-white" />}
+          <button
+            key={b.brand_id}
+            onClick={() => onToggleBrand(b.brand_id)}
+            className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-[12.5px] font-medium transition-all text-left ${
+              active
+                ? "border-red-400 bg-red-50 text-red-600 shadow-sm"
+                : "border-gray-200 text-gray-600 hover:border-red-200 hover:bg-red-50/40"
+            }`}
+          >
+            <span className={`w-3.5 h-3.5 rounded-[4px] border flex items-center justify-center shrink-0 transition-colors ${
+              active ? "bg-red-600 border-red-600" : "border-gray-300"
+            }`}>
+              {active && <Check className="w-2.5 h-2.5 text-white" />}
             </span>
-            <span
-              onClick={() => onToggleBrand(b.brand_id)}
-              className={`text-[13.5px] select-none ${active ? "text-red-600 font-medium" : "text-gray-600"}`}
-            >
-              {b.brand_name}
-            </span>
-          </label>
+            <span className="truncate">{b.brand_name}</span>
+          </button>
         );
       })}
     </div>
@@ -256,20 +256,19 @@ function BrandList({ brands, loadingBrands, brandIds, onToggleBrand }: {
 
 function PriceList({ priceKey, onPricePreset }: { priceKey: string; onPricePreset: (key: string | null) => void }) {
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="grid grid-cols-2 gap-2">
       {PRICE_PRESETS.map((preset) => {
         const active = priceKey === preset.key;
         return (
           <button
             key={preset.key}
             onClick={() => onPricePreset(active ? null : preset.key)}
-            className={`flex items-center gap-2.5 px-1 py-1.5 rounded-lg text-[13.5px] text-left transition-colors ${
-              active ? "text-red-600 font-medium" : "text-gray-600 hover:text-gray-900"
+            className={`px-3 py-2.5 rounded-xl border text-[12.5px] font-medium text-left transition-all ${
+              active
+                ? "border-red-500 bg-red-600 text-white shadow-sm"
+                : "border-gray-200 text-gray-600 hover:border-red-300 hover:bg-red-50"
             }`}
           >
-            <span className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${active ? "border-red-600" : "border-gray-300"}`}>
-              {active && <span className="w-2 h-2 rounded-full bg-red-600" />}
-            </span>
             {preset.label}
           </button>
         );
@@ -280,21 +279,26 @@ function PriceList({ priceKey, onPricePreset }: { priceKey: string; onPricePrese
 
 function RatingList({ ratingMin, onRating }: { ratingMin: string; onRating: (v: number | null) => void }) {
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-2">
       {RATING_PRESETS.map((r) => {
         const active = ratingMin === String(r);
         return (
           <button
             key={r}
             onClick={() => onRating(active ? null : r)}
-            className={`flex items-center gap-1.5 px-1 py-1.5 rounded-lg transition-colors ${
-              active ? "text-red-600" : "text-gray-600 hover:text-gray-900"
+            className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all ${
+              active
+                ? "border-amber-300 bg-amber-50 shadow-sm"
+                : "border-gray-200 hover:border-amber-200 hover:bg-amber-50/50"
             }`}
           >
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Star key={i} className={`w-3.5 h-3.5 ${i < r ? "fill-amber-400 text-amber-400" : "fill-gray-200 text-gray-200"}`} />
-            ))}
-            <span className="text-[13px] font-medium ml-0.5">trở lên</span>
+            <div className="flex gap-0.5">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Star key={i} className={`w-3.5 h-3.5 ${i < r ? "fill-amber-400 text-amber-400" : "fill-gray-200 text-gray-200"}`} />
+              ))}
+            </div>
+            <span className={`text-[12.5px] font-medium ${active ? "text-amber-700" : "text-gray-500"}`}>trở lên</span>
+            {active && <Check className="w-3.5 h-3.5 text-amber-500 ml-auto" />}
           </button>
         );
       })}
@@ -304,23 +308,22 @@ function RatingList({ ratingMin, onRating }: { ratingMin: string; onRating: (v: 
 
 function DiscountToggle({ discountOnly, onDiscount }: { discountOnly: boolean; onDiscount: (v: boolean) => void }) {
   return (
-    <label className="flex items-center gap-2.5 px-1 py-1 cursor-pointer group">
-      <span
-        onClick={() => onDiscount(!discountOnly)}
-        className={`w-4 h-4 rounded-[5px] border flex items-center justify-center shrink-0 transition-colors ${
-          discountOnly ? "bg-red-600 border-red-600" : "border-gray-300 group-hover:border-red-300"
-        }`}
-      >
-        {discountOnly && <Check className="w-3 h-3 text-white" />}
-      </span>
-      <span
-        onClick={() => onDiscount(!discountOnly)}
-        className={`text-[13.5px] select-none flex items-center gap-1.5 ${discountOnly ? "text-red-600 font-medium" : "text-gray-600"}`}
-      >
-        <Tag className="w-3.5 h-3.5" />
-        Chỉ hiện sản phẩm giảm giá
-      </span>
-    </label>
+    <button
+      onClick={() => onDiscount(!discountOnly)}
+      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border transition-all ${
+        discountOnly ? "border-red-300 bg-red-50" : "border-gray-200 hover:border-red-200 hover:bg-red-50/40"
+      }`}
+    >
+      <div className="flex items-center gap-2">
+        <Tag className="w-4 h-4 text-red-500" />
+        <span className={`text-[13px] font-medium ${discountOnly ? "text-red-600" : "text-gray-700"}`}>
+          Đang giảm giá
+        </span>
+      </div>
+      <div className={`relative inline-flex items-center w-9 h-5 rounded-full transition-colors shrink-0 ${discountOnly ? "bg-red-500" : "bg-gray-200"}`}>
+        <span className={`inline-block w-3.5 h-3.5 rounded-full bg-white shadow-sm transition-transform mx-[3px] ${discountOnly ? "translate-x-4" : "translate-x-0"}`} />
+      </div>
+    </button>
   );
 }
 
@@ -512,43 +515,85 @@ function ProductsContent() {
 
         {/* ── Combined filter panel ── */}
         {openDropdown === "filter" && (
-          <div className="absolute left-0 top-full mt-2 z-30 w-[min(820px,calc(100vw-2rem))] bg-white border border-gray-100 rounded-2xl shadow-xl overflow-hidden">
-            <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-gray-100 max-h-[420px] overflow-y-auto p-5 gap-5">
-              <div>
-                <p className="text-[12px] font-semibold text-gray-700 uppercase tracking-wide mb-3">Danh mục</p>
+          <div className="absolute left-0 top-full mt-2 z-30 w-[min(860px,calc(100vw-2rem))] bg-white border border-gray-100 rounded-2xl shadow-2xl overflow-hidden">
+            {/* Panel header */}
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100">
+              <div className="flex items-center gap-2.5">
+                <SlidersHorizontal className="w-4 h-4 text-gray-500" />
+                <span className="font-semibold text-gray-800 text-[14px]">Bộ lọc tìm kiếm</span>
+                {activeFilterCount > 0 && (
+                  <span className="bg-red-100 text-red-600 text-[11px] font-bold px-2 py-0.5 rounded-full">{activeFilterCount} đang chọn</span>
+                )}
+              </div>
+              {activeFilterCount > 0 && (
+                <button onClick={handleClearAll} className="text-[12.5px] text-gray-400 hover:text-red-600 transition-colors flex items-center gap-1 font-medium">
+                  <X className="w-3 h-3" /> Xóa tất cả
+                </button>
+              )}
+            </div>
+
+            {/* Panel body - 3 columns */}
+            <div className="grid grid-cols-[220px_1fr_220px] divide-x divide-gray-100" style={{ maxHeight: 400, overflowY: "auto" }}>
+              {/* Col 1: Danh mục */}
+              <div className="p-4">
+                <p className="flex items-center gap-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">
+                  <span className="w-2 h-2 rounded-full bg-blue-400 inline-block" />
+                  Danh mục
+                </p>
                 <CategoryList categories={categories} danhMucSlug={danhMucSlug} onCategory={handleCategory} />
               </div>
-              <div className="sm:pl-5 pt-5 sm:pt-0">
-                <p className="text-[12px] font-semibold text-gray-700 uppercase tracking-wide mb-3">Thương hiệu</p>
+
+              {/* Col 2: Thương hiệu */}
+              <div className="p-4">
+                <p className="flex items-center gap-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">
+                  <span className="w-2 h-2 rounded-full bg-purple-400 inline-block" />
+                  Thương hiệu
+                  {brandIds.length > 0 && (
+                    <span className="ml-1 bg-red-100 text-red-600 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{brandIds.length}</span>
+                  )}
+                </p>
                 <BrandList brands={brands} loadingBrands={loadingBrands} brandIds={brandIds} onToggleBrand={handleToggleBrand} />
               </div>
-              <div className="sm:pl-5 pt-5 sm:pt-0 flex flex-col gap-5">
+
+              {/* Col 3: Price + Rating + Discount */}
+              <div className="p-4 flex flex-col gap-4">
                 <div>
-                  <p className="text-[12px] font-semibold text-gray-700 uppercase tracking-wide mb-3">Khoảng giá</p>
+                  <p className="flex items-center gap-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">
+                    <span className="w-2 h-2 rounded-full bg-green-400 inline-block" />
+                    Khoảng giá
+                  </p>
                   <PriceList priceKey={priceKey} onPricePreset={handlePricePreset} />
                 </div>
                 <div>
-                  <p className="text-[12px] font-semibold text-gray-700 uppercase tracking-wide mb-3">Đánh giá</p>
+                  <p className="flex items-center gap-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">
+                    <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
+                    Đánh giá
+                  </p>
                   <RatingList ratingMin={ratingMin} onRating={handleRating} />
                 </div>
                 <div>
-                  <p className="text-[12px] font-semibold text-gray-700 uppercase tracking-wide mb-3">Ưu đãi</p>
+                  <p className="flex items-center gap-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">
+                    <span className="w-2 h-2 rounded-full bg-red-400 inline-block" />
+                    Ưu đãi
+                  </p>
                   <DiscountToggle discountOnly={discountOnly} onDiscount={handleDiscount} />
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-3 px-5 py-3.5 border-t border-gray-100 bg-gray-50/60">
+
+            {/* Panel footer */}
+            <div className="flex items-center justify-between px-5 py-3.5 border-t border-gray-100 bg-gray-50/70">
               <button
-                onClick={handleClearAll}
-                className="flex-1 sm:flex-none px-5 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-[13px] font-medium hover:bg-gray-100 transition-colors"
+                onClick={() => setOpenDropdown("")}
+                className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-[13px] font-medium hover:bg-gray-100 transition-colors"
               >
                 Đóng
               </button>
               <button
                 onClick={() => setOpenDropdown("")}
-                className="flex-1 sm:flex-none ml-auto px-6 py-2.5 rounded-xl bg-red-600 text-white text-[13px] font-semibold hover:bg-red-700 transition-colors"
+                className="px-7 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-[13px] font-semibold transition-colors shadow-sm"
               >
-                Xem kết quả {loading ? "" : `(${pagination.total.toLocaleString("vi-VN")})`}
+                {loading ? "Đang tải..." : `Xem ${pagination.total.toLocaleString("vi-VN")} kết quả`}
               </button>
             </div>
           </div>
@@ -556,22 +601,26 @@ function ProductsContent() {
 
         {/* ── Single-purpose dropdowns ── */}
         {openDropdown === "category" && (
-          <div className="absolute left-0 top-full mt-2 z-30 w-64 bg-white border border-gray-100 rounded-2xl shadow-xl p-4 max-h-80 overflow-y-auto">
+          <div className="absolute left-0 top-full mt-2 z-30 w-56 bg-white border border-gray-100 rounded-2xl shadow-xl p-3 max-h-80 overflow-y-auto">
+            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2.5 px-1">Danh mục</p>
             <CategoryList categories={categories} danhMucSlug={danhMucSlug} onCategory={(s) => { handleCategory(s); setOpenDropdown(""); }} />
           </div>
         )}
         {openDropdown === "brand" && (
-          <div className="absolute left-0 top-full mt-2 z-30 w-64 bg-white border border-gray-100 rounded-2xl shadow-xl p-4">
+          <div className="absolute left-0 top-full mt-2 z-30 w-72 bg-white border border-gray-100 rounded-2xl shadow-xl p-3">
+            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2.5 px-1">Thương hiệu</p>
             <BrandList brands={brands} loadingBrands={loadingBrands} brandIds={brandIds} onToggleBrand={handleToggleBrand} />
           </div>
         )}
         {openDropdown === "price" && (
-          <div className="absolute left-0 top-full mt-2 z-30 w-60 bg-white border border-gray-100 rounded-2xl shadow-xl p-4">
+          <div className="absolute left-0 top-full mt-2 z-30 w-64 bg-white border border-gray-100 rounded-2xl shadow-xl p-3">
+            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2.5 px-1">Khoảng giá</p>
             <PriceList priceKey={priceKey} onPricePreset={(k) => { handlePricePreset(k); setOpenDropdown(""); }} />
           </div>
         )}
         {openDropdown === "rating" && (
-          <div className="absolute left-0 top-full mt-2 z-30 w-56 bg-white border border-gray-100 rounded-2xl shadow-xl p-4">
+          <div className="absolute left-0 top-full mt-2 z-30 w-60 bg-white border border-gray-100 rounded-2xl shadow-xl p-3">
+            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2.5 px-1">Đánh giá</p>
             <RatingList ratingMin={ratingMin} onRating={(v) => { handleRating(v); setOpenDropdown(""); }} />
           </div>
         )}
@@ -587,19 +636,19 @@ function ProductsContent() {
 
       {/* Active filter chips */}
       {(keyword || danhMucSlug || brandIds.length > 0 || priceKey || ratingMin || discountOnly) && (
-        <div className="flex flex-wrap items-center gap-2 mb-4">
+        <div className="flex flex-wrap items-center gap-1.5 mb-4">
           {keyword && (
-            <span className="inline-flex items-center gap-1.5 bg-red-50 text-red-700 text-[12.5px] font-medium px-3 py-1.5 rounded-full border border-red-100">
-              Tìm: &ldquo;{keyword}&rdquo;
-              <button onClick={() => pushParams({ "tu-khoa": null })} className="hover:text-red-900 transition-colors">
+            <span className="inline-flex items-center gap-1.5 bg-red-50 text-red-600 text-[12px] font-medium px-3 py-1.5 rounded-full border border-red-200">
+              🔍 &ldquo;{keyword}&rdquo;
+              <button onClick={() => pushParams({ "tu-khoa": null })} className="hover:text-red-800 transition-colors ml-0.5">
                 <X className="w-3 h-3" />
               </button>
             </span>
           )}
           {selectedCat && (
-            <span className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 text-[12.5px] font-medium px-3 py-1.5 rounded-full">
+            <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 text-[12px] font-medium px-3 py-1.5 rounded-full border border-blue-100">
               {selectedCat.category_name}
-              <button onClick={() => handleCategory(null)} className="hover:text-red-600 transition-colors">
+              <button onClick={() => handleCategory(null)} className="hover:text-blue-900 transition-colors ml-0.5">
                 <X className="w-3 h-3" />
               </button>
             </span>
@@ -608,40 +657,43 @@ function ProductsContent() {
             const b = brands.find((br) => String(br.brand_id) === id);
             if (!b) return null;
             return (
-              <span key={id} className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 text-[12.5px] font-medium px-3 py-1.5 rounded-full">
+              <span key={id} className="inline-flex items-center gap-1.5 bg-purple-50 text-purple-700 text-[12px] font-medium px-3 py-1.5 rounded-full border border-purple-100">
                 {b.brand_name}
-                <button onClick={() => handleToggleBrand(b.brand_id)} className="hover:text-red-600 transition-colors">
+                <button onClick={() => handleToggleBrand(b.brand_id)} className="hover:text-purple-900 transition-colors ml-0.5">
                   <X className="w-3 h-3" />
                 </button>
               </span>
             );
           })}
           {selectedPriceRange && (
-            <span className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 text-[12.5px] font-medium px-3 py-1.5 rounded-full">
-              {selectedPriceRange.label}
-              <button onClick={() => handlePricePreset(null)} className="hover:text-red-600 transition-colors">
+            <span className="inline-flex items-center gap-1.5 bg-green-50 text-green-700 text-[12px] font-medium px-3 py-1.5 rounded-full border border-green-100">
+              💰 {selectedPriceRange.label}
+              <button onClick={() => handlePricePreset(null)} className="hover:text-green-900 transition-colors ml-0.5">
                 <X className="w-3 h-3" />
               </button>
             </span>
           )}
           {ratingMin && (
-            <span className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 text-[12.5px] font-medium px-3 py-1.5 rounded-full">
-              {ratingMin}★ trở lên
-              <button onClick={() => handleRating(null)} className="hover:text-red-600 transition-colors">
+            <span className="inline-flex items-center gap-1.5 bg-amber-50 text-amber-700 text-[12px] font-medium px-3 py-1.5 rounded-full border border-amber-100">
+              ⭐ {ratingMin}+ sao
+              <button onClick={() => handleRating(null)} className="hover:text-amber-900 transition-colors ml-0.5">
                 <X className="w-3 h-3" />
               </button>
             </span>
           )}
           {discountOnly && (
-            <span className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 text-[12.5px] font-medium px-3 py-1.5 rounded-full">
-              Giảm giá
-              <button onClick={() => handleDiscount(false)} className="hover:text-red-600 transition-colors">
+            <span className="inline-flex items-center gap-1.5 bg-red-50 text-red-600 text-[12px] font-medium px-3 py-1.5 rounded-full border border-red-200">
+              🏷️ Giảm giá
+              <button onClick={() => handleDiscount(false)} className="hover:text-red-800 transition-colors ml-0.5">
                 <X className="w-3 h-3" />
               </button>
             </span>
           )}
-          <button onClick={handleClearAll} className="text-[12.5px] text-gray-500 hover:text-red-600 font-medium transition-colors">
-            Xóa tất cả bộ lọc
+          <button
+            onClick={handleClearAll}
+            className="text-[12px] text-gray-400 hover:text-red-500 font-medium transition-colors flex items-center gap-1 px-2 py-1.5"
+          >
+            <X className="w-3 h-3" /> Xóa tất cả
           </button>
         </div>
       )}
