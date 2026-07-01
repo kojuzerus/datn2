@@ -330,6 +330,7 @@ export default function MegaMenuButton() {
                       cols={3}
                       onClose={() => setOpen(false)}
                       tags={[]}
+                      categorySlug={selectedCategorySlug}
                     />
                   </div>
                 </div>
@@ -342,6 +343,7 @@ export default function MegaMenuButton() {
                     cols={4}
                     onClose={() => setOpen(false)}
                     tags={tags}
+                    categorySlug={selectedCategorySlug}
                   />
                 </div>
               )}
@@ -361,12 +363,14 @@ function BrandsSection({
   cols,
   onClose,
   tags,
+  categorySlug,
 }: {
   loading: boolean;
   brands: BrandItem[];
   cols: 3 | 4;
   onClose: () => void;
   tags: string[];
+  categorySlug?: string;
 }) {
   const gridCols = cols === 4 ? "grid-cols-4" : "grid-cols-3";
 
@@ -403,7 +407,7 @@ function BrandsSection({
             return (
               <Link
                 key={brand.brand_id}
-                href={`/sanpham?brand_id=${brand.brand_id}`}
+                href={`/sanpham?thuong-hieu=${brand.brand_id}${categorySlug ? `&danh-muc=${encodeURIComponent(categorySlug)}` : ""}`}
                 onClick={onClose}
                 className="flex flex-col items-center gap-1.5 p-2.5 rounded-xl border border-gray-100 bg-white hover:border-red-200 hover:bg-red-50 transition-all text-center group"
               >
