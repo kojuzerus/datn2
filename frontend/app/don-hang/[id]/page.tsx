@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Clock, MapPin, XCircle, Check, Star } from 'lucide-react';
+import ConfirmModal from '../../components/ConfirmModal';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -67,6 +68,7 @@ export default function OrderDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [cancelling, setCancelling] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
 
   useEffect(() => {
     const token = getToken();
@@ -105,7 +107,6 @@ export default function OrderDetailPage() {
   }, [params.id, router]);
 
   const handleCancel = async () => {
-    if (!confirm('Bạn có chắc muốn hủy đơn hàng này không?')) return;
     setCancelling(true);
     try {
       const res = await fetch(`${API_URL}/api/orders/${params.id}/cancel`, {
@@ -122,6 +123,7 @@ export default function OrderDetailPage() {
       alert('Lỗi kết nối, vui lòng thử lại');
     } finally {
       setCancelling(false);
+      setShowCancelModal(false);
     }
   };
 
@@ -230,11 +232,10 @@ export default function OrderDetailPage() {
                     <div className="flex items-center gap-3">
                       {order.trangThai === 'cho_xac_nhan' && (
                         <button
-                          onClick={handleCancel}
-                          disabled={cancelling}
-                          className="px-5 py-2 text-sm font-semibold text-red-600 border border-red-300 bg-white rounded-md hover:bg-red-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                          onClick={() => setShowCancelModal(true)}
+                          className="px-5 py-2 text-sm font-semibold text-red-600 border border-red-300 bg-white rounded-md hover:bg-red-50 transition"
                         >
-                          {cancelling ? 'Đang hủy...' : 'Hủy đơn hàng'}
+                          Hủy đơn hàng
                         </button>
                       )}
                       <button className="px-6 py-2 text-sm font-semibold text-white bg-red-600 rounded-md hover:bg-red-700 transition">
@@ -341,6 +342,17 @@ export default function OrderDetailPage() {
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        open={showCancelModal}
+        title="Hủy đơn hàng?"
+        message="Bạn có chắc muốn hủy đơn hàng này không? Hành động này không thể hoàn tác."
+        confirmLabel="Hủy đơn"
+        cancelLabel="Giữ đơn"
+        onConfirm={handleCancel}
+        onCancel={() => setShowCancelModal(false)}
+        loading={cancelling}
+      />
     </div>
   );
 }
