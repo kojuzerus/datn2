@@ -272,11 +272,11 @@ function ProductCard({ p }: { p: ProductFeatured }) {
         >
           <Heart className={`w-4 h-4 ${liked ? "fill-white" : ""}`} />
         </button>
-        <div className="relative overflow-hidden rounded-t-2xl aspect-[4/3] bg-gray-50">
+        <div className="flex items-center justify-center rounded-t-2xl aspect-[4/3] bg-white p-3 overflow-hidden">
           <img
             src={p.thumbnail || "https://placehold.co/400x300?text=No+Image"}
             alt={p.ten}
-            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105"
             loading="lazy"
           />
         </div>
@@ -326,11 +326,11 @@ function BestSellingCard({ p }: { p: ProductBestSelling }) {
   return (
     <Link href={`/sanpham/${p.slug}`}>
       <div className="group bg-white border border-gray-100 rounded-sm overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex flex-col relative cursor-pointer h-full">
-        <div className="relative overflow-hidden rounded-t-2xl aspect-[4/3] bg-gray-50">
+        <div className="flex items-center justify-center rounded-t-2xl aspect-[4/3] bg-white p-3 overflow-hidden">
           <img
             src={p.thumbnail || "https://placehold.co/400x300?text=No+Image"}
             alt={p.ten}
-            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105"
             loading="lazy"
           />
         </div>
