@@ -64,7 +64,7 @@ const fmtPrice = (n: number) =>
 // ─── COMPONENT ────────────────────────────────────────────────────────────────
 
 export default function Header() {
-  const cartCount = 0;
+  const [cartCount, setCartCount] = useState(0);
   const { items: compareItems } = useComparison();
 
   const [mobileOpen,      setMobileOpen]      = useState(false);
@@ -131,6 +131,31 @@ export default function Header() {
     return () => {
       window.removeEventListener("focus", checkLogin);
       window.removeEventListener("storage", checkLogin);
+    };
+  }, [apiUrl]);
+
+  // ── Cart count ──
+  useEffect(() => {
+    const fetchCartCount = async () => {
+      const token = localStorage.getItem("smarthub_token");
+      if (!token) { setCartCount(0); return; }
+      try {
+        const res = await fetch(`${apiUrl}/api/cart`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const total = (data.items || []).reduce((s: number, i: { soLuong: number }) => s + i.soLuong, 0);
+          setCartCount(total);
+        }
+      } catch { setCartCount(0); }
+    };
+    fetchCartCount();
+    window.addEventListener("cart-updated", fetchCartCount);
+    window.addEventListener("focus", fetchCartCount);
+    return () => {
+      window.removeEventListener("cart-updated", fetchCartCount);
+      window.removeEventListener("focus", fetchCartCount);
     };
   }, [apiUrl]);
 

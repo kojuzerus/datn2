@@ -92,6 +92,7 @@ export default function NguoiDungPage() {
   const [ordersLoading, setOrdersLoading]  = useState(false);
   const [orderSearch, setOrderSearch]      = useState('');
   const [orderRange, setOrderRange]        = useState<'all' | 'day' | 'week' | 'month' | 'year'>('all');
+  const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
 
   // ── Profile edit ──
   const [editing, setEditing]   = useState(false);
@@ -212,6 +213,27 @@ export default function NguoiDungPage() {
   useEffect(() => {
     if ((tab === 'overview' || tab === 'orders') && user) fetchOrders();
   }, [tab, user, fetchOrders]);
+
+  const handleCancelOrder = async (orderId: string) => {
+    if (!confirm('Bạn có chắc muốn hủy đơn hàng này không?')) return;
+    setCancellingOrderId(orderId);
+    try {
+      const r = await fetch(`${API_URL}/api/orders/${orderId}/cancel`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      const d = await r.json();
+      if (d.success) {
+        setOrders(prev => prev.map(o => o._id === orderId ? { ...o, trangThai: 'da_huy' } : o));
+      } else {
+        alert(d.message || 'Không thể hủy đơn hàng');
+      }
+    } catch {
+      alert('Lỗi kết nối, vui lòng thử lại');
+    } finally {
+      setCancellingOrderId(null);
+    }
+  };
 
   const orderCount     = orders.filter(o => o.trangThai !== 'da_huy').length;
   const totalSpent      = orders.filter(o => o.trangThai === 'da_giao').reduce((s, o) => s + o.tongThanhToan, 0);
@@ -1124,11 +1146,24 @@ export default function NguoiDungPage() {
                           </div>
                         ))}
                       </div>
-                      <div className="flex items-center justify-end gap-2 mt-3 pt-3 border-t border-dashed border-gray-100">
-                        <span className="text-sm text-gray-500">Tổng tiền:</span>
-                        <span className="text-sm font-bold text-red-600">
-                          {new Intl.NumberFormat('vi-VN').format(o.tongThanhToan)}đ
-                        </span>
+                      <div className="flex items-center justify-between gap-2 mt-3 pt-3 border-t border-dashed border-gray-100">
+                        <div>
+                          {o.trangThai === 'cho_xac_nhan' && (
+                            <button
+                              onClick={() => handleCancelOrder(o._id)}
+                              disabled={cancellingOrderId === o._id}
+                              className="px-3.5 py-1.5 rounded-full text-[12.5px] font-medium border border-gray-300 text-gray-600 hover:border-red-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {cancellingOrderId === o._id ? 'Đang hủy...' : 'Hủy đơn'}
+                            </button>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-gray-500">Tổng tiền:</span>
+                          <span className="text-sm font-bold text-red-600">
+                            {new Intl.NumberFormat('vi-VN').format(o.tongThanhToan)}đ
+                          </span>
+                        </div>
                       </div>
                     </div>
                   ))}

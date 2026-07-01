@@ -78,7 +78,10 @@ export default function GioHangPage() {
         body: JSON.stringify({ soLuong }),
       });
       const data = await res.json();
-      if (data.success) setItems(data.cart.items);
+      if (data.success) {
+        setItems(data.cart.items);
+        window.dispatchEvent(new Event('cart-updated'));
+      }
     } catch {}
     setUpdating(null);
   };
@@ -94,6 +97,7 @@ export default function GioHangPage() {
       if (data.success) {
         setItems(data.cart.items);
         setSelected(prev => { const n = new Set(prev); n.delete(itemId); return n; });
+        window.dispatchEvent(new Event('cart-updated'));
       }
     } catch {}
     setUpdating(null);
@@ -108,6 +112,7 @@ export default function GioHangPage() {
       });
       setItems([]);
       setSelected(new Set());
+      window.dispatchEvent(new Event('cart-updated'));
     } catch {}
   };
 

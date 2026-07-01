@@ -235,6 +235,7 @@ export default function ThanhToanPage() {
 
     if (data.success) {
       localStorage.removeItem('smarthub_checkout_ids');
+      window.dispatchEvent(new Event('cart-updated'));
       // Nếu VNPAY, lấy URL thanh toán và redirect
       if (paymentMethod === 'vnpay') {
         const payRes = await fetch(`${API_URL}/api/vnpay/create_payment`, {
