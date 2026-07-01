@@ -81,11 +81,11 @@ function ProductCard({ p }: { p: Product }) {
 
   return (
     <div className="group flex flex-col relative">
-      {/* Heart button – absolute, outside Link */}
+      {/* Heart button – absolute, in image area */}
       <button
         onClick={handleToggleFavorite}
         title="Yêu thích"
-        className={`absolute bottom-[44px] right-2.5 z-10 w-7 h-7 flex items-center justify-center rounded-full bg-white shadow border border-gray-100 transition-colors ${
+        className={`absolute top-[34px] right-2.5 z-10 w-7 h-7 flex items-center justify-center rounded-full bg-white shadow border border-gray-100 transition-colors ${
           liked ? "text-red-500 border-red-200" : "text-gray-300 hover:text-red-400"
         }`}
       >
