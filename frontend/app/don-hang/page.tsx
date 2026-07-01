@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Package, ChevronRight, Clock3, MapPin, CreditCard, Truck, XCircle } from 'lucide-react';
+import { Package, ChevronRight, Clock3, CreditCard, XCircle } from 'lucide-react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -54,11 +54,23 @@ const formatCurrency = (value: number) =>
 const formatDate = (value: string) =>
   new Date(value).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
+type StatusKey = 'all' | 'cho_xac_nhan' | 'da_xac_nhan' | 'dang_giao' | 'da_giao' | 'da_huy';
+
+const STATUS_TABS: { key: StatusKey; label: string }[] = [
+  { key: 'all',          label: 'Tất cả' },
+  { key: 'cho_xac_nhan', label: 'Chờ xác nhận' },
+  { key: 'da_xac_nhan',  label: 'Đã xác nhận' },
+  { key: 'dang_giao',    label: 'Đang giao' },
+  { key: 'da_giao',      label: 'Đã giao' },
+  { key: 'da_huy',       label: 'Đã hủy' },
+];
+
 export default function DonHangPage() {
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [activeStatus, setActiveStatus] = useState<StatusKey>('all');
 
   useEffect(() => {
     const token = getToken();
@@ -108,6 +120,38 @@ export default function DonHangPage() {
           </div>
         </div>
 
+        {/* ── Status filter tabs ── */}
+        {!loading && !error && orders.length > 0 && (
+          <div className="mb-2 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="flex overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+              {STATUS_TABS.map((tab) => {
+                const count = tab.key === 'all' ? orders.length : orders.filter(o => o.trangThai === tab.key).length;
+                const isActive = activeStatus === tab.key;
+                return (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveStatus(tab.key)}
+                    className={`relative shrink-0 flex items-center gap-2 px-5 py-3.5 text-sm font-medium whitespace-nowrap transition-colors border-b-2 ${
+                      isActive
+                        ? 'border-red-500 text-red-600 bg-red-50/50'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    {tab.label}
+                    {count > 0 && (
+                      <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center leading-none ${
+                        isActive ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-500'
+                      }`}>
+                        {count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         <div className="grid gap-6">
           {loading && (
             <div className="rounded-sm border border-gray-200 bg-white p-10 text-center text-gray-500 shadow-sm">
@@ -131,7 +175,17 @@ export default function DonHangPage() {
             </div>
           )}
 
+          {!loading && !error && orders.length > 0 &&
+            (activeStatus === 'all' ? orders : orders.filter(o => o.trangThai === activeStatus)).length === 0 && (
+            <div className="rounded-sm border border-gray-200 bg-white p-12 text-center shadow-sm">
+              <Package className="h-10 w-10 text-gray-300 mx-auto mb-3" />
+              <p className="font-semibold text-gray-600">Không có đơn hàng</p>
+              <p className="mt-1 text-sm text-gray-400">Chưa có đơn hàng ở trạng thái này</p>
+            </div>
+          )}
+
           {!loading && orders.map((order) => {
+            if (activeStatus !== 'all' && order.trangThai !== activeStatus) return null;
             const status = statusLabels[order.trangThai] || { text: 'Không xác định', color: 'bg-gray-100 text-gray-700' };
             return (
               <div key={order._id} className="overflow-hidden rounded-sm border border-gray-200 bg-white shadow-sm">
