@@ -26,6 +26,11 @@ export default function ComparisonBar() {
   const { items, addItem, removeItem, clearItems, isInComparison, error, clearError } = useComparison();
 
   const [panelOpen, setPanelOpen]   = useState(false);
+
+  // Notify ScrollToTop to hide when panel is open
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('compare-panel', { detail: panelOpen }));
+  }, [panelOpen]);
   const [query, setQuery]           = useState('');
   const [results, setResults]       = useState<SearchResult[]>([]);
   const [loading, setLoading]       = useState(false);

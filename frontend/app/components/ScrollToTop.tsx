@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import { ChevronUp } from 'lucide-react';
 
 export default function ScrollToTop() {
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible]           = useState(false);
+  const [panelOpen, setPanelOpen]       = useState(false);
 
   useEffect(() => {
     const onScroll = () => setVisible(window.scrollY > 300);
@@ -12,7 +13,13 @@ export default function ScrollToTop() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  if (!visible) return null;
+  useEffect(() => {
+    const handler = (e: Event) => setPanelOpen((e as CustomEvent<boolean>).detail);
+    window.addEventListener('compare-panel', handler);
+    return () => window.removeEventListener('compare-panel', handler);
+  }, []);
+
+  if (!visible || panelOpen) return null;
 
   return (
     <button
