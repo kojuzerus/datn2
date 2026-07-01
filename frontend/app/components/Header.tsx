@@ -145,7 +145,8 @@ export default function Header() {
         });
         if (res.ok) {
           const data = await res.json();
-          const total = (data.items || []).reduce((s: number, i: { soLuong: number }) => s + i.soLuong, 0);
+          const items = data.cart?.items || data.items || [];
+          const total = items.reduce((s: number, i: { soLuong: number }) => s + i.soLuong, 0);
           setCartCount(total);
         }
       } catch { setCartCount(0); }
