@@ -5,6 +5,7 @@ import { ComparisonProvider } from "../components/comparisonContext";
 import { FavoritesProvider } from "../components/favoritesContext";
 import ComparisonBar from "../components/ComparisonBar";
 import LoginPromptModal from "../components/LoginPromptModal";
+import ScrollToTop from "../components/ScrollToTop";
 
 export default function MainLayout({
   children,
@@ -22,6 +23,7 @@ export default function MainLayout({
           <Footer />
           <ComparisonBar />
           <LoginPromptModal />
+          <ScrollToTop />
         </FavoritesProvider>
       </ComparisonProvider>
     </SearchProvider>
