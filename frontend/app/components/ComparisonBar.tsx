@@ -101,9 +101,9 @@ export default function ComparisonBar() {
 
       {/* ── Search panel ── */}
       {panelOpen && (
-        <div className="fixed bottom-[64px] left-0 right-0 z-[49] flex justify-center px-4 pb-3">
-          <div className="w-full max-w-4xl bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden flex flex-col"
-               style={{ maxHeight: 'calc(100vh - 140px)' }}>
+        <div className="fixed top-[116px] bottom-[64px] left-0 right-0 z-[49] flex justify-center items-end px-4 pb-3 pointer-events-none">
+          <div className="w-full max-w-4xl bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden flex flex-col pointer-events-auto"
+               style={{ maxHeight: '100%' }}>
 
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
