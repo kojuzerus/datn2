@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { X, ArrowRight, Repeat, Trash2, AlertTriangle, Search, Plus, Loader2, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
-import { useComparison, ComparisonProduct } from './comparisonContext';
+import { useComparison } from './comparisonContext';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -86,6 +86,14 @@ export default function ComparisonBar() {
 
   return (
     <>
+      {/* ── Backdrop ── */}
+      {panelOpen && (
+        <div
+          className="fixed inset-0 z-[48] bg-black/20"
+          onClick={() => setPanelOpen(false)}
+        />
+      )}
+
       {/* ── Search panel ── */}
       {panelOpen && (
         <div className="fixed bottom-[64px] left-0 right-0 z-[49] flex justify-center px-4 pb-3">
