@@ -19,7 +19,7 @@ exports.searchImage = async (req, res) => {
       { headers: { "X-API-KEY": apiKey, "Content-Type": "application/json" }, timeout: 10000 }
     );
 
-    const images = data.images || [];
+    const images = data.images   || [];
     if (!images.length) {
       return res.json({ success: false, message: "Không tìm thấy ảnh" });
     }
