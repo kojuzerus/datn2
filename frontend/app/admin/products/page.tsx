@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Search, RefreshCw, Plus, Download, Upload,
   Eye, Edit2, Trash2, CheckCircle, XCircle, X, AlertTriangle, Package,
@@ -196,7 +197,8 @@ export default function ProductsPage() {
   const [loading, setLoading]       = useState(false);
 
   // Filters
-  const [search, setSearch]             = useState("");
+  const searchParams = useSearchParams();
+  const [search, setSearch]             = useState(searchParams.get("search") || "");
   const [catFilter, setCatFilter]       = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [stockFilter, setStockFilter]   = useState("");

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Search, RefreshCw, X, CheckCircle, XCircle, Eye, Trash2,
   Users, ShieldCheck, Ban, Package, Mail, Phone, Calendar, AlertTriangle,
@@ -139,7 +140,8 @@ function ConfirmDialog({
 export default function AdminUsersPage() {
   const [users, setUsers]     = useState<CustomerRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [search, setSearch]   = useState("");
+  const searchParams = useSearchParams();
+  const [search, setSearch]   = useState(searchParams.get("search") || "");
   const [roleFilter, setRoleFilter]     = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [detail, setDetail]   = useState<CustomerDetail | null>(null);
