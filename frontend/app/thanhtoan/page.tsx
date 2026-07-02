@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft, MapPin, CreditCard, FileText, Package,
-  Truck, ShieldCheck, BadgeCheck, Banknote, Building2,
+  Truck, ShieldCheck, BadgeCheck, Banknote,
   Plus, Loader2, CheckCircle2, Lock,
 } from 'lucide-react';
 import SearchableSelect, { SelectOption } from '../components/SearchableSelect';
@@ -68,14 +68,6 @@ const PAYMENT_METHODS = [
     bg: 'bg-green-50',
   },
   {
-    id: 'banking',
-    label: 'Chuyển khoản ngân hàng',
-    desc: 'Chuyển khoản qua internet banking',
-    Icon: Building2,
-    color: 'text-blue-500',
-    bg: 'bg-blue-50',
-  },
-  {
     id: 'vnpay',
     label: 'Thanh toán VNPAY',
     desc: 'QR Code, thẻ tín dụng, tài khoản ngân hàng',
@@ -87,11 +79,10 @@ const PAYMENT_METHODS = [
 
 export default function ThanhToanPage() {
   const router = useRouter();
-  const [allItems, setAllItems]         = useState<CartItem[]>([]);
   const [items, setItems]               = useState<CartItem[]>([]);   // chỉ item được chọn
   const [addresses, setAddresses]       = useState<Address[]>([]);
   const [selectedAddr, setSelectedAddr] = useState<string>('');
-  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'banking' | 'vnpay'>('cod');
+  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'vnpay'>('cod');
   const [ghiChu, setGhiChu]             = useState('');
   const [loading, setLoading]           = useState(true);
   const [placing, setPlacing]           = useState(false);
@@ -119,7 +110,6 @@ export default function ThanhToanPage() {
     const data = await res.json();
     if (data.success) {
       const cartItems: CartItem[] = data.cart.items;
-      setAllItems(cartItems);
 
       // Lọc theo item IDs được chọn từ trang giỏ hàng
       const raw = localStorage.getItem('smarthub_checkout_ids');
@@ -465,7 +455,7 @@ export default function ThanhToanPage() {
                       name="payment"
                       value={id}
                       checked={paymentMethod === id}
-                      onChange={() => setPaymentMethod(id as 'cod' | 'banking' | 'vnpay')}
+                      onChange={() => setPaymentMethod(id as 'cod' | 'vnpay')}
                       className="accent-red-500"
                     />
                     <div className={`w-10 h-10 ${bg} rounded-sm flex items-center justify-center shrink-0`}>
@@ -478,21 +468,6 @@ export default function ThanhToanPage() {
                   </label>
                 ))}
               </div>
-
-              {paymentMethod === 'banking' && (
-                <div className="mt-3 p-4 bg-blue-50 border border-blue-100 rounded-sm">
-                  <p className="font-semibold text-blue-700 text-sm mb-2 flex items-center gap-1.5">
-                    <Building2 className="w-4 h-4" />
-                    Thông tin chuyển khoản
-                  </p>
-                  <div className="text-sm text-blue-700 space-y-1">
-                    <p>Ngân hàng: <span className="font-medium">Vietcombank</span></p>
-                    <p>Số tài khoản: <span className="font-medium">1234567890</span></p>
-                    <p>Chủ tài khoản: <span className="font-medium">SMARTHUB CO. LTD</span></p>
-                    <p className="text-xs text-blue-400 mt-1">Nội dung: [Mã đơn hàng] - [Họ tên]</p>
-                  </div>
-                </div>
-              )}
 
               {paymentMethod === 'vnpay' && (
                 <div className="mt-3 p-4 bg-yellow-50 border border-yellow-100 rounded-sm">
