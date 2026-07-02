@@ -87,11 +87,15 @@ exports.searchMarketPrice = async (req, res) => {
 };
 
 exports.generateProduct = async (req, res) => {
-  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
   const { name, category } = req.body;
 
   if (!name?.trim()) {
     return res.status(400).json({ success: false, message: "Thiếu tên sản phẩm" });
+  }
+
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ success: false, message: "Chưa cấu hình OPENROUTER_API_KEY" });
   }
 
   const prompt = `Bạn là chuyên gia sản phẩm điện tử Việt Nam. Tạo thông tin cho: "${name}"${category ? ` (danh mục: ${category})` : ""}.
@@ -99,18 +103,59 @@ exports.generateProduct = async (req, res) => {
 Trả về JSON (không thêm field khác, không giải thích):
 {"short_description":"mô tả 1 câu tiếng Việt tối đa 80 ký tự","badge":"Hot hoặc Mới hoặc Sale hoặc Bestseller hoặc rỗng","warranty":"ví dụ: 12 tháng","sku":"ví dụ: APL-IP16PM","category_name":"Điện thoại hoặc Laptop hoặc Phụ kiện hoặc Tivi hoặc Máy tính bảng","brand_name":"tên thương hiệu","specification":[{"label":"thông số","value":"giá trị"},{"label":"thông số","value":"giá trị"},{"label":"thông số","value":"giá trị"},{"label":"thông số","value":"giá trị"},{"label":"thông số","value":"giá trị"}],"variants":[{"color":"màu","price":10000000,"sale_price":null,"stock_quantity":50},{"color":"màu","price":12000000,"sale_price":null,"stock_quantity":30}]}`;
 
+  const MODELS = [
+    "google/gemma-4-26b-a4b-it:free",
+    "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "poolside/laguna-m.1:free",
+  ];
+
+  async function callModel(model) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 55000);
+    try {
+      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        signal: controller.signal,
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: "user", content: prompt }],
+          response_format: { type: "json_object" },
+          temperature: 0.3,
+          max_tokens: 1024,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok || data.error) throw new Error(data.error?.message || `HTTP ${response.status}`);
+      return data;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   try {
-    const completion = await groq.chat.completions.create({
-      model: "llama-3.1-8b-instant",
-      messages: [{ role: "user", content: prompt }],
-      response_format: { type: "json_object" },
-      temperature: 0.3,
-      max_tokens: 1024,
-    });
-    const choice = completion.choices[0];
+    let data = null;
+    let lastErr = "";
+    for (const model of MODELS) {
+      try {
+        data = await callModel(model);
+        break;
+      } catch (e) {
+        lastErr = e.message;
+        console.warn(`AI model ${model} failed: ${e.message}`);
+      }
+    }
+    if (!data) throw new Error(lastErr);
+
+    const choice = data.choices?.[0];
+    if (!choice) throw new Error("Không có kết quả từ AI");
     if (choice.finish_reason === "length") {
       return res.status(500).json({ success: false, message: "AI trả về quá dài, vui lòng thử lại" });
     }
+
     const json = JSON.parse(choice.message.content);
     res.json({ success: true, data: json });
   } catch (err) {
