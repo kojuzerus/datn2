@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Search, RefreshCw, X, CheckCircle, XCircle, Eye,
   Package, MapPin, CreditCard, Truck, Clock, FileText, AlertTriangle,
@@ -148,7 +149,8 @@ function ConfirmDialog({
 export default function AdminOrdersPage() {
   const [orders, setOrders]   = useState<Order[]>([]);
   const [loading, setLoading] = useState(false);
-  const [search, setSearch]   = useState("");
+  const searchParams = useSearchParams();
+  const [search, setSearch]   = useState(searchParams.get("search") || "");
   const [statusFilter, setStatusFilter] = useState("");
   const [paymentFilter, setPaymentFilter] = useState("");
   const [detail, setDetail]   = useState<Order | null>(null);

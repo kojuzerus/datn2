@@ -313,7 +313,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                           {searchResults.products.map((p) => (
                             <button
                               key={p.slug}
-                              onClick={() => { router.push(`/admin/products`); clearSearch(); }}
+                              onClick={() => { router.push(`/admin/products?search=${encodeURIComponent(p.product_name)}`); clearSearch(); }}
                               className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors text-left"
                             >
                               {p.thumbnail
@@ -332,7 +332,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                           {searchResults.orders.map((o) => (
                             <button
                               key={o._id}
-                              onClick={() => { router.push(`/admin/orders`); clearSearch(); }}
+                              onClick={() => { router.push(`/admin/orders?search=${encodeURIComponent(o.receiverName)}`); clearSearch(); }}
                               className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors text-left"
                             >
                               <div className="w-7 h-7 rounded-lg bg-orange-50 flex items-center justify-center shrink-0">
@@ -356,7 +356,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                           {searchResults.users.map((u) => (
                             <button
                               key={u._id}
-                              onClick={() => { router.push(`/admin/users`); clearSearch(); }}
+                              onClick={() => { router.push(`/admin/users?search=${encodeURIComponent(u.hoTen)}`); clearSearch(); }}
                               className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors text-left"
                             >
                               <div className="w-7 h-7 rounded-full bg-blue-50 flex items-center justify-center shrink-0 text-[11px] font-bold text-blue-500">
