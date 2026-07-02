@@ -382,18 +382,18 @@ function RecentOrdersCard({ orders }: { orders: RecentOrder[] }) {
     <div className="bg-white border border-gray-200 rounded-sm overflow-hidden" style={{ flex: "2 1 0" }}>
       <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
         <div>
-          <div className="text-[14px] font-semibold text-gray-900 tracking-tight">Đơn hàng gần đây</div>
-          <div className="text-[11.5px] text-gray-400 mt-0.5">{orders.length} đơn hàng mới nhất</div>
+          <div className="text-[14px] font-semibold text-gray-900 tracking-tight">Đơn hàng cần xác nhận</div>
+          <div className="text-[11.5px] text-gray-400 mt-0.5">{orders.length} đơn đang chờ xử lý</div>
         </div>
         <Link
-          href="/admin/orders"
+          href="/admin/orders?status=cho_xac_nhan"
           className="flex items-center gap-1 text-[12px] text-[#D32F2F] font-semibold hover:underline no-underline"
         >
           Xem tất cả <ArrowRight size={13} strokeWidth={2.5} />
         </Link>
       </div>
       {orders.length === 0 ? (
-        <div className="px-5 py-10 text-center text-[13px] text-gray-400">Chưa có đơn hàng nào</div>
+        <div className="px-5 py-10 text-center text-[13px] text-gray-400">Không có đơn hàng nào cần xác nhận</div>
       ) : (
         <div className="divide-y divide-gray-50">
           {orders.map((order) => {
@@ -401,7 +401,7 @@ function RecentOrdersCard({ orders }: { orders: RecentOrder[] }) {
             return (
               <Link
                 key={order.orderId}
-                href="/admin/orders"
+                href="/admin/orders?status=cho_xac_nhan"
                 className="flex items-center gap-4 px-5 py-3 hover:bg-gray-50/60 transition-colors no-underline"
               >
                 <div className="text-[12px] font-bold text-[#D32F2F] w-[52px] shrink-0 tabular-nums">

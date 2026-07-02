@@ -151,7 +151,7 @@ export default function AdminOrdersPage() {
   const [loading, setLoading] = useState(false);
   const searchParams = useSearchParams();
   const [search, setSearch]   = useState(searchParams.get("search") || "");
-  const [statusFilter, setStatusFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState(searchParams.get("status") || "");
   const [paymentFilter, setPaymentFilter] = useState("");
   const [detail, setDetail]   = useState<Order | null>(null);
   const [updating, setUpdating] = useState(false);

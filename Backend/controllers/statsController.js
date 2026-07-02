@@ -185,7 +185,7 @@ exports.getDashboardStats = async (req, res) => {
 exports.getRecentOrders = async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 5;
-    const orders = await Order.find().sort({ createdAt: -1 }).limit(limit).lean();
+    const orders = await Order.find({ trangThai: "cho_xac_nhan" }).sort({ createdAt: -1 }).limit(limit).lean();
 
     const statusMap = {
       da_giao: "done", dang_giao: "ship",
