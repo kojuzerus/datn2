@@ -71,7 +71,11 @@ exports.createPaymentUrl = async (req, res) => {
       vnp_OrderInfo: `Thanh toan don hang ${order._id}`,
       vnp_OrderType: 'other',
       vnp_Locale: 'vn',
-      vnp_ReturnUrl: process.env.VNP_RETURN_URL || `${req.protocol}://${req.get('host')}/api/vnpay/return`,
+      vnp_ReturnUrl: (() => {
+        const base = process.env.API_BASE_URL ||
+          `${req.headers['x-forwarded-proto'] || req.protocol}://${req.get('host')}`;
+        return `${base}/api/vnpay/return`;
+      })(),
       vnp_CreateDate: formatDate(createDate),
       vnp_IpAddr: Array.isArray(ipAddr) ? ipAddr[0] : ipAddr,
     };
@@ -123,7 +127,7 @@ exports.returnHandler = async (req, res) => {
         await order.save();
       }
 
-      const frontend = process.env.FRONTEND_URL || `${req.protocol}://${req.get('host').replace(/:5000$/, ':3000')}`;
+      const frontend = (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
       if (vnpResponseCode === '00') {
         return res.redirect(`${frontend}/dat-hang-thanh-cong?orderId=${txnRef}&method=vnpay`);
       }
