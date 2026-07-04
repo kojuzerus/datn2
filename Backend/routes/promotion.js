@@ -4,6 +4,9 @@ const auth      = require("../middleware/auth");
 const adminAuth = require("../middleware/adminAuth");
 const promotionController = require("../controllers/promotionController");
 
+// Khách xem các mã đang có hiệu lực (không cần đăng nhập)
+router.get("/available", promotionController.getAvailable);
+
 // Khách hàng áp mã ở trang thanh toán
 router.post("/validate", auth, promotionController.validateCode);
 
