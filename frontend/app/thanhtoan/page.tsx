@@ -54,6 +54,16 @@ const EMPTY_FORM: AddrForm = {
   detailAddress: '',
 };
 
+interface AvailablePromo {
+  code: string;
+  description: string;
+  discount_type: 'percent' | 'fixed';
+  discount_value: number;
+  max_discount: number | null;
+  min_order_value: number;
+  end_date: string;
+}
+
 function formatPrice(n: number) {
   return n.toLocaleString('vi-VN') + '₫';
 }
@@ -96,6 +106,7 @@ export default function ThanhToanPage() {
   const [appliedPromo, setAppliedPromo] = useState<{ code: string; description: string; discount: number } | null>(null);
   const [promoError, setPromoError]     = useState('');
   const [applyingPromo, setApplyingPromo] = useState(false);
+  const [availablePromos, setAvailablePromos] = useState<AvailablePromo[]>([]);
 
   const [provinces, setProvinces]   = useState<SelectOption[]>([]);
   const [districts, setDistricts]   = useState<SelectOption[]>([]);
@@ -109,7 +120,16 @@ export default function ThanhToanPage() {
     if (!token) { setLoading(false); return; }
     Promise.all([fetchCart(), fetchAddresses()]).finally(() => setLoading(false));
     fetchProvinces();
+    fetchAvailablePromos();
   }, []);
+
+  const fetchAvailablePromos = async () => {
+    try {
+      const res  = await fetch(`${API_URL}/api/promotions/available`);
+      const data = await res.json();
+      if (data.success) setAvailablePromos(data.data);
+    } catch {}
+  };
 
   const fetchCart = async () => {
     const res  = await fetch(`${API_URL}/api/cart`, { headers: { Authorization: `Bearer ${token}` } });
@@ -203,8 +223,9 @@ export default function ThanhToanPage() {
     }
   };
 
-  const handleApplyPromo = async () => {
-    if (!promoInput.trim()) return;
+  const handleApplyPromo = async (codeOverride?: string) => {
+    const code = (codeOverride ?? promoInput).trim();
+    if (!code) return;
     setApplyingPromo(true);
     setPromoError('');
     try {
@@ -212,7 +233,7 @@ export default function ThanhToanPage() {
       const res = await fetch(`${API_URL}/api/promotions/validate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ code: promoInput.trim(), orderTotal: total }),
+        body: JSON.stringify({ code, orderTotal: total }),
       });
       const data = await res.json();
       if (data.success) {
@@ -600,7 +621,7 @@ export default function ThanhToanPage() {
                         className="flex-1 min-w-0 border border-gray-200 rounded-sm px-3 py-2.5 text-sm font-mono uppercase focus:outline-none focus:ring-2 focus:ring-red-400 placeholder:font-sans placeholder:normal-case"
                       />
                       <button
-                        onClick={handleApplyPromo}
+                        onClick={() => handleApplyPromo()}
                         disabled={applyingPromo || !promoInput.trim()}
                         className="bg-red-500 hover:bg-red-600 text-white px-4 py-2.5 rounded-sm text-sm font-medium transition disabled:bg-gray-200 disabled:text-gray-400 shrink-0"
                       >
@@ -609,6 +630,50 @@ export default function ThanhToanPage() {
                     </div>
                     {promoError && (
                       <p className="text-xs text-red-500 mt-1.5">{promoError}</p>
+                    )}
+
+                    {/* Danh sách mã đang có */}
+                    {availablePromos.length > 0 && (
+                      <div className="mt-3 space-y-2">
+                        <p className="text-xs text-gray-400">Mã đang có hiệu lực, bấm để áp dụng:</p>
+                        {availablePromos.map(p => {
+                          const eligible = tongTien >= p.min_order_value;
+                          return (
+                            <button
+                              key={p.code}
+                              onClick={() => eligible && handleApplyPromo(p.code)}
+                              disabled={!eligible || applyingPromo}
+                              className={`w-full text-left border border-dashed rounded-sm px-3 py-2.5 transition ${
+                                eligible
+                                  ? 'border-red-300 bg-red-50/50 hover:bg-red-50 hover:border-red-400 cursor-pointer'
+                                  : 'border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <span className={`text-sm font-bold font-mono ${eligible ? 'text-red-600' : 'text-gray-400'}`}>
+                                  {p.code}
+                                </span>
+                                <span className={`text-xs font-semibold shrink-0 ${eligible ? 'text-red-500' : 'text-gray-400'}`}>
+                                  {p.discount_type === 'percent'
+                                    ? `-${p.discount_value}%${p.max_discount ? ` (tối đa ${formatPrice(p.max_discount)})` : ''}`
+                                    : `-${formatPrice(p.discount_value)}`}
+                                </span>
+                              </div>
+                              {p.description && (
+                                <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{p.description}</p>
+                              )}
+                              <p className="text-[11px] text-gray-400 mt-0.5">
+                                {p.min_order_value > 0
+                                  ? eligible
+                                    ? `Đơn từ ${formatPrice(p.min_order_value)}`
+                                    : `Cần mua thêm ${formatPrice(p.min_order_value - tongTien)} để dùng mã này`
+                                  : 'Không yêu cầu đơn tối thiểu'}
+                                {' · HSD '}{new Date(p.end_date).toLocaleDateString('vi-VN')}
+                              </p>
+                            </button>
+                          );
+                        })}
+                      </div>
                     )}
                   </>
                 )}

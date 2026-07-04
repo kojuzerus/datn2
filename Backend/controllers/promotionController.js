@@ -60,6 +60,32 @@ exports.validateCode = async (req, res) => {
   }
 };
 
+// ── [GET] /api/promotions/available — public: mã còn hiệu lực cho khách ─────
+exports.getAvailable = async (req, res) => {
+  try {
+    const now = new Date();
+    const promos = await Promotion.find({
+      status: "active",
+      start_date: { $lte: now },
+      end_date: { $gte: now },
+    })
+      .sort({ min_order_value: 1 })
+      .select("code description discount_type discount_value max_discount min_order_value usage_limit used_count end_date")
+      .lean();
+
+    // Loại mã đã hết lượt sử dụng
+    const data = promos
+      .filter((p) => p.usage_limit == null || p.used_count < p.usage_limit)
+      .slice(0, 10)
+      .map(({ usage_limit, used_count, ...rest }) => rest);
+
+    res.json({ success: true, data });
+  } catch (err) {
+    console.error("[promotions getAvailable]", err);
+    res.status(500).json({ success: false, message: "Lỗi server" });
+  }
+};
+
 // ── [GET] /api/promotions — admin: danh sách với tìm kiếm/lọc/phân trang ────
 exports.getAll = async (req, res) => {
   try {
