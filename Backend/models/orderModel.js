@@ -29,6 +29,8 @@ const orderSchema = new mongoose.Schema({
 
   tongTien:       { type: Number, required: true },
   phiGiaoHang:   { type: Number, default: 0 },
+  maGiamGia:      { type: String, default: "" },
+  giamGia:        { type: Number, default: 0 },
   tongThanhToan:  { type: Number, required: true },
 
   ghiChu:     { type: String, default: "" },

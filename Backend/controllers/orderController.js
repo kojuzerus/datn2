@@ -1,6 +1,8 @@
-const Order   = require("../models/orderModel");
-const Cart    = require("../models/cartModel");
-const Product = require("../models/productModel");
+const Order     = require("../models/orderModel");
+const Cart      = require("../models/cartModel");
+const Product   = require("../models/productModel");
+const Promotion = require("../models/promotionModel");
+const { checkPromo } = require("./promotionController");
 
 // Cộng/trừ lượt bán thật theo số lượng từng sản phẩm trong đơn (delta: 1 khi đặt, -1 khi hủy)
 async function adjustTotalSold(items, delta) {
@@ -21,6 +23,7 @@ exports.createOrder = async (req, res) => {
       paymentMethod = "cod",
       ghiChu = "",
       itemIds,          // mảng _id item được chọn (tuỳ chọn, nếu không có thì lấy tất cả)
+      promoCode,        // mã giảm giá (tuỳ chọn)
     } = req.body;
 
     if (!receiverName || !phone || !province || !district || !ward || !detailAddress)
@@ -38,9 +41,21 @@ exports.createOrder = async (req, res) => {
     if (orderItems.length === 0)
       return res.status(400).json({ success: false, message: "Không có sản phẩm nào được chọn" });
 
-    const tongTien      = orderItems.reduce((s, i) => s + i.gia * i.soLuong, 0);
-    const phiGiaoHang   = tongTien >= 500000 ? 0 : 30000;
-    const tongThanhToan = tongTien + phiGiaoHang;
+    const tongTien    = orderItems.reduce((s, i) => s + i.gia * i.soLuong, 0);
+    const phiGiaoHang = tongTien >= 500000 ? 0 : 30000;
+
+    // Áp mã giảm giá (validate lại phía server, không tin số liệu từ client)
+    let maGiamGia = "";
+    let giamGia   = 0;
+    if (promoCode?.trim()) {
+      const result = await checkPromo(promoCode, tongTien);
+      if (!result.ok)
+        return res.status(400).json({ success: false, message: result.message });
+      maGiamGia = result.promo.code;
+      giamGia   = result.discount;
+    }
+
+    const tongThanhToan = Math.max(0, tongTien + phiGiaoHang - giamGia);
 
     const order = await Order.create({
       userId: req.userId,
@@ -56,9 +71,16 @@ exports.createOrder = async (req, res) => {
       paymentMethod,
       tongTien,
       phiGiaoHang,
+      maGiamGia,
+      giamGia,
       tongThanhToan,
       ghiChu,
     });
+
+    // Trừ lượt sử dụng mã (sau khi đơn đã tạo thành công)
+    if (maGiamGia) {
+      await Promotion.updateOne({ code: maGiamGia }, { $inc: { used_count: 1 } });
+    }
 
     // Chỉ xóa những item đã đặt khỏi giỏ hàng
     const orderedIds = new Set(orderItems.map(i => i._id.toString()));
