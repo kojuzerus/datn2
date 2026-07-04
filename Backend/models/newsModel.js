@@ -15,6 +15,9 @@ const newsSchema = new mongoose.Schema(
     author:    { type: String, default: "SmartHub" },
     views:     { type: Number, default: 0 },
 
+    // Danh sách user đã thích bài viết
+    likes:     [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+
     status:    { type: String, enum: ["published", "draft"], default: "published" },
   },
   { timestamps: true }
