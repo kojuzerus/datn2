@@ -1,4 +1,19 @@
-const News = require("../models/newsModel");
+const News        = require("../models/newsModel");
+const NewsComment = require("../models/newsCommentModel");
+const User        = require("../models/User");
+const jwt         = require("jsonwebtoken");
+const SECRET      = process.env.JWT_SECRET || "smarthub_secret_2024";
+
+// Lấy userId từ Bearer token nếu có (không bắt buộc đăng nhập)
+function optionalUserId(req) {
+  const header = req.headers.authorization;
+  if (!header?.startsWith("Bearer ")) return null;
+  try {
+    return jwt.verify(header.split(" ")[1], SECRET).id;
+  } catch {
+    return null;
+  }
+}
 
 function toSlug(str) {
   return str
@@ -75,7 +90,17 @@ exports.getBySlug = async (req, res) => {
       .limit(4)
       .lean();
 
-    res.json({ success: true, data: news, related });
+    // Trả lượt thích + trạng thái đã thích của người xem (không lộ danh sách userId)
+    const userId = optionalUserId(req);
+    const likes  = news.likes || [];
+    const data   = {
+      ...news,
+      likes: undefined,
+      likeCount: likes.length,
+      liked: userId ? likes.some((id) => id.toString() === userId) : false,
+    };
+
+    res.json({ success: true, data, related });
   } catch (err) {
     console.error("[news getBySlug]", err);
     res.status(500).json({ success: false, message: "Lỗi server" });
@@ -191,9 +216,105 @@ exports.remove = async (req, res) => {
   try {
     const news = await News.findByIdAndDelete(req.params.id);
     if (!news) return res.status(404).json({ success: false, message: "Không tìm thấy bài viết" });
+    await NewsComment.deleteMany({ newsId: news._id });
     res.json({ success: true, message: "Đã xóa bài viết" });
   } catch (err) {
     console.error("[news remove]", err);
+    res.status(500).json({ success: false, message: "Lỗi server" });
+  }
+};
+
+// ── [POST] /api/news/:id/like — user: thích / bỏ thích ──────────────────────
+exports.toggleLike = async (req, res) => {
+  try {
+    const news = await News.findOne({ _id: req.params.id, status: "published" });
+    if (!news) return res.status(404).json({ success: false, message: "Không tìm thấy bài viết" });
+
+    const idx = news.likes.findIndex((id) => id.toString() === req.userId);
+    if (idx >= 0) news.likes.splice(idx, 1);
+    else news.likes.push(req.userId);
+    await news.save();
+
+    res.json({ success: true, liked: idx < 0, likeCount: news.likes.length });
+  } catch (err) {
+    console.error("[news toggleLike]", err);
+    res.status(500).json({ success: false, message: "Lỗi server" });
+  }
+};
+
+// ── [GET] /api/news/:id/comments — public: danh sách bình luận ──────────────
+exports.getComments = async (req, res) => {
+  try {
+    const comments = await NewsComment.find({ newsId: req.params.id })
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .select("-userId")
+      .lean();
+    res.json({ success: true, data: comments });
+  } catch (err) {
+    console.error("[news getComments]", err);
+    res.status(500).json({ success: false, message: "Lỗi server" });
+  }
+};
+
+// ── [POST] /api/news/:id/comments — user: thêm bình luận ────────────────────
+exports.addComment = async (req, res) => {
+  try {
+    const content = (req.body.content || "").trim();
+    if (!content) return res.status(400).json({ success: false, message: "Vui lòng nhập nội dung bình luận" });
+    if (content.length > 1000)
+      return res.status(400).json({ success: false, message: "Bình luận tối đa 1000 ký tự" });
+
+    const news = await News.findOne({ _id: req.params.id, status: "published" }).select("_id");
+    if (!news) return res.status(404).json({ success: false, message: "Không tìm thấy bài viết" });
+
+    const user = await User.findById(req.userId).select("hoTen");
+    if (!user) return res.status(401).json({ success: false, message: "Tài khoản không hợp lệ" });
+
+    const comment = await NewsComment.create({
+      newsId: news._id,
+      userId: req.userId,
+      userName: user.hoTen || "Người dùng",
+      content,
+    });
+
+    const { userId, ...safe } = comment.toObject();
+    res.status(201).json({ success: true, message: "Đã gửi bình luận", data: safe });
+  } catch (err) {
+    console.error("[news addComment]", err);
+    res.status(500).json({ success: false, message: "Lỗi server" });
+  }
+};
+
+// ── [PUT] /api/news/comments/:commentId/reply — admin: trả lời bình luận ────
+exports.replyComment = async (req, res) => {
+  try {
+    const content = (req.body.content || "").trim();
+    if (!content) return res.status(400).json({ success: false, message: "Vui lòng nhập nội dung trả lời" });
+
+    const admin = await User.findById(req.userId).select("hoTen");
+    const comment = await NewsComment.findByIdAndUpdate(
+      req.params.commentId,
+      { reply: { content, adminName: admin?.hoTen || "Quản trị viên", createdAt: new Date() } },
+      { new: true }
+    ).select("-userId").lean();
+    if (!comment) return res.status(404).json({ success: false, message: "Không tìm thấy bình luận" });
+
+    res.json({ success: true, message: "Đã trả lời bình luận", data: comment });
+  } catch (err) {
+    console.error("[news replyComment]", err);
+    res.status(500).json({ success: false, message: "Lỗi server" });
+  }
+};
+
+// ── [DELETE] /api/news/comments/:commentId — admin: xóa bình luận ───────────
+exports.deleteComment = async (req, res) => {
+  try {
+    const comment = await NewsComment.findByIdAndDelete(req.params.commentId);
+    if (!comment) return res.status(404).json({ success: false, message: "Không tìm thấy bình luận" });
+    res.json({ success: true, message: "Đã xóa bình luận" });
+  } catch (err) {
+    console.error("[news deleteComment]", err);
     res.status(500).json({ success: false, message: "Lỗi server" });
   }
 };
