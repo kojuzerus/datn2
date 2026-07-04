@@ -12,6 +12,7 @@ import {
   FolderOpen,
   Tag,
   Newspaper,
+  Star,
   BarChart2,
   Settings,
   Bell,
@@ -54,6 +55,7 @@ const NAV_GROUPS: { section: string; items: NavItem[] }[] = [
       { href: "/admin/categories", label: "Danh mục",           Icon: FolderOpen,   badge: null },
       { href: "/admin/promotions", label: "Mã giảm giá",        Icon: Tag,          badge: null },
       { href: "/admin/news",       label: "Tin tức",            Icon: Newspaper,    badge: null },
+      { href: "/admin/reviews",    label: "Đánh giá",           Icon: Star,         badge: null },
       { href: "/admin/reports",    label: "Báo cáo thống kê",   Icon: BarChart2,    badge: null },
     ],
   },
@@ -73,6 +75,7 @@ const PAGE_LABELS: Record<string, string> = {
   "/admin/categories": "Danh mục",
   "/admin/promotions": "Mã giảm giá",
   "/admin/news":       "Tin tức",
+  "/admin/reviews":    "Đánh giá",
   "/admin/reports":    "Báo cáo thống kê",
   "/admin/settings":   "Cài đặt",
 };
