@@ -38,6 +38,8 @@ interface Order {
   paymentMethod: "cod" | "banking" | "vnpay";
   tongTien: number;
   phiGiaoHang: number;
+  maGiamGia?: string;
+  giamGia?: number;
   tongThanhToan: number;
   ghiChu: string;
   trangThai: string;
@@ -493,6 +495,12 @@ export default function AdminOrdersPage() {
                     <span className="flex items-center gap-1.5"><Truck size={12} /> Phí giao hàng</span>
                     <span className="text-gray-900">{detail.phiGiaoHang > 0 ? vnd(detail.phiGiaoHang) : "Miễn phí"}</span>
                   </div>
+                  {(detail.giamGia ?? 0) > 0 && (
+                    <div className="flex justify-between text-gray-500">
+                      <span>Giảm giá{detail.maGiamGia ? ` (${detail.maGiamGia})` : ""}</span>
+                      <span className="text-emerald-600 font-medium">-{vnd(detail.giamGia!)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-[14px] font-bold text-gray-900 pt-1.5 border-t border-gray-200 mt-1">
                     <span>Tổng thanh toán</span>
                     <span className="text-[#D32F2F]">{vnd(detail.tongThanhToan)}</span>

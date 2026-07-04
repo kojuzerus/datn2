@@ -29,6 +29,8 @@ interface Order {
   paymentMethod: string;
   tongTien: number;
   phiGiaoHang: number;
+  maGiamGia?: string;
+  giamGia?: number;
   tongThanhToan: number;
   ghiChu: string;
   trangThai: string;
@@ -308,6 +310,12 @@ export default function OrderDetailPage() {
                       <span className="text-gray-600">Phí giao hàng</span>
                       <span className="font-semibold text-gray-900">{formatCurrency(order.phiGiaoHang)}</span>
                     </div>
+                    {(order.giamGia ?? 0) > 0 && (
+                      <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                        <span className="text-gray-600">Giảm giá{order.maGiamGia ? ` (${order.maGiamGia})` : ""}</span>
+                        <span className="font-semibold text-green-600">-{formatCurrency(order.giamGia!)}</span>
+                      </div>
+                    )}
                     <div className="flex items-center justify-between pt-3">
                       <span className="font-semibold text-gray-900">Thanh toán</span>
                       <span className="text-lg font-bold text-red-600">{formatCurrency(order.tongThanhToan)}</span>
