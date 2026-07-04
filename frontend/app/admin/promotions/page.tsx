@@ -414,7 +414,7 @@ export default function AdminPromotionsPage() {
         {pagination.totalPages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
             <div className="text-[12px] text-gray-400">
-              Trang {pagination.page} / {pagination.totalPages} — {pagination.total} mã
+              Trang {pagination.page} / {pagination.totalPages} ({pagination.total} mã)
             </div>
             <div className="flex items-center gap-1.5">
               <button

@@ -17,6 +17,7 @@ const statsRoutes    = require("./routes/stats");
 const userAdminRoutes  = require("./routes/user");
 const adminSearchRoutes = require("./routes/adminSearch");
 const promotionRoutes  = require("./routes/promotion");
+const newsRoutes       = require("./routes/news");
 
 const app  = express();
 const PORT = process.env.PORT || 5000;
@@ -51,6 +52,7 @@ app.use("/api/admin/stats", statsRoutes);
 app.use("/api/admin/users",  userAdminRoutes);
 app.use("/api/admin/search", adminSearchRoutes);
 app.use("/api/promotions",   promotionRoutes);
+app.use("/api/news",         newsRoutes);
 
 app.get("/api/health", (_, res) =>
   res.json({ status: "ok", time: new Date().toISOString() })
