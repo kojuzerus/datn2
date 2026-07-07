@@ -4,7 +4,7 @@ import Link from "next/link";
 import {
   Search, User, ShoppingCart, Menu, X, Repeat, Phone, Smartphone,
   Laptop, Tv2, Headphones, TabletSmartphone, Speaker, Watch,
-  BatteryCharging, TrendingUp,
+  BatteryCharging, TrendingUp, Newspaper,
 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -431,6 +431,14 @@ export default function Header() {
 
           {/* Right actions */}
           <div className="hidden md:flex items-center gap-1.5">
+
+            <Link
+              href="/tintuc"
+              title="Tin tức"
+              className="w-10 h-10 flex items-center justify-center rounded-xl text-gray-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-100 transition-all"
+            >
+              <Newspaper className="w-5 h-5" />
+            </Link>
 
             <Link
               href="/sosanh"
