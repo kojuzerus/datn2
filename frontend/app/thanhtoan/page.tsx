@@ -6,7 +6,7 @@ import Link from 'next/link';
 import {
   ArrowLeft, MapPin, CreditCard, FileText, Package,
   Truck, ShieldCheck, BadgeCheck, Banknote,
-  Plus, Loader2, CheckCircle2, Lock,
+  Plus, Loader2, CheckCircle2, Lock, Tag, X,
 } from 'lucide-react';
 import SearchableSelect, { SelectOption } from '../components/SearchableSelect';
 
@@ -54,6 +54,16 @@ const EMPTY_FORM: AddrForm = {
   detailAddress: '',
 };
 
+interface AvailablePromo {
+  code: string;
+  description: string;
+  discount_type: 'percent' | 'fixed';
+  discount_value: number;
+  max_discount: number | null;
+  min_order_value: number;
+  end_date: string;
+}
+
 function formatPrice(n: number) {
   return n.toLocaleString('vi-VN') + '₫';
 }
@@ -91,6 +101,13 @@ export default function ThanhToanPage() {
   const [newAddr, setNewAddr]       = useState<AddrForm>(EMPTY_FORM);
   const [savingAddr, setSavingAddr] = useState(false);
 
+  // Mã giảm giá
+  const [promoInput, setPromoInput]     = useState('');
+  const [appliedPromo, setAppliedPromo] = useState<{ code: string; description: string; discount: number } | null>(null);
+  const [promoError, setPromoError]     = useState('');
+  const [applyingPromo, setApplyingPromo] = useState(false);
+  const [availablePromos, setAvailablePromos] = useState<AvailablePromo[]>([]);
+
   const [provinces, setProvinces]   = useState<SelectOption[]>([]);
   const [districts, setDistricts]   = useState<SelectOption[]>([]);
   const [wards, setWards]           = useState<SelectOption[]>([]);
@@ -103,7 +120,16 @@ export default function ThanhToanPage() {
     if (!token) { setLoading(false); return; }
     Promise.all([fetchCart(), fetchAddresses()]).finally(() => setLoading(false));
     fetchProvinces();
+    fetchAvailablePromos();
   }, []);
+
+  const fetchAvailablePromos = async () => {
+    try {
+      const res  = await fetch(`${API_URL}/api/promotions/available`);
+      const data = await res.json();
+      if (data.success) setAvailablePromos(data.data);
+    } catch {}
+  };
 
   const fetchCart = async () => {
     const res  = await fetch(`${API_URL}/api/cart`, { headers: { Authorization: `Bearer ${token}` } });
@@ -197,6 +223,37 @@ export default function ThanhToanPage() {
     }
   };
 
+  const handleApplyPromo = async (codeOverride?: string) => {
+    const code = (codeOverride ?? promoInput).trim();
+    if (!code) return;
+    setApplyingPromo(true);
+    setPromoError('');
+    try {
+      const total = items.reduce((s, i) => s + i.gia * i.soLuong, 0);
+      const res = await fetch(`${API_URL}/api/promotions/validate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ code, orderTotal: total }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAppliedPromo({ code: data.data.code, description: data.data.description, discount: data.data.discount });
+        setPromoInput('');
+      } else {
+        setPromoError(data.message || 'Mã giảm giá không hợp lệ');
+      }
+    } catch {
+      setPromoError('Không thể kiểm tra mã, vui lòng thử lại');
+    } finally {
+      setApplyingPromo(false);
+    }
+  };
+
+  const handleRemovePromo = () => {
+    setAppliedPromo(null);
+    setPromoError('');
+  };
+
   const handlePlaceOrder = async () => {
     if (!selectedAddr) return alert('Vui lòng chọn địa chỉ giao hàng');
     if (items.length === 0) return alert('Không có sản phẩm nào');
@@ -218,6 +275,7 @@ export default function ThanhToanPage() {
         paymentMethod,
         ghiChu,
         itemIds: items.map(i => i._id),
+        promoCode: appliedPromo?.code || undefined,
       }),
     });
     const data = await res.json();
@@ -251,7 +309,8 @@ export default function ThanhToanPage() {
 
   const tongTien      = items.reduce((s, i) => s + i.gia * i.soLuong, 0);
   const phiGH         = tongTien >= 500000 ? 0 : 30000;
-  const tongThanhToan = tongTien + phiGH;
+  const giamGia       = appliedPromo ? Math.min(appliedPromo.discount, tongTien) : 0;
+  const tongThanhToan = Math.max(0, tongTien + phiGH - giamGia);
 
   if (!token && !loading) {
     return (
@@ -530,6 +589,96 @@ export default function ThanhToanPage() {
                 ))}
               </div>
 
+              {/* Mã giảm giá */}
+              <div className="border-t border-gray-100 pt-4 mb-4">
+                <p className="text-sm font-semibold text-gray-700 flex items-center gap-1.5 mb-2">
+                  <Tag className="w-3.5 h-3.5 text-red-400" />
+                  Mã giảm giá
+                </p>
+                {appliedPromo ? (
+                  <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-sm px-3 py-2.5">
+                    <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-green-700 font-mono">{appliedPromo.code}</p>
+                      <p className="text-xs text-green-600 truncate">Giảm {formatPrice(giamGia)}</p>
+                    </div>
+                    <button
+                      onClick={handleRemovePromo}
+                      title="Bỏ mã"
+                      className="text-green-600 hover:text-red-500 transition shrink-0"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex gap-2">
+                      <input
+                        placeholder="Nhập mã giảm giá"
+                        value={promoInput}
+                        onChange={e => { setPromoInput(e.target.value.toUpperCase()); setPromoError(''); }}
+                        onKeyDown={e => { if (e.key === 'Enter') handleApplyPromo(); }}
+                        className="flex-1 min-w-0 border border-gray-200 rounded-sm px-3 py-2.5 text-sm font-mono uppercase focus:outline-none focus:ring-2 focus:ring-red-400 placeholder:font-sans placeholder:normal-case"
+                      />
+                      <button
+                        onClick={() => handleApplyPromo()}
+                        disabled={applyingPromo || !promoInput.trim()}
+                        className="bg-red-500 hover:bg-red-600 text-white px-4 py-2.5 rounded-sm text-sm font-medium transition disabled:bg-gray-200 disabled:text-gray-400 shrink-0"
+                      >
+                        {applyingPromo ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Áp dụng'}
+                      </button>
+                    </div>
+                    {promoError && (
+                      <p className="text-xs text-red-500 mt-1.5">{promoError}</p>
+                    )}
+
+                    {/* Danh sách mã đang có */}
+                    {availablePromos.length > 0 && (
+                      <div className="mt-3 space-y-2">
+                        <p className="text-xs text-gray-400">Mã đang có hiệu lực, bấm để áp dụng:</p>
+                        {availablePromos.map(p => {
+                          const eligible = tongTien >= p.min_order_value;
+                          return (
+                            <button
+                              key={p.code}
+                              onClick={() => eligible && handleApplyPromo(p.code)}
+                              disabled={!eligible || applyingPromo}
+                              className={`w-full text-left border border-dashed rounded-sm px-3 py-2.5 transition ${
+                                eligible
+                                  ? 'border-red-300 bg-red-50/50 hover:bg-red-50 hover:border-red-400 cursor-pointer'
+                                  : 'border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <span className={`text-sm font-bold font-mono ${eligible ? 'text-red-600' : 'text-gray-400'}`}>
+                                  {p.code}
+                                </span>
+                                <span className={`text-xs font-semibold shrink-0 ${eligible ? 'text-red-500' : 'text-gray-400'}`}>
+                                  {p.discount_type === 'percent'
+                                    ? `-${p.discount_value}%${p.max_discount ? ` (tối đa ${formatPrice(p.max_discount)})` : ''}`
+                                    : `-${formatPrice(p.discount_value)}`}
+                                </span>
+                              </div>
+                              {p.description && (
+                                <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{p.description}</p>
+                              )}
+                              <p className="text-[11px] text-gray-400 mt-0.5">
+                                {p.min_order_value > 0
+                                  ? eligible
+                                    ? `Đơn từ ${formatPrice(p.min_order_value)}`
+                                    : `Cần mua thêm ${formatPrice(p.min_order_value - tongTien)} để dùng mã này`
+                                  : 'Không yêu cầu đơn tối thiểu'}
+                                {' · HSD '}{new Date(p.end_date).toLocaleDateString('vi-VN')}
+                              </p>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+
               {/* Tính tiền */}
               <div className="border-t border-gray-100 pt-4 space-y-2 mb-5">
                 <div className="flex justify-between text-sm text-gray-600">
@@ -545,6 +694,15 @@ export default function ThanhToanPage() {
                     {phiGH === 0 ? 'Miễn phí' : formatPrice(phiGH)}
                   </span>
                 </div>
+                {giamGia > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="flex items-center gap-1 text-green-600">
+                      <Tag className="w-3.5 h-3.5" />
+                      Giảm giá ({appliedPromo?.code})
+                    </span>
+                    <span className="text-green-600 font-medium">-{formatPrice(giamGia)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between font-bold text-gray-800 text-base pt-3 border-t border-gray-100">
                   <span>Tổng cộng</span>
                   <span className="text-red-500 text-lg">{formatPrice(tongThanhToan)}</span>
