@@ -9,6 +9,7 @@ import {
   Wallet, CreditCard, Zap,
 } from "lucide-react";
 import { useFavorites, type FavoriteProduct } from "../components/favoritesContext";
+import Rabbit3D from "../components/Rabbit3D";
 import { ARTICLES } from "./tin-tuc/data";
 
 // ─── API CONFIG ───────────────────────────────────────────────────────────────
@@ -1012,7 +1013,20 @@ export default function HomePage() {
       </section>
 
       {/* ── FLASH SALE — 3D enhanced ──────────────────────────────────── */}
-      <section className="max-w-screen-xl mx-auto px-6 mt-10">
+      <section className="max-w-screen-xl mx-auto px-6 mt-10 relative z-20">
+        {/* Linh vật thỏ — đứng sau banner, nhảy ló đầu lên */}
+        <div
+          className="absolute hidden md:block pointer-events-none select-none"
+          style={{
+            right: 64,
+            top: -62,
+            animation: "rabbit-jump 3.4s ease-in-out infinite",
+            transformOrigin: "bottom center",
+          }}
+        >
+          <Rabbit3D size={94} />
+        </div>
+
         <div
           className="relative rounded-2xl overflow-hidden fs-bg-animated"
           style={{ boxShadow: "0 25px 80px rgba(185,28,28,0.45), 0 8px 24px rgba(0,0,0,0.3)" }}

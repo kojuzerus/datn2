@@ -111,6 +111,21 @@ body {
   50%      { opacity: 1; }
 }
 
+/* ── Rabbit mascot ─────────────────────────────────── */
+@keyframes rabbit-jump {
+  0%, 100% { transform: translateY(0) scaleY(1) scaleX(1); }
+  8%       { transform: translateY(3px) scaleY(0.93) scaleX(1.06); }
+  32%      { transform: translateY(-30px) scaleY(1.07) scaleX(0.96); }
+  46%      { transform: translateY(-36px) scaleY(1) scaleX(1); }
+  66%      { transform: translateY(0) scaleY(0.9) scaleX(1.08); }
+  78%      { transform: translateY(-7px) scaleY(1.03) scaleX(0.99); }
+  88%      { transform: translateY(0) scaleY(1) scaleX(1); }
+}
+@keyframes rabbit-ear {
+  0%, 100% { transform: rotate(0deg); }
+  50%      { transform: rotate(-6deg); }
+}
+
 .fs-flip-digit {
   display: inline-block;
   animation: fs-flip 0.32s cubic-bezier(0.23,1,0.32,1);
