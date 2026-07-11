@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useComparison } from "../../components/comparisonContext";
 import { useFavorites, type FavoriteProduct } from "../../components/favoritesContext";
+import BrandSpinner from "../../components/BrandSpinner";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -783,13 +784,18 @@ function ProductsContent() {
           <button
             onClick={handleLoadMore}
             disabled={loadingMore}
-            className="inline-flex items-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-600 text-[14.5px] font-semibold px-7 py-3 rounded-xl transition-colors disabled:opacity-60"
+            className="inline-flex items-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-600 text-[14.5px] font-semibold px-7 py-3 rounded-xl transition-colors disabled:opacity-50"
           >
-            {loadingMore
-              ? "Đang tải..."
-              : `Xem thêm ${(pagination.total - products.length).toLocaleString("vi-VN")} sản phẩm`}
-            {!loadingMore && <ChevronDown className="w-4 h-4" />}
+            Xem thêm {(pagination.total - products.length).toLocaleString("vi-VN")} sản phẩm
+            <ChevronDown className="w-4 h-4" />
           </button>
+        </div>
+      )}
+
+      {/* Fullscreen loading overlay */}
+      {loadingMore && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center" style={{ background: "rgba(255,255,255,0.65)", backdropFilter: "blur(2px)" }}>
+          <BrandSpinner size={76} />
         </div>
       )}
     </>
