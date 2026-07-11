@@ -1302,11 +1302,11 @@ export default function HomePage() {
       {/* ── BANNER QUẢNG CÁO — bộ 3 ─────────────────────────────────── */}
       <section className="max-w-screen-xl mx-auto px-6 mt-12">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <Link href="/sanpham?tu-khoa=iPhone%2017" className="block group">
+          <Link href="/sanpham?tu-khoa=MacBook" className="block group">
             <div className="rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow" style={{ aspectRatio: "1036 / 450" }}>
               <img
-                src="/banners/promo-buyback.webp"
-                alt="iPhone 17 Pro Max - Thu cũ đổi mới không lo rớt giá"
+                src="/banners/promo-macbook.png"
+                alt="MacBook Pro với M5, M5 Pro và M5 Max"
                 className="w-full h-full object-cover block select-none transition-transform duration-500 group-hover:scale-[1.02]"
               />
             </div>
