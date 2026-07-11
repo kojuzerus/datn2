@@ -1191,6 +1191,19 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ── PROMO BANNER — Laptop Vivobook ─────────────────────────────── */}
+      <section className="max-w-screen-xl mx-auto px-6 mt-10">
+        <Link href="/sanpham?danh-muc=laptop" className="block group">
+          <div className="rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow">
+            <img
+              src="/banners/promo-vivobook.jpg"
+              alt="Laptop Asus Vivobook - Mua 1 được 2, chỉ từ 19.99 triệu"
+              className="w-full h-auto block select-none transition-transform duration-500 group-hover:scale-[1.015]"
+            />
+          </div>
+        </Link>
+      </section>
+
       {/* ── SẢN PHẨM NỔI BẬT ────────────────────────────────────────── */}
       <section className="max-w-screen-xl mx-auto px-6 mt-10">
         <SectionHeader title="Sản phẩm nổi bật" href="/sanpham" />
@@ -1272,36 +1285,34 @@ export default function HomePage() {
         )}
       </section>
 
-      {/* ── MINI BANNER ĐÔI ──────────────────────────────────────────── */}
+      {/* ── BANNER QUẢNG CÁO — bộ 3 ─────────────────────────────────── */}
       <section className="max-w-screen-xl mx-auto px-6 mt-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Link href="/sanpham?giam-gia=1" className="group block overflow-hidden rounded-sm bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-5 items-center">
-              <div>
-                <span className="inline-block bg-red-50 text-red-600 text-[10px] font-semibold uppercase tracking-[0.3em] px-3 py-1 rounded-full mb-3">Sale giữa tháng</span>
-                <h3 className="text-2xl font-bold text-gray-900 leading-snug">Ngập tràn ưu đãi</h3>
-                <p className="text-sm text-gray-600 mt-3">Nhiều sản phẩm giảm giá sốc, mua ngay kẻo lỡ.</p>
-                <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-red-600 px-4 py-2 text-sm font-semibold text-white">
-                  Giảm đến 30%
-                </div>
-              </div>
-              <div className="overflow-hidden rounded-sm bg-gray-100">
-                <img src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&q=80&fit=crop" alt="sale" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
-              </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Link href="/sanpham?tu-khoa=iPhone%2017" className="block group">
+            <div className="rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow" style={{ aspectRatio: "1036 / 450" }}>
+              <img
+                src="/banners/promo-buyback.webp"
+                alt="iPhone 17 Pro Max - Thu cũ đổi mới không lo rớt giá"
+                className="w-full h-full object-cover block select-none transition-transform duration-500 group-hover:scale-[1.02]"
+              />
             </div>
           </Link>
-
-          <Link href="/sanpham?gaming" className="group block overflow-hidden rounded-sm bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-5 items-center">
-              <div>
-                <span className="inline-block bg-slate-100 text-slate-700 text-[10px] font-semibold uppercase tracking-[0.3em] px-3 py-1 rounded-full mb-3">Gaming</span>
-                <h3 className="text-2xl font-bold text-gray-900 leading-snug">Chơi không ngắt</h3>
-                <p className="text-sm text-gray-600 mt-3">Máy gaming hiệu năng cao, pin bền lâu cho cả ngày.</p>
-                <p className="text-sm text-red-600 font-semibold mt-4">Pin trâu, hiệu năng đỉnh</p>
-              </div>
-              <div className="overflow-hidden rounded-sm bg-gray-100">
-                <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&q=80&fit=crop" alt="gaming" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
-              </div>
+          <Link href="/sanpham?tu-khoa=Samsung" className="block group">
+            <div className="rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow" style={{ aspectRatio: "1036 / 450" }}>
+              <img
+                src="/banners/promo-unpacked.webp"
+                alt="Galaxy Unpacked - Đăng ký sớm nhận voucher 500K"
+                className="w-full h-full object-cover block select-none transition-transform duration-500 group-hover:scale-[1.02]"
+              />
+            </div>
+          </Link>
+          <Link href="/sanpham?tu-khoa=OPPO" className="block group sm:col-span-2 lg:col-span-1">
+            <div className="rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow" style={{ aspectRatio: "1036 / 450" }}>
+              <img
+                src="/banners/promo-oppo.webp"
+                alt="OPPO Reno16F 5G - Bộ quà tặng trị giá 10 triệu"
+                className="w-full h-full object-cover block select-none transition-transform duration-500 group-hover:scale-[1.02]"
+              />
             </div>
           </Link>
         </div>
