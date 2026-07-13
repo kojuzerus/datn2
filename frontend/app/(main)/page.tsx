@@ -1130,22 +1130,11 @@ export default function HomePage() {
                   ].map(({ val, label }, i) => (
                     <div key={i} className="flex items-center gap-1.5">
                       <div
-                        className="flex flex-col items-center rounded-xl overflow-hidden"
-                        style={{ background: "linear-gradient(180deg,#1a1a2e 0%,#16213e 100%)", boxShadow: "inset 0 2px 6px rgba(0,0,0,0.6), 0 4px 12px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.06)" }}
+                        className="flex flex-col items-center justify-center rounded-xl w-11 h-12 pt-1"
+                        style={{ background: "linear-gradient(180deg,#1a1a2e 0%,#16213e 100%)", boxShadow: "0 4px 12px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.06)" }}
                       >
-                        {/* Top face */}
-                        <div className="relative w-11 h-7 flex items-end justify-center pb-0.5 overflow-hidden"
-                          style={{ borderBottom: "1px solid rgba(255,255,255,0.07)", background: "linear-gradient(180deg,rgba(255,255,255,0.06) 0%,transparent 100%)" }}
-                        >
-                          <span key={val} className="font-mono font-black text-2xl text-white leading-none fs-flip-digit">{val}</span>
-                        </div>
-                        {/* Bottom face */}
-                        <div className="w-11 h-7 flex items-start justify-center pt-0.5 overflow-hidden"
-                          style={{ background: "linear-gradient(180deg,transparent 0%,rgba(0,0,0,0.2) 100%)" }}
-                        >
-                          <span className="font-mono font-black text-2xl text-white/60 leading-none">{val}</span>
-                        </div>
-                        <span className="text-[7px] font-bold tracking-[0.18em] pb-1 text-white/25">{label}</span>
+                        <span key={val} className="font-mono font-black text-[22px] text-white leading-none fs-flip-digit">{val}</span>
+                        <span className="text-[7px] font-bold tracking-[0.18em] text-white/30 mt-1">{label}</span>
                       </div>
                       {i < 2 && (
                         <span
