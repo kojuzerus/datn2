@@ -59,6 +59,9 @@ const productSchema = new mongoose.Schema(
 // Index tìm kiếm nhanh
 productSchema.index({ status: 1, total_sold: -1 });
 productSchema.index({ status: 1, avg_rating: -1 });
+productSchema.index({ status: 1, created_at: -1 });               // sort "newest" (mặc định)
+productSchema.index({ status: 1, category_id: 1, created_at: -1 }); // lọc theo danh mục
+productSchema.index({ status: 1, brand_id: 1, created_at: -1 });    // lọc theo thương hiệu
 
 
 module.exports = mongoose.model("Product", productSchema);

@@ -5,6 +5,25 @@ const ProductImage = require("../models/productImageModel");
 const Brand        = require("../models/brandModel");
 const Category     = require("../models/categoryModel");
 
+// ── In-memory TTL cache ───────────────────────────────────────────────────
+// Atlas ở xa nên mỗi round-trip tốn ~50-100ms; cache 60s cho các GET công khai
+// giúp lượt tải sau trả về tức thì. Ghi (create/update/delete) sẽ xoá cache.
+const _cache = new Map();
+const CACHE_TTL = 60_000;
+
+function cacheGet(key) {
+  const hit = _cache.get(key);
+  if (hit && hit.exp > Date.now()) return hit.data;
+  _cache.delete(key);
+  return null;
+}
+function cacheSet(key, data, ttl = CACHE_TTL) {
+  _cache.set(key, { data, exp: Date.now() + ttl });
+}
+function cacheClear() {
+  _cache.clear();
+}
+
 // ── Helper: lấy giá hiển thị từ variants ─────────────────────────────────
 function getDisplayPrice(variants = []) {
   if (!variants.length) return { price: 0, sale_price: null, discount_pct: 0 };
@@ -24,22 +43,27 @@ function getDisplayPrice(variants = []) {
 }
 
 // ── Helper: fetch variants cho nhiều product cùng lúc ────────────────────
-// Tránh N+1 query: chỉ query Variant 1 lần cho toàn bộ danh sách
+// Sản phẩm mới đã nhúng sẵn variants trong document — dùng luôn, khỏi query.
+// Chỉ query collection product_variants cho các sản phẩm cũ còn thiếu.
 async function attachVariants(products) {
-  const ids = products.map((p) => p.product_id);
-  const variants = await Variant.find({ product_id: { $in: ids } }).lean();
+  const missingIds = products
+    .filter((p) => !(Array.isArray(p.variants) && p.variants.length))
+    .map((p) => p.product_id);
 
-  // Group variants theo product_id
-  const variantMap = {};
-  for (const v of variants) {
-    if (!variantMap[v.product_id]) variantMap[v.product_id] = [];
-    variantMap[v.product_id].push(v);
+  let variantMap = {};
+  if (missingIds.length) {
+    const variants = await Variant.find({ product_id: { $in: missingIds } }).lean();
+    for (const v of variants) {
+      if (!variantMap[v.product_id]) variantMap[v.product_id] = [];
+      variantMap[v.product_id].push(v);
+    }
   }
 
-  return products.map((p) => ({
-    ...p,
-    variants: variantMap[p.product_id] || [],
-  }));
+  return products.map((p) =>
+    Array.isArray(p.variants) && p.variants.length
+      ? p
+      : { ...p, variants: variantMap[p.product_id] || [] }
+  );
 }
 
 async function attachProductImages(products) {
@@ -167,6 +191,10 @@ exports.getFeatured = async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 6;
 
+    const cacheKey = `featured:${limit}`;
+    const cached = cacheGet(cacheKey);
+    if (cached) return res.json(cached);
+
     let products = await Product.find({ status: "active" })
       .sort({ avg_rating: -1, total_sold: -1 })
       .limit(limit)
@@ -175,10 +203,12 @@ exports.getFeatured = async (req, res) => {
     products = await attachVariants(products);  // ← join variants
     products = await attachProductImages(products); // ← join product_images
 
-    res.json({
+    const payload = {
       success: true,
       data: products.map(formatProduct),
-    });
+    };
+    cacheSet(cacheKey, payload);
+    res.json(payload);
   } catch (err) {
     console.error("[getFeatured]", err);
     res.status(500).json({ success: false, message: "Lỗi server", error: err.message });
@@ -191,6 +221,10 @@ exports.getBestSelling = async (req, res) => {
     const limit = parseInt(req.query.limit) || 4;
     const fmt   = (n) => (n >= 1000 ? (n / 1000).toFixed(1) + "K" : String(n));
 
+    const cacheKey = `best-selling:${limit}`;
+    const cached = cacheGet(cacheKey);
+    if (cached) return res.json(cached);
+
     let products = await Product.find({ status: "active" })
       .sort({ total_sold: -1, avg_rating: -1 })
       .limit(limit)
@@ -199,14 +233,16 @@ exports.getBestSelling = async (req, res) => {
     products = await attachVariants(products);  // ← join variants
     products = await attachProductImages(products); // ← join product_images
 
-    res.json({
+    const payload = {
       success: true,
       data: products.map((p, i) => ({
         ...formatProduct(p),
         luotBan: fmt(p.total_sold || 0),
         rank:    i + 1,
       })),
-    });
+    };
+    cacheSet(cacheKey, payload);
+    res.json(payload);
   } catch (err) {
     console.error("[getBestSelling]", err);
     res.status(500).json({ success: false, message: "Lỗi server", error: err.message });
@@ -222,6 +258,11 @@ exports.getAll = async (req, res) => {
       price_min, price_max, rating_min, discount_only,
     } = req.query;
 
+    // Cache theo toàn bộ query string (chỉ dữ liệu công khai, TTL ngắn)
+    const cacheKey = `all:${JSON.stringify(req.query)}`;
+    const cachedAll = cacheGet(cacheKey);
+    if (cachedAll) return res.json(cachedAll);
+
     const filter = {};
     if (status === "all")   { /* no filter */ }
     else if (status)        filter.status = status;
@@ -230,8 +271,14 @@ exports.getAll = async (req, res) => {
     if (category_id) {
       filter.category_id = parseInt(category_id);
     } else if (category_slug) {
-      const cat = await Category.findOne({ slug: category_slug }).lean();
-      if (cat) filter.category_id = cat.category_id;
+      // Map slug → id ít thay đổi, cache 5 phút để khỏi tốn 1 round-trip mỗi request
+      let catId = cacheGet(`catslug:${category_slug}`);
+      if (catId == null) {
+        const cat = await Category.findOne({ slug: category_slug }).lean();
+        catId = cat ? cat.category_id : -1;
+        cacheSet(`catslug:${category_slug}`, catId, 5 * 60_000);
+      }
+      if (catId !== -1) filter.category_id = catId;
     }
     if (brand_id) {
       const brandIds = String(brand_id).split(",").map((id) => parseInt(id)).filter(Boolean);
@@ -253,19 +300,22 @@ exports.getAll = async (req, res) => {
     const needsInMemoryPaging = hasPriceFilter || hasDiscountFilter || sort === "price_asc" || sort === "price_desc";
 
     if (!needsInMemoryPaging) {
-      const skip  = (parseInt(page) - 1) * parseInt(limit);
-      const total = await Product.countDocuments(filter);
+      const skip = (parseInt(page) - 1) * parseInt(limit);
 
-      let products = await Product.find(filter)
-        .sort(sortMap[sort] || sortMap.newest)
-        .skip(skip)
-        .limit(parseInt(limit))
-        .lean();
+      // count + find độc lập nhau → chạy song song, tiết kiệm 1 round-trip
+      const [total, found] = await Promise.all([
+        Product.countDocuments(filter),
+        Product.find(filter)
+          .sort(sortMap[sort] || sortMap.newest)
+          .skip(skip)
+          .limit(parseInt(limit))
+          .lean(),
+      ]);
 
-      products = await attachVariants(products);
+      let products = await attachVariants(found);
       products = await attachProductImages(products);
 
-      return res.json({
+      const payload = {
         success: true,
         data: products.map(formatProduct),
         pagination: {
@@ -274,7 +324,9 @@ exports.getAll = async (req, res) => {
           limit:      parseInt(limit),
           totalPages: Math.ceil(total / parseInt(limit)),
         },
-      });
+      };
+      cacheSet(cacheKey, payload);
+      return res.json(payload);
     }
 
     // ── Cần lọc theo giá/giảm giá (tính từ variants) → lọc trong bộ nhớ ──
@@ -303,7 +355,7 @@ exports.getAll = async (req, res) => {
     const skip  = (parseInt(page) - 1) * parseInt(limit);
     const paged = products.slice(skip, skip + parseInt(limit));
 
-    res.json({
+    const payload = {
       success: true,
       data: paged.map(formatProduct),
       pagination: {
@@ -312,7 +364,9 @@ exports.getAll = async (req, res) => {
         limit:      parseInt(limit),
         totalPages: Math.ceil(total / parseInt(limit)),
       },
-    });
+    };
+    cacheSet(cacheKey, payload);
+    res.json(payload);
   } catch (err) {
     console.error("[getAll]", err);
     res.status(500).json({ success: false, message: "Lỗi server", error: err.message });
@@ -322,6 +376,10 @@ exports.getAll = async (req, res) => {
 // ── [GET] /api/products/:slug ─────────────────────────────────────────────
 exports.getBySlug = async (req, res) => {
   try {
+    const cacheKey = `slug:${req.params.slug}`;
+    const cached = cacheGet(cacheKey);
+    if (cached) return res.json(cached);
+
     let product = await Product.findOne({ slug: req.params.slug, status: "active" }).lean();
     if (!product)
       return res.status(404).json({ success: false, message: "Không tìm thấy sản phẩm" });
@@ -330,7 +388,9 @@ exports.getBySlug = async (req, res) => {
     product.variants = variants;
     [product] = await attachProductImages([product]);
 
-    res.json({ success: true, data: formatProduct(product) });
+    const payload = { success: true, data: formatProduct(product) };
+    cacheSet(cacheKey, payload, 30_000);
+    res.json(payload);
   } catch (err) {
     console.error("[getBySlug]", err);
     res.status(500).json({ success: false, message: "Lỗi server", error: err.message });
@@ -410,6 +470,8 @@ exports.createProduct = async (req, res) => {
 
     const imageByVariant = {};
     imageDocs.forEach((img) => { imageByVariant[img.variant_id] = img.image_url; });
+
+    cacheClear(); // dữ liệu đổi → bỏ cache cũ
 
     const plain = product.toObject();
     plain.variants = builtVariants.map((v) => ({ ...v, image: imageByVariant[v.variant_id] || "" }));
@@ -503,6 +565,8 @@ exports.updateProduct = async (req, res) => {
       { new: true }
     ).lean();
 
+    cacheClear(); // dữ liệu đổi → bỏ cache cũ
+
     updated.variants = builtVariants.map((v) => ({ ...v, image: imageByVariant[v.variant_id] || "" }));
     res.json({ success: true, data: formatProduct(updated) });
   } catch (err) {
@@ -524,6 +588,7 @@ exports.deleteProduct = async (req, res) => {
       Variant.deleteMany({ product_id }),
     ]);
 
+    cacheClear(); // dữ liệu đổi → bỏ cache cũ
     res.json({ success: true, message: "Đã xoá sản phẩm thành công" });
   } catch (err) {
     console.error("[deleteProduct]", err);
