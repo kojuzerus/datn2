@@ -137,9 +137,20 @@ async function uniqueSlug(base, excludeId = null) {
   }
 }
 
+// Ảnh hotlink từ cdn2.cellphones.com.vn/x/media/... là bản gốc full-size
+// (300KB–2MB). Chuyển qua proxy resize sẵn có của CDN đó → ~358px, nhẹ hơn nhiều.
+function optimizeExternalImage(url) {
+  const m = url.match(/^https?:\/\/cdn2\.cellphones\.com\.vn\/x\/(media\/catalog\/product\/.+)$/);
+  if (m) {
+    const cleanPath = m[1].split("?")[0]; // bỏ ?_gl=... tracking làm bust cache CDN
+    return `https://cdn2.cellphones.com.vn/insecure/rs:fill:358:358/q:90/plain/https://cellphones.com.vn/${cleanPath}`;
+  }
+  return url;
+}
+
 function normalizeImageUrl(url) {
   if (!url) return "";
-  if (url.startsWith("http://") || url.startsWith("https://")) return url;
+  if (url.startsWith("http://") || url.startsWith("https://")) return optimizeExternalImage(url);
 
   let normalized = url.replace(/^public\//, "");
   if (!normalized.startsWith("images/") && !normalized.startsWith("/")) {
