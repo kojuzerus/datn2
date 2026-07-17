@@ -53,13 +53,13 @@ function RatingMeter({ rating }: { rating: number }) {
   );
 }
 
-function initials(name: string) {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
+function initials(name?: string | null) {
+  const parts = (name ?? "").trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return "?";
   return parts.slice(-2).map((w) => w[0]).join("").toUpperCase();
 }
 
-function Avatar({ name }: { name: string }) {
+function Avatar({ name }: { name?: string | null }) {
   return (
     <div className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-[11px] font-semibold text-gray-500 shrink-0">
       {initials(name)}
@@ -294,7 +294,7 @@ export default function AdminReviewsPage() {
                     <td className="px-4 py-3.5 whitespace-nowrap">
                       <div className="flex items-center gap-2.5">
                         <Avatar name={r.userName} />
-                        <span className="text-[13px] font-medium text-gray-800">{r.userName}</span>
+                        <span className="text-[13px] font-medium text-gray-800">{r.userName || "Khách hàng"}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3.5 whitespace-nowrap"><RatingMeter rating={r.rating} /></td>
