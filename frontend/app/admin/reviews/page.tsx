@@ -23,8 +23,10 @@ interface ReviewRow {
 interface Pagination { total: number; page: number; limit: number; totalPages: number; }
 interface Toast { id: number; type: "success" | "error"; message: string; }
 
-function fmtDate(s: string) {
+function fmtDate(s?: string | null) {
+  if (!s) return "-";
   const d = new Date(s);
+  if (Number.isNaN(d.getTime())) return "-";
   return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
 }
 
