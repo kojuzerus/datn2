@@ -140,7 +140,7 @@ exports.cancelOrder = async (req, res) => {
 // GET /api/orders/admin/all — Lấy tất cả đơn hàng (admin)
 exports.getAllOrders = async (req, res) => {
   try {
-    const orders = await Order.find().sort({ createdAt: -1 }).populate("userId", "hoTen soDienThoai email");
+    const orders = await Order.find().sort({ createdAt: 1 }).populate("userId", "hoTen soDienThoai email");
     res.json({ success: true, orders });
   } catch (err) {
     res.status(500).json({ success: false, message: "Lỗi server" });
