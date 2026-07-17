@@ -458,7 +458,7 @@ export default function ThanhToanPage() {
                       key={addr._id}
                       className={`flex items-start gap-3 p-4 rounded-sm border-2 cursor-pointer transition ${
                         selectedAddr === addr._id
-                          ? 'border-red-400 bg-red-50'
+                          ? 'border-blue-400 bg-blue-50'
                           : 'border-gray-100 hover:border-gray-200'
                       }`}
                     >
@@ -468,16 +468,16 @@ export default function ThanhToanPage() {
                         value={addr._id}
                         checked={selectedAddr === addr._id}
                         onChange={() => setSelectedAddr(addr._id)}
-                        className="mt-1 accent-red-500"
+                        className="mt-1 accent-blue-500"
                       />
-                      <MapPin className={`w-4 h-4 mt-0.5 shrink-0 ${selectedAddr === addr._id ? 'text-red-400' : 'text-gray-300'}`} />
+                      <MapPin className={`w-4 h-4 mt-0.5 shrink-0 ${selectedAddr === addr._id ? 'text-blue-500' : 'text-gray-300'}`} />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-semibold text-gray-800 text-sm">{addr.receiverName}</span>
                           <span className="text-gray-300">|</span>
                           <span className="text-gray-500 text-sm">{addr.phone}</span>
                           {addr.isDefault && (
-                            <span className="text-xs bg-red-100 text-red-500 px-2 py-0.5 rounded font-medium">
+                            <span className="text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded font-medium">
                               Mặc định
                             </span>
                           )}
@@ -505,7 +505,7 @@ export default function ThanhToanPage() {
                     key={id}
                     className={`flex items-center gap-4 p-4 rounded-sm border-2 cursor-pointer transition ${
                       paymentMethod === id
-                        ? 'border-red-400 bg-red-50'
+                        ? 'border-blue-400 bg-blue-50'
                         : 'border-gray-100 hover:border-gray-200'
                     }`}
                   >
@@ -515,7 +515,7 @@ export default function ThanhToanPage() {
                       value={id}
                       checked={paymentMethod === id}
                       onChange={() => setPaymentMethod(id as 'cod' | 'vnpay')}
-                      className="accent-red-500"
+                      className="accent-blue-500"
                     />
                     <div className={`w-10 h-10 ${bg} rounded-sm flex items-center justify-center shrink-0`}>
                       <Icon className={`w-5 h-5 ${color}`} />
