@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import {
   Search, RefreshCw, X, CheckCircle, XCircle, AlertTriangle,
-  Star, Trash2, Eye, EyeOff, ChevronLeft, ChevronRight, ImageIcon, MessageSquare,
+  Trash2, Eye, EyeOff, ChevronLeft, ChevronRight, ImageIcon, MessageSquare,
 } from "lucide-react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -28,16 +28,41 @@ function fmtDate(s: string) {
   return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
 }
 
-function Stars({ rating }: { rating: number }) {
+const RATING_TIERS = [
+  { min: 4,   bar: "bg-emerald-500", text: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200" },
+  { min: 3,   bar: "bg-amber-500",   text: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-200" },
+  { min: 0,   bar: "bg-rose-500",    text: "text-rose-700",    bg: "bg-rose-50",    border: "border-rose-200" },
+];
+
+function ratingTier(rating: number) {
+  return RATING_TIERS.find((t) => rating >= t.min) ?? RATING_TIERS[RATING_TIERS.length - 1];
+}
+
+function RatingMeter({ rating }: { rating: number }) {
+  const tier = ratingTier(rating);
+  const pct  = Math.max(0, Math.min(5, rating)) / 5 * 100;
   return (
-    <div className="flex items-center gap-0.5">
-      {[1, 2, 3, 4, 5].map((n) => (
-        <Star
-          key={n}
-          size={13}
-          className={n <= rating ? "fill-amber-400 text-amber-400" : "fill-gray-200 text-gray-200"}
-        />
-      ))}
+    <div className="flex items-center gap-2">
+      <span className={`text-[12px] font-bold tabular-nums px-1.5 py-0.5 rounded-md border ${tier.bg} ${tier.text} ${tier.border}`}>
+        {rating.toFixed(1)}
+      </span>
+      <div className="w-14 h-1.5 rounded-full bg-gray-100 overflow-hidden">
+        <div className={`h-full rounded-full ${tier.bar}`} style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function initials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  return parts.slice(-2).map((w) => w[0]).join("").toUpperCase();
+}
+
+function Avatar({ name }: { name: string }) {
+  return (
+    <div className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-[11px] font-semibold text-gray-500 shrink-0">
+      {initials(name)}
     </div>
   );
 }
@@ -266,8 +291,13 @@ export default function AdminReviewsPage() {
                         </span>
                       </div>
                     </td>
-                    <td className="px-4 py-3.5 text-[13px] text-gray-700 whitespace-nowrap">{r.userName}</td>
-                    <td className="px-4 py-3.5 whitespace-nowrap"><Stars rating={r.rating} /></td>
+                    <td className="px-4 py-3.5 whitespace-nowrap">
+                      <div className="flex items-center gap-2.5">
+                        <Avatar name={r.userName} />
+                        <span className="text-[13px] font-medium text-gray-800">{r.userName}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3.5 whitespace-nowrap"><RatingMeter rating={r.rating} /></td>
                     <td className="px-4 py-3.5">
                       <p className="text-[12.5px] text-gray-500 line-clamp-2 max-w-[240px]">
                         {r.content || <span className="text-gray-300 italic">Không có nội dung</span>}
