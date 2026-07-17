@@ -41,12 +41,13 @@ function ratingTier(rating: number) {
 }
 
 function RatingMeter({ rating }: { rating: number }) {
-  const tier = ratingTier(rating);
-  const pct  = Math.max(0, Math.min(5, rating)) / 5 * 100;
+  const safeRating = Number.isFinite(rating) ? rating : 0;
+  const tier = ratingTier(safeRating);
+  const pct  = Math.max(0, Math.min(5, safeRating)) / 5 * 100;
   return (
     <div className="flex items-center gap-2">
       <span className={`text-[12px] font-bold tabular-nums px-1.5 py-0.5 rounded-md border ${tier.bg} ${tier.text} ${tier.border}`}>
-        {rating.toFixed(1)}
+        {safeRating.toFixed(1)}
       </span>
       <div className="w-14 h-1.5 rounded-full bg-gray-100 overflow-hidden">
         <div className={`h-full rounded-full ${tier.bar}`} style={{ width: `${pct}%` }} />
@@ -125,10 +126,16 @@ export default function AdminReviewsPage() {
   const [toasts, setToasts]         = useState<Toast[]>([]);
 
   const [search, setSearch]             = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [ratingFilter, setRatingFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [page, setPage]                 = useState(1);
   const [deleting, setDeleting]         = useState<ReviewRow | null>(null);
+
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(search), 400);
+    return () => clearTimeout(id);
+  }, [search]);
 
   const authHeaders = useCallback((): Record<string, string> => {
     const token = localStorage.getItem("smarthub_token");
@@ -142,30 +149,35 @@ export default function AdminReviewsPage() {
   }, []);
   const removeToast = useCallback((id: number) => setToasts((prev) => prev.filter((t) => t.id !== id)), []);
 
-  const fetchReviews = useCallback(async () => {
+  const fetchReviews = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
         page: String(page),
         limit: "10",
-        ...(search && { search }),
+        ...(debouncedSearch && { search: debouncedSearch }),
         ...(ratingFilter && { rating: ratingFilter }),
         ...(statusFilter && { status: statusFilter }),
       });
-      const res  = await fetch(`${API_BASE}/api/reviews/admin/all?${params}`, { headers: authHeaders() });
+      const res  = await fetch(`${API_BASE}/api/reviews/admin/all?${params}`, { headers: authHeaders(), signal });
       const json = await res.json();
       if (json.success) {
         setReviews(json.data);
         setPagination(json.pagination);
       }
-    } catch {
+    } catch (err) {
+      if ((err as Error).name === "AbortError") return;
       showToast("error", "Không thể kết nối đến máy chủ!");
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) setLoading(false);
     }
-  }, [page, search, ratingFilter, statusFilter, authHeaders, showToast]);
+  }, [page, debouncedSearch, ratingFilter, statusFilter, authHeaders, showToast]);
 
-  useEffect(() => { fetchReviews(); }, [fetchReviews]);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchReviews(controller.signal);
+    return () => controller.abort();
+  }, [fetchReviews]);
 
   const handleToggleVisibility = async (r: ReviewRow) => {
     try {
