@@ -223,7 +223,7 @@ export default function ProductDetailPage() {
     const success = await addToCart({
       productId: String(product.id),
       tenSanPham: product.ten,
-      hinhAnh: product.thumbnail,
+      hinhAnh: selectedVariant?.image || product.thumbnail,
       gia: displayPrice,
       soLuong: qty,
       variant: selectedVariant?.color || "",
@@ -239,7 +239,7 @@ export default function ProductDetailPage() {
     const success = await addToCart({
       productId: String(product.id),
       tenSanPham: product.ten,
-      hinhAnh: product.thumbnail,
+      hinhAnh: selectedVariant?.image || product.thumbnail,
       gia: displayPrice,
       soLuong: qty,
       variant: selectedVariant?.color || "",
