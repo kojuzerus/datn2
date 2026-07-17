@@ -65,7 +65,7 @@ Done các nút có chức năng click (MK)
 Phước (làm quá trời luôn không biết note gì cả).
 
 
-
+Done Mã giảm - đánh giá : điều kiện chỉ mua rồi ms đc đánh giá - đã có trang tin tức và quản lý tin tức. (MK)
 
 
 Phần chưa làm: Mã giảm - vòng quay may mắn - Flash sale - chức năng nhận xét và đánh giá sau khi mua sản phẩm - chức năng hỏi đáp của khách hàng trước khi mua sản phẩm. 

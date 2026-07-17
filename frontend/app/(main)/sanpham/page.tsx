@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useComparison } from "../../components/comparisonContext";
 import { useFavorites, type FavoriteProduct } from "../../components/favoritesContext";
+import BrandSpinner from "../../components/BrandSpinner";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -330,14 +331,15 @@ function ProductsContent() {
   const ratingMin    = searchParams.get("sao-tu")       || "";
   const discountOnly = searchParams.get("giam-gia") === "1";
   const sort         = searchParams.get("sort")         || "newest";
-  const currentPage  = parseInt(searchParams.get("trang") || "1");
   const keyword      = searchParams.get("tu-khoa")      || "";
 
   const [products,      setProducts]      = useState<Product[]>([]);
   const [categories,    setCategories]    = useState<Category[]>([]);
   const [brands,        setBrands]        = useState<Brand[]>([]);
   const [pagination,    setPagination]    = useState<Pagination>({ total: 0, page: 1, limit: 20, totalPages: 1 });
+  const [page,          setPage]          = useState(1);
   const [loading,       setLoading]       = useState(true);
+  const [loadingMore,   setLoadingMore]   = useState(false);
   const [loadingBrands, setLoadingBrands] = useState(false);
   const [openDropdown,  setOpenDropdown]  = useState<DropdownKey>("");
   const [isSticky,      setIsSticky]      = useState(false);
@@ -397,12 +399,12 @@ function ProductsContent() {
 
   const selectedPriceRange = PRICE_PRESETS.find((p) => p.key === priceKey);
 
-  /* ── Fetch products ── */
-  const fetchProducts = useCallback(async () => {
-    setLoading(true);
+  /* ── Fetch products (load-more style) ── */
+  const fetchProducts = useCallback(async (pageNum: number, append: boolean) => {
+    if (append) setLoadingMore(true); else setLoading(true);
     try {
       const params = new URLSearchParams({
-        page: String(currentPage), limit: "20", sort, status: "active",
+        page: String(pageNum), limit: "20", sort, status: "active",
         ...(danhMucSlug       && { category_slug: danhMucSlug }),
         ...(brandIds.length   && { brand_id: brandIds.join(",") }),
         ...(keyword           && { search: keyword }),
@@ -414,17 +416,24 @@ function ProductsContent() {
       const res  = await fetch(`${API_BASE}/api/products?${params}`);
       const json = await res.json();
       if (json.success) {
-        setProducts(json.data);
+        setProducts((prev) => (append ? [...prev, ...json.data] : json.data));
         setPagination(json.pagination);
       }
     } catch (e) {
       console.error(e);
     } finally {
-      setLoading(false);
+      if (append) setLoadingMore(false); else setLoading(false);
     }
-  }, [danhMucSlug, thuongHieuId, sort, currentPage, keyword, ratingMin, discountOnly, priceKey]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [danhMucSlug, thuongHieuId, sort, keyword, ratingMin, discountOnly, priceKey]);
 
-  useEffect(() => { fetchProducts(); }, [fetchProducts]);
+  useEffect(() => { setPage(1); fetchProducts(1, false); }, [fetchProducts]);
+
+  const handleLoadMore = () => {
+    const next = page + 1;
+    setPage(next);
+    fetchProducts(next, true);
+  };
 
   /* ── Filter handlers ── */
   const toggleDropdown = (key: DropdownKey) => setOpenDropdown((cur) => (cur === key ? "" : key));
@@ -466,6 +475,28 @@ function ProductsContent() {
           <span className="text-gray-700 font-medium">Tất cả sản phẩm</span>
         )}
       </nav>
+
+      {/* ── Promo banners — pair ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+        <Link href="/sanpham?tu-khoa=Samsung" className="block group">
+          <div className="rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow" style={{ aspectRatio: "1036 / 450" }}>
+            <img
+              src="/banners/promo-samsung.webp"
+              alt="Galaxy S26 Ultra - Giá chỉ từ 44K/ngày"
+              className="w-full h-full object-cover block select-none transition-transform duration-500 group-hover:scale-[1.02]"
+            />
+          </div>
+        </Link>
+        <Link href="/sanpham?tu-khoa=Xiaomi" className="block group">
+          <div className="rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow" style={{ aspectRatio: "1036 / 450" }}>
+            <img
+              src="/banners/promo-xiaomi.webp"
+              alt="Xiaomi 17T Series - Giá từ 18.99 triệu"
+              className="w-full h-full object-cover block select-none transition-transform duration-500 group-hover:scale-[1.02]"
+            />
+          </div>
+        </Link>
+      </div>
 
       <div className="flex items-center justify-between mb-2.5">
         <p className="text-[16px] font-bold text-gray-900">Chọn theo tiêu chí</p>
@@ -747,54 +778,24 @@ function ProductsContent() {
         </div>
       )}
 
-      {/* Pagination */}
-      {!loading && pagination.totalPages > 1 && (
-        <div className="flex items-center justify-center gap-1.5 mt-8">
+      {/* Load more */}
+      {!loading && products.length < pagination.total && (
+        <div className="flex justify-center mt-8">
           <button
-            disabled={currentPage <= 1}
-            onClick={() => pushParams({ trang: String(currentPage - 1) })}
-            className="w-9 h-9 rounded-xl border border-gray-200 bg-white text-gray-600 flex items-center justify-center hover:bg-gray-50 disabled:opacity-30 disabled:cursor-default transition-colors text-sm"
+            onClick={handleLoadMore}
+            disabled={loadingMore}
+            className="inline-flex items-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-600 text-[14.5px] font-semibold px-7 py-3 rounded-xl transition-colors disabled:opacity-50"
           >
-            ‹
+            Xem thêm {(pagination.total - products.length).toLocaleString("vi-VN")} sản phẩm
+            <ChevronDown className="w-4 h-4" />
           </button>
-          {(() => {
-            const total = pagination.totalPages;
-            const cur   = currentPage;
-            const pages: (number | "...")[] = [];
-            if (total <= 7) {
-              for (let i = 1; i <= total; i++) pages.push(i);
-            } else {
-              pages.push(1);
-              if (cur > 3) pages.push("...");
-              for (let i = Math.max(2, cur - 1); i <= Math.min(total - 1, cur + 1); i++) pages.push(i);
-              if (cur < total - 2) pages.push("...");
-              pages.push(total);
-            }
-            return pages.map((n, i) =>
-              n === "..." ? (
-                <span key={`e${i}`} className="w-9 h-9 flex items-center justify-center text-gray-400 text-sm">...</span>
-              ) : (
-                <button
-                  key={n}
-                  onClick={() => pushParams({ trang: String(n) })}
-                  className={`w-9 h-9 rounded-xl border text-sm font-medium flex items-center justify-center transition-colors ${
-                    cur === n
-                      ? "bg-red-600 text-white border-red-600"
-                      : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
-                  }`}
-                >
-                  {n}
-                </button>
-              ),
-            );
-          })()}
-          <button
-            disabled={currentPage >= pagination.totalPages}
-            onClick={() => pushParams({ trang: String(currentPage + 1) })}
-            className="w-9 h-9 rounded-xl border border-gray-200 bg-white text-gray-600 flex items-center justify-center hover:bg-gray-50 disabled:opacity-30 disabled:cursor-default transition-colors text-sm"
-          >
-            ›
-          </button>
+        </div>
+      )}
+
+      {/* Fullscreen loading overlay */}
+      {loadingMore && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center" style={{ background: "rgba(255,255,255,0.65)", backdropFilter: "blur(2px)" }}>
+          <BrandSpinner size={76} />
         </div>
       )}
     </>
