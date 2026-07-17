@@ -2,8 +2,8 @@
 
 import { useEffect, useState, useCallback } from "react";
 import {
-  Search, RefreshCw, Plus, X, CheckCircle, XCircle, AlertTriangle,
-  Tag, Pencil, Trash2, Percent, BadgeDollarSign, ChevronLeft, ChevronRight,
+  Search, RefreshCw, Plus, X, CheckCircle, XCircle,
+  Tag, Pencil, Eye, EyeOff, Percent, BadgeDollarSign, ChevronLeft, ChevronRight,
 } from "lucide-react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -100,32 +100,6 @@ function ToastContainer({ toasts, onRemove }: { toasts: Toast[]; onRemove: (id: 
   );
 }
 
-function ConfirmDialog({
-  title, message, onConfirm, onCancel,
-}: { title: string; message: string; onConfirm: () => void; onCancel: () => void }) {
-  return (
-    <div className="fixed inset-0 bg-black/40 z-[200] flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl w-[380px] shadow-2xl border border-gray-100 overflow-hidden">
-        <div className="p-6 text-center">
-          <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
-            <AlertTriangle size={22} className="text-red-600" />
-          </div>
-          <h3 className="text-[15px] font-bold text-gray-900 mb-1.5">{title}</h3>
-          <p className="text-[13px] text-gray-500 leading-relaxed">{message}</p>
-        </div>
-        <div className="flex gap-3 px-6 pb-5">
-          <button onClick={onCancel} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-[13.5px] font-medium text-gray-600 bg-white hover:bg-gray-50 transition-colors cursor-pointer">
-            Hủy
-          </button>
-          <button onClick={onConfirm} className="flex-1 py-2.5 rounded-xl bg-red-600 text-white text-[13.5px] font-semibold hover:bg-red-700 transition-colors cursor-pointer">
-            Xoá
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ── Page ─────────────────────────────────────────────────────────────────────
 export default function AdminPromotionsPage() {
   const [promotions, setPromotions] = useState<PromotionRow[]>([]);
@@ -141,7 +115,6 @@ export default function AdminPromotionsPage() {
   const [editing, setEditing]     = useState<PromotionRow | null>(null);
   const [form, setForm]           = useState<PromotionForm>(EMPTY_FORM);
   const [saving, setSaving]       = useState(false);
-  const [deleting, setDeleting]   = useState<PromotionRow | null>(null);
 
   const authHeaders = useCallback((): Record<string, string> => {
     const token = localStorage.getItem("smarthub_token");
@@ -249,35 +222,40 @@ export default function AdminPromotionsPage() {
     }
   };
 
-  const handleDelete = async () => {
-    if (!deleting) return;
+  const handleToggleStatus = async (p: PromotionRow) => {
+    const nextStatus = p.status === "active" ? "inactive" : "active";
     try {
-      const res  = await fetch(`${API_BASE}/api/promotions/${deleting._id}`, { method: "DELETE", headers: authHeaders() });
+      const res  = await fetch(`${API_BASE}/api/promotions/${p._id}`, {
+        method: "PUT",
+        headers: authHeaders(),
+        body: JSON.stringify({
+          code:            p.code,
+          description:     p.description,
+          discount_type:   p.discount_type,
+          discount_value:  p.discount_value,
+          max_discount:    p.max_discount,
+          min_order_value: p.min_order_value,
+          usage_limit:     p.usage_limit,
+          start_date:      p.start_date,
+          end_date:        p.end_date,
+          status:          nextStatus,
+        }),
+      });
       const json = await res.json();
       if (json.success) {
-        showToast("success", json.message);
-        fetchPromotions();
+        showToast("success", nextStatus === "active" ? "Đã bật mã giảm giá" : "Đã ẩn mã giảm giá");
+        setPromotions((prev) => prev.map((x) => (x._id === p._id ? { ...x, status: nextStatus } : x)));
       } else {
-        showToast("error", json.message || "Không thể xóa!");
+        showToast("error", json.message || "Có lỗi xảy ra!");
       }
     } catch {
       showToast("error", "Không thể kết nối đến máy chủ!");
-    } finally {
-      setDeleting(null);
     }
   };
 
   return (
     <div>
       <ToastContainer toasts={toasts} onRemove={removeToast} />
-      {deleting && (
-        <ConfirmDialog
-          title="Xóa mã giảm giá"
-          message={`Bạn có chắc muốn xóa mã "${deleting.code}"? Hành động này không thể hoàn tác.`}
-          onConfirm={handleDelete}
-          onCancel={() => setDeleting(null)}
-        />
-      )}
 
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
@@ -347,7 +325,7 @@ export default function AdminPromotionsPage() {
                 {promotions.map((p) => {
                   const st = promoState(p);
                   return (
-                    <tr key={p._id} className="hover:bg-gray-50/50 transition-colors">
+                    <tr key={p._id} className={`hover:bg-gray-50/50 transition-colors ${p.status === "inactive" ? "opacity-60" : ""}`}>
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-2.5">
                           <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${p.discount_type === "percent" ? "bg-violet-50" : "bg-emerald-50"}`}>
@@ -394,11 +372,11 @@ export default function AdminPromotionsPage() {
                             <Pencil size={13} />
                           </button>
                           <button
-                            onClick={() => setDeleting(p)}
-                            title="Xóa"
-                            className="w-8 h-8 rounded-lg border border-gray-200 bg-white flex items-center justify-center text-gray-500 hover:text-red-600 hover:border-red-300 hover:bg-red-50 transition-colors cursor-pointer"
+                            onClick={() => handleToggleStatus(p)}
+                            title={p.status === "active" ? "Ẩn mã" : "Hiện mã"}
+                            className="w-8 h-8 rounded-lg border border-gray-200 bg-white flex items-center justify-center text-gray-500 hover:text-[#D32F2F] hover:border-[#D32F2F] transition-colors cursor-pointer"
                           >
-                            <Trash2 size={13} />
+                            {p.status === "active" ? <EyeOff size={13} /> : <Eye size={13} />}
                           </button>
                         </div>
                       </td>
