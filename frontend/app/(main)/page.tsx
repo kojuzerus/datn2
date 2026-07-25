@@ -6,11 +6,11 @@ import {
   ChevronLeft, ChevronRight, Star, ArrowRight,
   ShieldCheck, Truck, RefreshCw, Headphones,
   Smartphone, Laptop, Tablet, Watch, Mouse, Speaker, Heart,
-  Wallet, CreditCard, Zap,
+  Wallet, CreditCard, Zap, Flame, Cpu, Timer,
 } from "lucide-react";
 import { useFavorites, type FavoriteProduct } from "../components/favoritesContext";
-import Rabbit3D from "../components/Rabbit3D";
 import { ARTICLES } from "./tin-tuc/data";
+import HeroBanner from "../components/HeroBanner";
 
 // ─── API CONFIG ───────────────────────────────────────────────────────────────
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -211,8 +211,6 @@ const categoriesIconMap: Record<string, React.ComponentType<{ className?: string
   "phu-kien": Headphones,
 };
 
-const baiViet = ARTICLES.slice(0, 4);
-const baiVietMini = ARTICLES.slice(4, 7);
 
 const tienIch = [
   { icon: ShieldCheck, title: "Hàng chính hãng 100%", sub: "Bảo hành toàn quốc" },
@@ -405,19 +403,25 @@ function BestSellingCard({ p }: { p: ProductBestSelling }) {
             <h3 className="font-semibold text-gray-800 text-sm leading-snug line-clamp-2">{p.ten}</h3>
             <p className="text-xs text-gray-400 mt-1 line-clamp-1">{p.moTa}</p>
           </div>
-          <div className="mt-auto flex items-center justify-between gap-3">
-            <div>
-              <p className="text-base font-bold text-gray-900">{fmt(displayPrice)}</p>
-              {p.giamGia > 0 && (
-                <p className="text-xs text-gray-400 line-through">{fmt(p.gia)}</p>
+          <div className="mt-auto">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-base font-bold text-gray-900">{fmt(displayPrice)}</p>
+                {p.giamGia > 0 && (
+                  <p className="text-xs text-gray-400 line-through">{fmt(p.gia)}</p>
+                )}
+              </div>
+              {p.danhGia > 0 && (
+                <div className="flex items-center gap-1 bg-amber-50 rounded-full px-2 py-1">
+                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                  <span className="text-xs font-semibold text-amber-700">{p.danhGia.toFixed(1)}</span>
+                </div>
               )}
             </div>
-            {p.danhGia > 0 && (
-              <div className="flex items-center gap-1 bg-amber-50 rounded-full px-2 py-1">
-                <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                <span className="text-xs font-semibold text-amber-700">{p.danhGia.toFixed(1)}</span>
-              </div>
-            )}
+            {/* Số lượng đã bán — bằng chứng "bán chạy" */}
+            <div className="mt-2 pt-2 border-t border-gray-50">
+              <span className="text-xs font-semibold text-orange-600">Đã bán {p.luotBan}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -498,15 +502,6 @@ function FlashSaleProductCard({ p }: { p: ProductFeatured }) {
             style={{ transition: "opacity 0.3s ease" }}
           />
 
-          {/* Discount badge */}
-          {p.giamGia > 0 && (
-            <div className="absolute top-2 left-2 z-10 bg-gradient-to-br from-red-500 to-rose-700 text-white font-black text-[11px] px-2 py-0.5 rounded-md"
-              style={{ boxShadow: "0 2px 8px rgba(239,68,68,0.5)" }}
-            >
-              -{p.giamGia}%
-            </div>
-          )}
-
           {/* Brand */}
           <div className="px-3 pt-3 pb-0.5">
             <p className="text-[11px] font-bold text-gray-600 uppercase tracking-widest truncate">{p.thuongHieu || "Thương hiệu"}</p>
@@ -519,8 +514,15 @@ function FlashSaleProductCard({ p }: { p: ProductFeatured }) {
             </div>
           )}
 
-          {/* Image */}
-          <div className="h-[140px] mx-3 rounded-xl bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center overflow-hidden">
+          {/* Image + discount badge */}
+          <div className="relative h-[140px] mx-3 rounded-xl bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center overflow-hidden">
+            {p.giamGia > 0 && (
+              <div className="absolute top-1.5 left-1.5 z-10 bg-gradient-to-br from-red-500 to-rose-700 text-white font-black text-[11px] px-2 py-0.5 rounded-md"
+                style={{ boxShadow: "0 2px 8px rgba(239,68,68,0.5)" }}
+              >
+                -{p.giamGia}%
+              </div>
+            )}
             <img
               src={p.thumbnail || "https://placehold.co/300x300?text=No+Image"}
               alt={p.ten}
@@ -545,12 +547,12 @@ function FlashSaleProductCard({ p }: { p: ProductFeatured }) {
 
           {/* Progress bar */}
           <div className="px-3 pt-1.5 pb-3">
-            <div className="relative h-[22px] bg-red-50 rounded-full overflow-hidden border border-red-100 fs-shine-bar">
+            <div className="relative h-[22px] rounded-full overflow-hidden" style={{ background: "#f3f4f6", border: "1px solid #e5e7eb" }}>
               <div
-                className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-rose-400 via-red-500 to-rose-600"
-                style={{ width: `${soldPct}%` }}
+                className="absolute inset-y-0 left-0 rounded-full"
+                style={{ width: `${soldPct}%`, background: "#dc2626" }}
               />
-              <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-red-800 z-10">
+              <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold z-10" style={{ color: "#111111" }}>
                 Đã bán {soldSlots}/{totalSlots} suất
               </span>
             </div>
@@ -689,8 +691,8 @@ export default function HomePage() {
   return (
     <div className="bg-gray-50 min-h-screen">
 
-      {/* ── BANNER 3D ────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden" style={{ height: "clamp(520px, 60vw, 700px)" }}>
+      {/* ── VIDEO BANNER ─────────────────────────────────────────────── */}
+      {false && <section className="relative overflow-hidden" style={{ height: "clamp(520px, 60vw, 700px)" }}>
         {/* Gradient backgrounds per slide — crossfade */}
         {banners.map((b, i) => (
           <div
@@ -910,7 +912,8 @@ export default function HomePage() {
             style={{ transformOrigin: "left center", animation: "banner-progress 5.5s linear forwards" }}
           />
         </div>
-      </section>
+      </section>}
+      <HeroBanner />
 
       {/* ── DANH MỤC + TIỆN ÍCH — one unified card ─────────────────────── */}
       <section className="max-w-screen-xl mx-auto px-6 mt-6 relative z-10">
@@ -1012,136 +1015,123 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── FLASH SALE — 3D enhanced ──────────────────────────────────── */}
+      {/* ── FLASH SALE ────────────────────────────────────────────────── */}
       <section className="max-w-screen-xl mx-auto px-6 mt-10 relative z-20">
-        {/* Linh vật thỏ — đứng sau banner, nhảy ló đầu lên */}
-        <div
-          className="absolute hidden md:block pointer-events-none select-none"
-          style={{
-            right: 64,
-            top: -62,
-            animation: "rabbit-jump 3.4s ease-in-out infinite",
-            transformOrigin: "bottom center",
-          }}
-        >
-          <Rabbit3D size={94} />
-        </div>
-
         <div
           className="relative rounded-2xl overflow-hidden fs-bg-animated"
-          style={{ boxShadow: "0 25px 80px rgba(185,28,28,0.45), 0 8px 24px rgba(0,0,0,0.3)" }}
+          style={{ boxShadow: "0 20px 60px rgba(185,28,28,0.38), 0 6px 20px rgba(0,0,0,0.22)" }}
         >
-          {/* Diagonal light sweep */}
-          <div
-            className="absolute inset-0 pointer-events-none z-0 opacity-15"
-            style={{ background: "linear-gradient(110deg, transparent 20%, rgba(255,255,255,0.7) 50%, transparent 80%)", animation: "fs-shine-sweep 5s ease-in-out infinite" }}
-          />
+          {/* Ánh sáng quét chéo */}
+          <div className="absolute inset-0 pointer-events-none z-0 opacity-12"
+            style={{ background: "linear-gradient(110deg, transparent 20%, rgba(255,255,255,0.7) 50%, transparent 80%)", animation: "fs-shine-sweep 6s ease-in-out infinite" }} />
 
-          {/* Floating sparkle particles */}
+          {/* Hạt confetti trắng */}
           {[...Array(14)].map((_, i) => (
-            <span
-              key={i}
-              className="absolute rounded-full bg-white pointer-events-none z-0"
-              style={{
-                width:  `${1.5 + (i % 3)}px`,
-                height: `${1.5 + (i % 3)}px`,
-                left:   `${5 + i * 6.5}%`,
-                bottom: "8%",
-                opacity: 0,
-                animation: `fs-particle ${1.8 + (i % 4) * 0.6}s ease-in-out ${i * 0.25}s infinite`,
-              }}
-            />
+            <span key={i} className="absolute rounded-full bg-white pointer-events-none z-0"
+              style={{ width: `${1.5 + (i % 3)}px`, height: `${1.5 + (i % 3)}px`,
+                left: `${5 + i * 6.5}%`, bottom: "8%", opacity: 0,
+                animation: `fs-particle ${1.8 + (i % 4) * 0.6}s ease-in-out ${i * 0.25}s infinite` }} />
           ))}
 
+          {/* ── Header ── */}
+          <div className="relative z-10 flex items-center justify-between px-5 pt-4 pb-1">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{ background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.22)" }}>
+                <Zap className="w-4 h-4 text-yellow-300 fill-yellow-300" />
+              </div>
+              <div>
+                <p className="text-white text-[12px] font-black uppercase tracking-[0.2em] leading-none">Flash Sale</p>
+                <p className="text-white/60 text-[9px] font-semibold mt-0.5">Giá sốc · Số lượng có hạn</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <div className="text-right hidden sm:block">
+                <p className="text-white text-[12px] font-black uppercase tracking-[0.2em] leading-none">Đừng bỏ lỡ</p>
+                <p className="text-white/60 text-[9px] font-semibold mt-0.5">Ưu đãi giới hạn mỗi ngày</p>
+              </div>
+              <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{ background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.22)" }}>
+                <Flame className="w-4 h-4 text-orange-300" />
+              </div>
+            </div>
+          </div>
+
+          <div className="relative z-10 mx-4 mt-2 mb-0 h-px"
+            style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.14), transparent)" }} />
+
           {/* ── Tab bar ── */}
-          <div className="relative z-10 flex items-stretch px-4 pt-4 gap-1.5">
-            {[
-              { label: "FLASH SALE", icon: true },
-              { label: "SĂN DEAL CÔNG NGHỆ", icon: false },
-              { label: "HOT SALE CUỐI TUẦN", icon: false },
-            ].map((tab, i) => (
-              <button
-                key={tab.label}
-                onClick={() => setActiveTab(i)}
-                style={i === activeTab
-                  ? { transform: "translateY(-1px)", boxShadow: "0 -2px 12px rgba(255,255,255,0.15)" }
-                  : { boxShadow: "0 5px 0 rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08)" }
-                }
-                className={`relative flex-1 py-3 px-3 font-black text-[11px] sm:text-xs uppercase tracking-wide rounded-t-xl transition-all duration-200 flex items-center justify-center gap-1.5 ${
-                  i === activeTab
-                    ? "bg-white text-red-600"
-                    : "bg-red-900/50 text-white/75 hover:bg-red-900/70 hover:-translate-y-0.5"
+          <div className="relative z-10 flex items-stretch px-4 pt-2 gap-1.5">
+            {([
+              { label: "Flash Sale",         Icon: Zap   },
+              { label: "Săn Deal Công Nghệ", Icon: Cpu   },
+              { label: "Hot Sale Cuối Tuần", Icon: Flame },
+            ] as const).map((tab, i) => (
+              <button key={tab.label} onClick={() => setActiveTab(i)}
+                className={`relative flex-1 py-3 px-3 font-bold text-[11px] sm:text-xs tracking-wide rounded-t-xl transition-all duration-200 flex items-center justify-center gap-2 ${
+                  i === activeTab ? "bg-white text-red-600" : "text-white/75 hover:-translate-y-0.5"
                 }`}
+                style={i === activeTab
+                  ? { transform: "translateY(-1px)", boxShadow: "0 -2px 14px rgba(0,0,0,0.12)" }
+                  : { background: "rgba(0,0,0,0.22)", boxShadow: "0 4px 0 rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.08)" }
+                }
               >
-                {tab.icon && (
-                  <Zap className={`w-3.5 h-3.5 flex-shrink-0 ${i === activeTab ? "text-red-500 fill-red-500" : "text-yellow-300 fill-yellow-300"}`} />
-                )}
+                <tab.Icon className={`w-3.5 h-3.5 flex-shrink-0 ${i === activeTab ? "text-red-500" : "text-white/55"}`} />
                 <span className="truncate">{tab.label}</span>
               </button>
             ))}
           </div>
 
-          {/* ── Inner glass panel ── */}
+          {/* ── Inner panel ── */}
           <div className="relative z-10 bg-white/[0.97] mx-2 mb-2 rounded-xl p-4">
 
-            {/* Date + Time + Countdown row */}
+            {/* Date + Time + Countdown */}
             <div className="flex items-center gap-2 mb-4 flex-wrap">
-              {/* Date pills */}
               {(() => {
                 const today = new Date();
                 const prev  = new Date(today); prev.setDate(today.getDate() - 1);
                 const f2 = (d: Date) => `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}`;
                 return [f2(prev), f2(today)].map((date, i) => (
                   <button key={date} className={`px-3.5 py-1.5 rounded-full text-xs font-bold border transition-all ${
-                    i === 1
-                      ? "border-red-500 text-red-600 shadow-sm shadow-red-200"
-                      : "border-gray-200 text-gray-400 hover:border-gray-300"
-                  }`}>
-                    {date}
-                  </button>
+                    i === 1 ? "border-red-400 text-red-600 shadow-sm shadow-red-100"
+                            : "border-gray-200 text-gray-400 hover:border-gray-300"
+                  }`}>{date}</button>
                 ));
               })()}
 
               <div className="w-px h-5 bg-gray-200 mx-1" />
 
-              {/* Time slot pills */}
               {["12-14h", "20-22h"].map((slot, i) => (
-                <button
-                  key={slot}
-                  onClick={() => setActiveSlot(i)}
+                <button key={slot} onClick={() => setActiveSlot(i)}
                   className={`px-3.5 py-1.5 rounded-full text-xs font-bold border transition-all ${
                     i === activeSlot
-                      ? "bg-red-500 border-red-500 text-white shadow-sm shadow-red-400/40"
+                      ? "bg-red-600 border-red-600 text-white shadow-sm shadow-red-400/30"
                       : "border-gray-200 text-gray-500 hover:border-red-300 hover:text-red-500"
                   }`}
-                >
-                  {slot}
-                </button>
+                >{slot}</button>
               ))}
 
-              {/* Flip-clock countdown */}
+              {/* Countdown */}
               <div className="ml-auto flex items-center gap-2.5 flex-shrink-0">
-                <span className="hidden sm:block text-[11px] font-black text-gray-500 uppercase tracking-widest">Bắt đầu sau</span>
+                <div className="hidden sm:flex items-center gap-1.5">
+                  <Timer className="w-3.5 h-3.5 text-gray-400" />
+                  <span className="text-[11px] font-black text-gray-500 uppercase tracking-widest">Bắt đầu sau</span>
+                </div>
                 <div className="flex items-center gap-1.5">
                   {[
-                    { val: pad(saleTimeLeft.h),  label: "GIỜ" },
-                    { val: pad(saleTimeLeft.m),  label: "PHÚT" },
-                    { val: pad(saleTimeLeft.s),  label: "GIÂY" },
+                    { val: pad(saleTimeLeft.h), label: "GIỜ" },
+                    { val: pad(saleTimeLeft.m), label: "PHÚT" },
+                    { val: pad(saleTimeLeft.s), label: "GIÂY" },
                   ].map(({ val, label }, i) => (
                     <div key={i} className="flex items-center gap-1.5">
-                      <div
-                        className="flex flex-col items-center justify-center rounded-xl w-11 h-12 pt-1"
-                        style={{ background: "linear-gradient(180deg,#1a1a2e 0%,#16213e 100%)", boxShadow: "0 4px 12px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.06)" }}
-                      >
+                      <div className="flex flex-col items-center justify-center rounded-xl w-11 h-12 pt-1"
+                        style={{ background: "linear-gradient(180deg,#1a1a2e 0%,#16213e 100%)",
+                          boxShadow: "0 4px 12px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.06)" }}>
                         <span key={val} className="font-mono font-black text-[22px] text-white leading-none fs-flip-digit">{val}</span>
                         <span className="text-[7px] font-bold tracking-[0.18em] text-white/30 mt-1">{label}</span>
                       </div>
-                      {i < 2 && (
-                        <span
-                          className="font-black text-2xl text-gray-400 leading-none pb-2"
-                          style={{ animation: "fs-dot-pulse 1s ease-in-out infinite" }}
-                        >:</span>
-                      )}
+                      {i < 2 && <span className="font-black text-2xl text-gray-400 leading-none pb-2"
+                        style={{ animation: "fs-dot-pulse 1s ease-in-out infinite" }}>:</span>}
                     </div>
                   ))}
                 </div>
@@ -1150,36 +1140,23 @@ export default function HomePage() {
 
             {/* Product carousel */}
             <div className="relative">
-              <button
-                onClick={() => saleScrollRef.current?.scrollBy({ left: -420, behavior: "smooth" })}
+              <button onClick={() => saleScrollRef.current?.scrollBy({ left: -420, behavior: "smooth" })}
                 className="absolute -left-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-50 border border-gray-100 transition-all hover:scale-110"
-                style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.15)" }}
-              >
+                style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.15)" }}>
                 <ChevronLeft className="w-4 h-4" />
               </button>
-
-              <div
-                ref={saleScrollRef}
-                className="flex gap-3 overflow-x-auto pb-1"
-                style={{ scrollbarWidth: "none", msOverflowStyle: "none" as React.CSSProperties["msOverflowStyle"] }}
-              >
+              <div ref={saleScrollRef} className="flex gap-3 overflow-x-auto pb-1"
+                style={{ scrollbarWidth: "none", msOverflowStyle: "none" as React.CSSProperties["msOverflowStyle"] }}>
                 {loadingSale
                   ? Array.from({ length: 6 }).map((_, i) => <FlashSaleSkeletonCard key={i} />)
                   : saleProducts.length > 0
                     ? saleProducts.map((pp) => <FlashSaleProductCard key={pp.id} p={pp} />)
-                    : (
-                      <div className="w-full py-10 text-center">
-                        <p className="text-gray-400 text-sm">Hiện chưa có sản phẩm Flash Sale</p>
-                      </div>
-                    )
+                    : <div className="w-full py-10 text-center"><p className="text-gray-400 text-sm">Hiện chưa có sản phẩm Flash Sale</p></div>
                 }
               </div>
-
-              <button
-                onClick={() => saleScrollRef.current?.scrollBy({ left: 420, behavior: "smooth" })}
+              <button onClick={() => saleScrollRef.current?.scrollBy({ left: 420, behavior: "smooth" })}
                 className="absolute -right-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-50 border border-gray-100 transition-all hover:scale-110"
-                style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.15)" }}
-              >
+                style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.15)" }}>
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
@@ -1187,7 +1164,7 @@ export default function HomePage() {
 
           {/* Bottom note */}
           <div className="relative z-10 px-4 pb-4">
-            <p className="text-center text-[10px] text-white/50 leading-relaxed">
+            <p className="text-center text-[10px] text-white/40 leading-relaxed">
               Chỉ áp dụng thanh toán online thành công — Mỗi tài khoản chỉ được mua 1 sản phẩm cùng loại — Không áp dụng cùng ưu đãi khác
             </p>
           </div>
@@ -1395,77 +1372,50 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── BÀI VIẾT ─────────────────────────────────────────────────── */}
+      {/* ── TIN TỨC ─────────────────────────────────────────────────── */}
       <section className="max-w-screen-xl mx-auto px-6 mt-12 mb-16">
-        <SectionHeader title="Tin tức & Đánh giá" href="/tin-tuc" />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Link href={`/tin-tuc/${baiViet[0].id}`} className="group col-span-1 lg:col-span-2 bg-white border border-gray-100 rounded-sm overflow-hidden hover:shadow-xl transition-all duration-300">
-            <div className="relative h-[420px] overflow-hidden">
-              <img
-                src={baiViet[0].hinhAnh}
-                alt={baiViet[0].tieu_de}
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                loading="lazy"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-8">
-                <span className="inline-flex items-center rounded-full bg-red-500/10 text-red-600 text-[11px] font-semibold uppercase tracking-[1px] px-3 py-1">
-                  {baiViet[0].tag}
-                </span>
-                <h3 className="mt-4 text-3xl lg:text-4xl font-bold text-white leading-tight">
-                  {baiViet[0].tieu_de}
-                </h3>
-                <p className="mt-4 max-w-2xl text-sm text-white/85 leading-relaxed">{baiViet[0].tom_tat}</p>
-                <p className="mt-5 text-xs text-white/70">{baiViet[0].ngay}</p>
-              </div>
-            </div>
+        {/* Header giống CellphoneS */}
+        <div className="flex items-center gap-3 mb-5">
+          <h2 className="text-[17px] font-extrabold text-gray-900 uppercase tracking-tight">Tin Tức</h2>
+          <span className="w-px h-[18px] bg-gray-300" />
+          <Link
+            href="/tin-tuc"
+            className="flex items-center gap-0.5 text-[13px] font-medium text-blue-500 hover:text-blue-600 transition-colors"
+          >
+            Xem tất cả <ChevronRight className="w-3.5 h-3.5" />
           </Link>
-
-          <div className="space-y-4">
-            {baiViet.slice(1).map((bv) => (
-              <Link
-                key={bv.id}
-                href={`/tin-tuc/${bv.id}`}
-                className="group flex gap-4 bg-white border border-gray-100 rounded-sm overflow-hidden hover:shadow-md transition-all duration-300"
-              >
-                <div className="h-28 w-28 overflow-hidden rounded-r-none rounded-l-3xl">
-                  <img
-                    src={bv.hinhAnh}
-                    alt={bv.tieu_de}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    loading="lazy"
-                  />
-                </div>
-                <div className="flex-1 p-4">
-                  <span className="text-[10px] font-semibold uppercase tracking-[1px] text-blue-600">{bv.tag}</span>
-                  <h4 className="mt-2 text-sm font-semibold text-gray-900 leading-snug line-clamp-2 group-hover:text-red-600 transition-colors">{bv.tieu_de}</h4>
-                  <p className="text-[11px] text-gray-400 mt-3">{bv.ngay}</p>
-                </div>
-              </Link>
-            ))}
-          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-          {baiVietMini.map((item) => (
+        {/* Horizontal card scroll */}
+        <div
+          className="flex gap-4 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]"
+          style={{ scrollSnapType: "x mandatory" }}
+        >
+          {ARTICLES.map((art) => (
             <Link
-              key={item.id}
-              href={`/tin-tuc/${item.id}`}
-              className="group bg-white border border-gray-100 rounded-sm overflow-hidden hover:shadow-md transition-all duration-300"
+              key={art.id}
+              href={`/tin-tuc/${art.id}`}
+              className="flex-shrink-0 w-[210px] group"
+              style={{ scrollSnapAlign: "start" }}
             >
-              <div className="h-32 overflow-hidden">
+              {/* Thumbnail */}
+              <div className="rounded-xl overflow-hidden mb-2.5 bg-gray-100" style={{ height: 140 }}>
                 <img
-                  src={item.hinhAnh}
-                  alt={item.tieu_de}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  src={art.hinhAnh}
+                  alt={art.tieu_de}
+                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.05]"
                   loading="lazy"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src =
+                      "https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=400&q=70&fit=crop";
+                  }}
                 />
               </div>
-              <div className="p-4">
-                <span className="text-[10px] font-semibold uppercase tracking-[1px] text-red-500">{item.tag}</span>
-                <h4 className="mt-2 text-sm font-semibold text-gray-900 leading-snug line-clamp-2">{item.tieu_de}</h4>
-              </div>
+              {/* Title */}
+              <h4 className="text-[12.5px] font-semibold text-gray-800 leading-snug line-clamp-3 group-hover:text-blue-600 transition-colors">
+                {art.tieu_de}
+              </h4>
             </Link>
           ))}
         </div>
