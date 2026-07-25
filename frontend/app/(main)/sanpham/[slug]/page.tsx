@@ -7,7 +7,7 @@ import {
   Star, ShieldCheck, Truck, RefreshCw, Headphones,
   ChevronRight, Home, ChevronLeft, ChevronDown, ChevronUp,
   ShoppingCart, Heart, Share2, Package, CheckCircle2,
-  CreditCard, Gift, MessageSquare, Repeat, Loader2, Send,
+  Gift, MessageSquare, Repeat, Loader2, Send,
   PackageCheck, Receipt,
 } from "lucide-react";
 import { useCart } from "../../../hooks/useCart";
@@ -50,12 +50,6 @@ const PROMOTIONS = [
   "Thu cũ đổi mới, định giá nhanh trong 5 phút",
 ];
 
-const INSTALLMENTS = [
-  { name: "VPBank",      rate: "0% lãi suất", note: "12 tháng" },
-  { name: "Shinhan",     rate: "0% lãi suất", note: "6 tháng"  },
-  { name: "HDBANK",      rate: "0% lãi suất", note: "12 tháng" },
-  { name: "Home Credit", rate: "Trả góp",      note: "linh hoạt" },
-];
 
 const GUARANTEES = [
   { Icon: ShieldCheck, title: "Chính hãng 100%", sub: "Bảo hành đầy đủ"      },
@@ -102,7 +96,7 @@ function Skeleton() {
     <div className="animate-pulse">
       <div className="grid grid-cols-1 lg:grid-cols-[440px_1fr] gap-6">
         <div>
-          <div className="bg-gray-200 rounded-sm aspect-square" />
+          <div className="bg-gray-200 rounded-2xl aspect-square" />
           <div className="flex gap-2 mt-3">
             {[0, 1, 2, 3].map((i) => <div key={i} className="w-16 h-16 bg-gray-200 rounded-xl flex-shrink-0" />)}
           </div>
@@ -266,7 +260,7 @@ export default function ProductDetailPage() {
   if (notFound || !product) {
     return (
       <div className="max-w-screen-xl mx-auto py-20 flex flex-col items-center gap-4">
-        <div className="w-20 h-20 bg-gray-100 rounded-sm flex items-center justify-center">
+        <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center">
           <Package className="w-10 h-10 text-gray-300" />
         </div>
         <h1 className="text-[20px] font-bold text-gray-800">Không tìm thấy sản phẩm</h1>
@@ -303,8 +297,8 @@ export default function ProductDetailPage() {
         : `${product.ten} hiện có 1 phiên bản tiêu chuẩn. Vui lòng chọn phiên bản phù hợp ở phần lựa chọn sản phẩm phía trên.`,
     },
     {
-      q: `Mua ${product.ten} có được trả góp 0% không?`,
-      a: `Có. ${product.ten} được hỗ trợ trả góp 0% lãi suất qua các đối tác ${INSTALLMENTS.map((i) => i.name).join(", ")}.`,
+      q: `Mua ${product.ten} có hỗ trợ giao hàng nhanh không?`,
+      a: `SmartHub hỗ trợ giao hàng 2 giờ nội thành Hà Nội và TP.HCM. Giao toàn quốc 1–3 ngày qua GHTK, GHN, ViettelPost. Miễn phí vận chuyển cho đơn từ 500.000đ.`,
     },
     {
       q: `${product.ten} có giao hàng nhanh không?`,
@@ -342,13 +336,14 @@ export default function ProductDetailPage() {
       </nav>
 
       {/* ── 2-col main ── */}
-      <div ref={topSectionRef} className="grid grid-cols-1 lg:grid-cols-[440px_1fr] gap-6 mb-10">
+      <div ref={topSectionRef} className="grid grid-cols-1 lg:grid-cols-[440px_1fr] gap-6 mb-10 lg:items-start">
 
         {/* Gallery */}
-        <div className="lg:sticky lg:top-4 lg:self-start">
+        <div className="lg:sticky lg:top-[96px] lg:self-start">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
 
           {/* Main image */}
-          <div className="relative bg-white border border-gray-100 rounded-sm overflow-hidden aspect-square flex items-center justify-center group">
+          <div className="relative bg-gray-50 overflow-hidden aspect-square flex items-center justify-center group">
             {product.badge && (
               <span className="absolute top-3 left-3 z-10 bg-red-500 text-white text-[11px] font-bold px-2.5 py-1 rounded-full">
                 {product.badge}
@@ -389,7 +384,7 @@ export default function ProductDetailPage() {
 
           {/* Thumbnails */}
           {allImages.length > 1 && (
-            <div className="flex gap-2 mt-2.5 overflow-x-auto pb-1">
+            <div className="flex gap-2 px-3 pt-2.5 pb-2.5 overflow-x-auto border-t border-gray-100">
               {allImages.map((img, i) => (
                 <button
                   key={i}
@@ -405,7 +400,7 @@ export default function ProductDetailPage() {
           )}
 
           {/* Share strip */}
-          <div className="flex items-center gap-3 mt-3 pt-3 border-t border-gray-100">
+          <div className="flex items-center gap-3 px-4 py-3 border-t border-gray-100 bg-gray-50/60">
             <span className="text-[12px] text-gray-400">Chia sẻ:</span>
             <button className="bg-[#1877F2] text-white text-[11px] font-semibold px-3 py-1.5 rounded-full hover:opacity-90 transition-opacity">Facebook</button>
             <button className="bg-[#0068FF] text-white text-[11px] font-semibold px-3 py-1.5 rounded-full hover:opacity-90 transition-opacity">Zalo</button>
@@ -413,10 +408,11 @@ export default function ProductDetailPage() {
               <Share2 className="w-3 h-3" /> Sao chép
             </button>
           </div>
+          </div> {/* end gallery card */}
         </div>
 
         {/* Info panel */}
-        <div>
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 pt-5 pb-4">
 
           {/* Brand badges + title */}
           <div className="pb-4 border-b border-gray-100">
@@ -579,22 +575,40 @@ export default function ProductDetailPage() {
             </div>
           </div>
 
-          {/* Trả góp */}
+          {/* Giao hàng */}
           <div className="py-4 border-b border-gray-100">
             <p className="text-[13px] font-bold text-gray-800 mb-2.5 flex items-center gap-1.5">
-              <CreditCard className="w-4 h-4 text-blue-600" />
-              Trả góp 0%
+              <Truck className="w-4 h-4 text-blue-600" />
+              Giao hàng & Vận chuyển
             </p>
-            <div className="flex flex-wrap gap-2">
-              {INSTALLMENTS.map((inst) => (
-                <button
-                  key={inst.name}
-                  className="px-4 py-2.5 border-2 border-gray-200 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition-all group text-left"
-                >
-                  <span className="block text-[12.5px] font-bold text-gray-800 group-hover:text-blue-700">{inst.name}</span>
-                  <span className="block text-[11px] text-blue-600 font-medium">{inst.rate} - {inst.note}</span>
-                </button>
-              ))}
+            <div className="space-y-2">
+              <div className="flex items-start gap-2.5">
+                <span className="mt-0.5 w-4 h-4 flex-shrink-0 rounded-full bg-blue-100 flex items-center justify-center">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                </span>
+                <div>
+                  <span className="text-[12.5px] font-semibold text-gray-800">Giao hàng nhanh 2 giờ</span>
+                  <span className="text-[12px] text-gray-400 ml-1.5">Nội thành Hà Nội, TP.HCM</span>
+                </div>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <span className="mt-0.5 w-4 h-4 flex-shrink-0 rounded-full bg-blue-100 flex items-center justify-center">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                </span>
+                <div>
+                  <span className="text-[12.5px] font-semibold text-gray-800">Giao toàn quốc 1–3 ngày</span>
+                  <span className="text-[12px] text-gray-400 ml-1.5">Qua GHTK, GHN, ViettelPost</span>
+                </div>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <span className="mt-0.5 w-4 h-4 flex-shrink-0 rounded-full bg-green-100 flex items-center justify-center">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                </span>
+                <div>
+                  <span className="text-[12.5px] font-semibold text-gray-800">Miễn phí vận chuyển</span>
+                  <span className="text-[12px] text-gray-400 ml-1.5">Đơn hàng từ 500.000đ</span>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1107,7 +1121,7 @@ function ReviewsSection({ productId }: { productId: number }) {
                 placeholder="Chia sẻ trải nghiệm của bạn về sản phẩm (không bắt buộc)..."
                 value={myContent}
                 onChange={(e) => setMyContent(e.target.value)}
-                className="w-full border border-gray-200 rounded-sm px-3.5 py-2.5 text-[13.5px] bg-white resize-none focus:outline-none focus:ring-2 focus:ring-red-400 placeholder-gray-400"
+                className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-[13.5px] bg-white resize-none focus:outline-none focus:ring-2 focus:ring-red-400 placeholder-gray-400"
               />
               <div className="flex items-center justify-between mt-2.5 gap-3 flex-wrap">
                 {successMsg
@@ -1116,7 +1130,7 @@ function ReviewsSection({ productId }: { productId: number }) {
                 <button
                   onClick={handleSubmit}
                   disabled={submitting}
-                  className="flex items-center gap-1.5 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-sm text-[13px] font-semibold transition disabled:opacity-60"
+                  className="flex items-center gap-1.5 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl text-[13px] font-semibold transition disabled:opacity-60"
                 >
                   {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                   {hasReviewed ? "Cập nhật đánh giá" : "Gửi đánh giá"}

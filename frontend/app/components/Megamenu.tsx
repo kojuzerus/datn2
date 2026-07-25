@@ -65,7 +65,7 @@ const BRAND_LOGOS: Record<string, string> = {
   oppo: "https://logo.clearbit.com/oppo.com",
   vivo: "https://logo.clearbit.com/vivo.com",
   iphone: "https://logo.clearbit.com/apple.com",
-  sony: "https://logo.clearbit.com/sony.com",
+  sony: "https://upload.wikimedia.org/wikipedia/commons/c/ca/Sony_logo.svg", // logo đen — bản clearbit màu trắng chìm trên nền sáng
   realme: "https://logo.clearbit.com/realme.com",
 };
 

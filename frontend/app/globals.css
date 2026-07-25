@@ -137,6 +137,29 @@ body {
   animation: fs-bg-flow 7s ease infinite;
 }
 
+/* ── World Cup theme ─────────────────────────── */
+.wc-bg-animated {
+  background: linear-gradient(135deg, #022c22, #064e3b, #065f46, #047857, #064e3b, #022c22);
+  background-size: 300% 300%;
+  animation: fs-bg-flow 9s ease infinite;
+}
+
+@keyframes wc-grass-line {
+  0%, 100% { opacity: 0.04; }
+  50%       { opacity: 0.09; }
+}
+
+@keyframes wc-player-kick {
+  0%, 100% { transform: rotate(-3deg) translateY(0px);  }
+  30%       { transform: rotate(1deg)  translateY(-14px); }
+  60%       { transform: rotate(-1deg) translateY(-8px);  }
+}
+
+@keyframes wc-player-jump {
+  0%, 100% { transform: translateY(0px)   rotate(2deg)  scale(1);    }
+  45%       { transform: translateY(-18px) rotate(-1deg) scale(1.03); }
+}
+
 .fs-shine-bar::after {
   content: '';
   position: absolute;
@@ -156,28 +179,53 @@ body {
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* ── Hero video banner ──────────────────────────── */
+@keyframes hero-fade-in {
+  0%   { opacity: 0; transform: translateY(32px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.hero-content-enter {
+  animation: hero-fade-in 0.9s cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+/* ── Hero iPhone banner ─────────────────────────── */
+@keyframes hero-phone-float {
+  0%, 100% { transform: translateY(0px) rotate(-0.3deg); }
+  50%       { transform: translateY(-18px) rotate(0.3deg); }
+}
+@keyframes hero-ring-cw {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes hero-ring-ccw {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(-360deg); }
+}
+@keyframes hero-orb-a {
+  0%, 100% { opacity: 0.75; transform: scale(1); }
+  50%       { opacity: 1;    transform: scale(1.10); }
+}
+@keyframes hero-orb-b {
+  0%, 100% { opacity: 0.6;  transform: scale(1) translate(0, 0); }
+  50%       { opacity: 0.95; transform: scale(1.08) translate(-12px, 10px); }
+}
+@keyframes hero-badge-a {
+  0%, 100% { transform: translateY(0px) rotate(-1.5deg) scale(1); }
+  50%       { transform: translateY(-11px) rotate(1deg) scale(1.02); }
+}
+@keyframes hero-badge-b {
+  0%, 100% { transform: translateY(0px) rotate(1deg) scale(1); }
+  50%       { transform: translateY(-9px) rotate(-1deg) scale(1.02); }
+}
+@keyframes hero-callout-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 .animate-ticker {
   animation: ticker 25s linear infinite;
 }
-
-/* Theme overrides for previously used amber utilities to a calmer teal/sky tone */
-.text-amber-200 { color: var(--accent-300) !important; }
-.text-amber-400 { color: var(--accent-400) !important; }
-.text-amber-500 { color: var(--accent-500) !important; }
-.text-amber-600 { color: var(--accent-600) !important; }
-.bg-amber-50 { background-color: var(--accent-50) !important; }
-.bg-amber-400 { background-color: var(--accent-400) !important; }
-.bg-amber-300 { background-color: var(--accent-300) !important; }
-.bg-amber-500 { background-color: var(--accent-500) !important; }
-.border-amber-500 { border-color: var(--accent-500) !important; }
-.border-amber-200 { border-color: color-mix(in srgb, var(--accent-400) 60%, #ffffff 40%) !important; }
-.shadow-amber-500\/25 { box-shadow: 0 40px 120px rgba(14,165,164,0.12) !important; }
-.shadow-amber-500\/20 { box-shadow: 0 10px 30px rgba(14,165,164,0.08) !important; }
-.hover\:bg-amber-50:hover { background-color: var(--accent-50) !important; }
-
-/* Small helpers used in header/footer */
-.text-amber-400\/70 { color: rgba(56,189,248,0.7) !important; }
-.text-amber-400\/60 { color: rgba(56,189,248,0.6) !important; }
 
 /* ── Dark mode global overrides ──────────────────────────────── */
 html.dark {
