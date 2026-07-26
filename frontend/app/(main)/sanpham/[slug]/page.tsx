@@ -217,7 +217,7 @@ export default function ProductDetailPage() {
     const success = await addToCart({
       productId: String(product.id),
       tenSanPham: product.ten,
-      hinhAnh: product.thumbnail,
+      hinhAnh: selectedVariant?.image || product.thumbnail,
       gia: displayPrice,
       soLuong: qty,
       variant: selectedVariant?.color || "",
@@ -233,7 +233,7 @@ export default function ProductDetailPage() {
     const success = await addToCart({
       productId: String(product.id),
       tenSanPham: product.ten,
-      hinhAnh: product.thumbnail,
+      hinhAnh: selectedVariant?.image || product.thumbnail,
       gia: displayPrice,
       soLuong: qty,
       variant: selectedVariant?.color || "",
@@ -530,7 +530,7 @@ export default function ProductDetailPage() {
                   return (
                     <button
                       key={v.variant_id}
-                      onClick={() => { if (!outOfStock) { setSelectedVariant(v); setQty(1); } }}
+                      onClick={() => { if (!outOfStock) { setSelectedVariant(v); setQty(1); setActiveImage(0); } }}
                       disabled={outOfStock}
                       className={`relative px-4 py-2.5 rounded-xl border-2 text-left transition-all ${
                         active
