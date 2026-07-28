@@ -1,5 +1,23 @@
-const Category = require("../models/categoryModel");
-const Brand     = require("../models/brandModel");
+const Category     = require("../models/categoryModel");
+const Brand        = require("../models/brandModel");
+const Product      = require("../models/productModel");
+const ProductImage = require("../models/productImageModel");
+
+const API_BASE = process.env.API_BASE_URL || "http://localhost:5000";
+
+function normThumb(url) {
+  if (!url) return "";
+  if (url.startsWith("http://") || url.startsWith("https://")) {
+    // Optimize CellphoneS CDN
+    const m = url.match(/^https?:\/\/cdn2\.cellphones\.com\.vn\/x\/(media\/catalog\/product\/.+)$/);
+    if (m) return `https://cdn2.cellphones.com.vn/insecure/rs:fill:358:358/q:90/plain/https://cellphones.com.vn/${m[1].split("?")[0]}`;
+    return url;
+  }
+  let n = url.replace(/^public\//, "");
+  if (!n.startsWith("images/") && !n.startsWith("/")) n = `images/${n}`;
+  if (!n.startsWith("/")) n = `/${n}`;
+  return `${API_BASE}${n}`;
+}
 
 function toSlug(str) {
   return str
@@ -34,17 +52,59 @@ exports.getAll = async (req, res) => {
     const filter = req.query.status === "all" ? {} : { status: "active" };
     const categories = await Category.find(filter).sort({ category_id: 1 }).lean();
 
+    // Lấy ảnh đại diện cho mỗi danh mục từ sản phẩm thực
+    const catNames = categories.map((c) => c.category_name);
+
+    // Bước 1: lấy 1 product + variant đầu tiên mỗi danh mục
+    const catProducts = await Product.aggregate([
+      { $match: { status: "active", category_name: { $in: catNames } } },
+      { $addFields: { first_variant_id: { $arrayElemAt: ["$variants.variant_id", 0] } } },
+      { $sort: { product_id: 1 } },
+      { $group: {
+        _id: "$category_name",
+        thumbnail: { $first: "$thumbnail" },
+        first_variant_id: { $first: "$first_variant_id" },
+      }},
+    ]);
+
+    // Bước 2: lấy ảnh từ ProductImage cho variants không có thumbnail
+    const variantIds = catProducts.map((p) => p.first_variant_id).filter(Boolean);
+    const images = await ProductImage.find({ variant_id: { $in: variantIds } })
+      .sort({ sort_order: 1 })
+      .lean();
+    const variantImageMap = {};
+    for (const img of images) {
+      if (!variantImageMap[img.variant_id]) variantImageMap[img.variant_id] = img.image_url;
+    }
+
+    // Bước 3: build map category_name → thumbnail URL
+    const thumbMap = {};
+    for (const p of catProducts) {
+      const url = (p.thumbnail && p.thumbnail !== "")
+        ? normThumb(p.thumbnail)
+        : normThumb(variantImageMap[p.first_variant_id] || "");
+      if (url) thumbMap[p._id] = url;
+    }
+
     if (req.query.withBrandCount === "true") {
       const brands = await Brand.find().select("category_ids").lean();
       const countMap = {};
       brands.forEach((b) => {
         (b.category_ids || []).forEach((cid) => { countMap[cid] = (countMap[cid] || 0) + 1; });
       });
-      const data = categories.map((c) => ({ ...c, brandCount: countMap[c.category_id] || 0 }));
+      const data = categories.map((c) => ({
+        ...c,
+        brandCount: countMap[c.category_id] || 0,
+        product_thumbnail: thumbMap[c.category_name] || "",
+      }));
       return res.json({ success: true, data });
     }
 
-    res.json({ success: true, data: categories });
+    const data = categories.map((c) => ({
+      ...c,
+      product_thumbnail: thumbMap[c.category_name] || "",
+    }));
+    res.json({ success: true, data });
   } catch (err) {
     console.error("[getAllCategories]", err);
     res.status(500).json({ success: false, message: "Lỗi server", error: err.message });

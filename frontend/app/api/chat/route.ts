@@ -47,9 +47,21 @@ function extractIntent(msg: string): Intent {
     if (lower.includes(brand)) { intent.brand = brand; break; }
   }
 
+  // Từ chung chung không dùng làm keyword search — dùng category thay
+  const GENERIC_WORDS = new Set([
+    "điện thoại","smartphone","phone","laptop","máy tính xách tay","notebook",
+    "tablet","máy tính bảng","ipad","tai nghe","earphone","headphone","earbud",
+    "tivi","smart tv","màn hình","đồng hồ","smartwatch","watch",
+    "phụ kiện","sạc","cáp","loa","speaker","chuột","bàn phím",
+  ]);
+
   const kwMatch = msg.match(/(?:tìm|mua|xem|muốn|cần|gợi ý)\s+(.{2,50}?)(?:\s+(?:giá|dưới|từ|khoảng|với|tốt|rẻ|bền)|[?.!]|$)/i);
-  if (kwMatch) intent.keyword = kwMatch[1].trim();
-  else if (intent.brand) {
+  if (kwMatch) {
+    const raw = kwMatch[1].trim().toLowerCase();
+    // Nếu keyword chỉ là từ chung (không phải model/brand cụ thể) → bỏ, dùng category
+    if (!GENERIC_WORDS.has(raw)) intent.keyword = kwMatch[1].trim();
+  }
+  if (!intent.keyword && intent.brand) {
     const m2 = msg.match(/(?:iphone|samsung|xiaomi|oppo|laptop|macbook|galaxy|redmi|poco|vivobook|zenbook|ideapad)\s*[\w\s]{0,25}/i);
     if (m2) intent.keyword = m2[0].trim();
     else intent.keyword = intent.brand;
@@ -80,47 +92,72 @@ function extractIntent(msg: string): Intent {
 const fmt = (n: number) => new Intl.NumberFormat("vi-VN").format(n) + "đ";
 
 async function fetchProducts(intent: Intent) {
-  const params = new URLSearchParams({ limit: "20" });
-  if (intent.keyword)        params.set("search", intent.keyword);
-  else if (intent.category)  params.set("category_name", intent.category);
-  else if (intent.brand)     params.set("search", intent.brand);
   const sortMap: Record<string,string> = { newest:"newest", sold:"sold", rating:"rating", price_asc:"price_asc", price_desc:"price_desc" };
-  params.set("sort", sortMap[intent.sort] || "newest");
+  const sort = sortMap[intent.sort] || "newest";
 
-  try {
-    const res = await fetch(`${BACKEND}/api/products?${params}`, { next: { revalidate: 0 } });
-    if (!res.ok) return [];
-    const data = await res.json();
-    let products: any[] = data.data || [];
-    if (intent.price_min != null || intent.price_max != null) {
-      products = products.filter((p) => {
-        const eff = p.giaSale ?? p.gia;
-        if (intent.price_min != null && eff < intent.price_min) return false;
-        if (intent.price_max != null && eff > intent.price_max) return false;
-        return true;
-      });
-    }
-    return products.slice(0, 8);
-  } catch { return []; }
+  const priceFilter = (products: any[]) => {
+    if (intent.price_min == null && intent.price_max == null) return products;
+    return products.filter((p) => {
+      const eff = p.giaSale ?? p.gia;
+      if (intent.price_min != null && eff < intent.price_min) return false;
+      if (intent.price_max != null && eff > intent.price_max) return false;
+      return true;
+    });
+  };
+
+  const doFetch = async (params: URLSearchParams) => {
+    try {
+      const res = await fetch(`${BACKEND}/api/products?${params}`, { next: { revalidate: 0 } });
+      if (!res.ok) return [];
+      const data = await res.json();
+      return priceFilter(data.data || []).slice(0, 8);
+    } catch { return []; }
+  };
+
+  // 1. Keyword search (chỉ khi keyword là tên model/brand cụ thể)
+  if (intent.keyword) {
+    const p = new URLSearchParams({ limit: "20", search: intent.keyword, sort });
+    const results = await doFetch(p);
+    if (results.length > 0) return results;
+  }
+
+  // 2. Fallback: category search
+  if (intent.category) {
+    const p = new URLSearchParams({ limit: "20", category_name: intent.category, sort });
+    const results = await doFetch(p);
+    if (results.length > 0) return results;
+  }
+
+  // 3. Fallback: brand search
+  if (intent.brand) {
+    const p = new URLSearchParams({ limit: "20", search: intent.brand, sort });
+    return doFetch(p);
+  }
+
+  return [];
 }
 
 // ── System prompt ─────────────────────────────────────────────────────────────
 function buildSystemPrompt(productCtx: string): string {
-  return `Bạn là Bunny 🐰 — trợ lý tư vấn AI của SmartHub, cửa hàng điện tử công nghệ Việt Nam.
+  return `Bạn là Bunny 🐰 — trợ lý AI thông minh của SmartHub, cửa hàng điện tử công nghệ Việt Nam.
 
-NGUYÊN TẮC TRẢ LỜI:
-- Luôn trả lời bằng tiếng Việt, thân thiện, nhiệt tình nhưng chuyên nghiệp
-- Trả lời ngắn gọn, súc tích (tối đa 150 từ), đúng trọng tâm câu hỏi
-- Dùng emoji vừa phải (1-3 cái), không lạm dụng
-- Nếu được hỏi về sản phẩm: dựa vào danh sách thực tế bên dưới, không bịa thông tin
-- Nếu không có sản phẩm phù hợp: thành thật và gợi ý từ khóa khác
-- Có thể tư vấn: so sánh sản phẩm, gợi ý theo nhu cầu, giải thích thông số kỹ thuật, tư vấn giá
-- Không hỗ trợ: đặt hàng, thanh toán, đổi trả (hướng đến nhân viên hỗ trợ)
+TÍNH CÁCH:
+- Thân thiện, tự nhiên, trò chuyện như người thật — không cứng nhắc hay máy móc
+- Nhiệt tình tư vấn, hỏi lại để hiểu đúng nhu cầu khách
+- Dùng tiếng Việt tự nhiên, có thể dùng 1-2 emoji cho sinh động
 
-VỀ SMARTHUB:
-- Chuyên kinh doanh: điện thoại, laptop, tablet, tai nghe, phụ kiện công nghệ
-- Chính sách: bảo hành 12 tháng, đổi trả 30 ngày, giao hàng trong 2h nội thành
-- Thanh toán: tiền mặt, chuyển khoản, trả góp 0%
+CÓ THỂ GIÚP:
+- Tư vấn sản phẩm công nghệ: điện thoại, laptop, tablet, tai nghe, phụ kiện
+- So sánh, giải thích thông số kỹ thuật, gợi ý theo nhu cầu & ngân sách
+- Giải đáp câu hỏi về công nghệ nói chung (pin, camera, chip, RAM…)
+- Trò chuyện thông thường, hỏi đáp thoải mái
+- Thông tin SmartHub: bảo hành 12 tháng, đổi trả 30 ngày, giao hàng 2h nội thành, trả góp 0%
+
+KHI TƯ VẤN SẢN PHẨM:
+- Dựa trên danh sách thực tế bên dưới — không bịa thêm model/giá không có
+- Nếu khách chưa rõ nhu cầu → hỏi thêm (ngân sách, dùng để làm gì, hãng ưu thích)
+- Nếu không có sản phẩm phù hợp → thành thật, gợi ý hướng tìm kiếm khác
+- Đặt hàng, thanh toán, đổi trả cụ thể → hướng đến nhân viên hỗ trợ
 ${productCtx}`;
 }
 
@@ -225,12 +262,34 @@ function buildReply(msg: string, intent: Intent, products: any[]): string {
   if (/chính sách|bảo hành|đổi trả|giao hàng/.test(lower))
     return "SmartHub có các chính sách sau:\n• 🛡️ Bảo hành 12 tháng chính hãng\n• 🔄 Đổi trả miễn phí trong 30 ngày\n• 🚀 Giao hàng trong 2h nội thành\n• 💳 Trả góp 0% lên đến 24 tháng";
 
-  if (!intent.is_product_query)
-    return "Mình là Bunny 🐰, chuyên tư vấn sản phẩm công nghệ tại SmartHub!\nBạn có thể hỏi:\n• \"iPhone 16 Pro Max giá bao nhiêu?\"\n• \"Laptop gaming dưới 20 triệu\"\n• \"So sánh Samsung S25 vs iPhone 16\" 📱💻";
+  if (!intent.is_product_query) {
+    if (/bạn là ai|bạn tên|mày là|mình là bunny|giới thiệu/i.test(lower))
+      return "Mình là Bunny 🐰 — trợ lý AI của SmartHub! Mình có thể tư vấn điện thoại, laptop, tai nghe, và giải đáp câu hỏi công nghệ. Bạn đang cần tìm gì? 😊";
+    if (/cảm ơn|thanks|thank|ok bạn|oke|được rồi/.test(lower))
+      return "Không có gì! 😊 Nếu cần tư vấn thêm cứ hỏi mình nhé!";
+    // Câu hỏi chung chung → gợi ý nhẹ, không chặn cứng
+    return "Mình chưa hiểu hết câu hỏi 😅 Bạn đang muốn tìm sản phẩm gì, hoặc có câu hỏi công nghệ gì mình có thể giúp không? 🐰";
+  }
+
+  // Category chung (không có tên model cụ thể) → tư vấn như người thật
+  if (intent.category && !intent.keyword) {
+    if (!products.length) {
+      return `Hiện SmartHub đang cập nhật thêm ${intent.category} mới bạn nhé! 😊\nBạn cho mình biết ngân sách hoặc hãng muốn dùng — mình tư vấn chính xác hơn! 🐰`;
+    }
+    const priceNote = intent.price_max ? ` dưới ${fmt(intent.price_max)}` : "";
+    const lines = [`SmartHub đang có **${products.length} mẫu ${intent.category}**${priceNote} 📱\nDưới đây là một số gợi ý nổi bật:\n`];
+    products.slice(0, 3).forEach((p, i) => {
+      const price = fmt(p.giaSale ?? p.gia);
+      const disc = p.giamGia ? ` (giảm ${p.giamGia}%)` : "";
+      lines.push(`${i + 1}. **${p.ten}** — ${price}${disc} ★${p.danhGia}/5`);
+    });
+    lines.push("\nBạn ưu tiên tiêu chí gì: camera, hiệu năng hay pin? Mình tư vấn thêm nhé! 🐰");
+    return lines.join("\n");
+  }
 
   if (!products.length) {
-    const hint = intent.keyword || intent.category || intent.brand;
-    return `Không tìm thấy sản phẩm${hint ? ` cho "${hint}"` : ""} 😅\nBạn thử điều chỉnh từ khóa hoặc khoảng giá nhé! Hoặc hỏi mình để gợi ý thêm 🔍`;
+    const hint = intent.keyword || intent.brand;
+    return `Hmm, mình chưa tìm thấy "${hint}" trong kho SmartHub 😅\nBạn thử nhập tên model đầy đủ hơn, hoặc cho mình biết bạn cần loại sản phẩm gì — mình gợi ý ngay! 🐰`;
   }
 
   const what = intent.keyword || intent.category || intent.brand;

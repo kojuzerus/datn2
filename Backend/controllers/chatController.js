@@ -206,8 +206,13 @@ function buildTemplateReply(message, intent, products) {
   const lower = message.toLowerCase();
 
   // Chào hỏi
-  if (/^(xin chao|hi|hello|chào|hey|alo)/i.test(lower.trim())) {
+  if (/^(xin chào|xin chao|hi|hello|chào|hey|alo|bạn ơi|bạn|ê bạn)/i.test(lower.trim())) {
     return "Xin chào! 🐰 Mình là Bunny — trợ lý AI của SmartHub!\nBạn đang tìm kiếm sản phẩm gì? Mình có thể giúp tìm điện thoại, laptop, tai nghe, phụ kiện… và nhiều hơn nữa! ✨";
+  }
+
+  // Hỏi shop bán gì
+  if (/shop.*bán|bán.*gì|có.*gì|shop.*có|sản phẩm.*gì|kinh doanh|danh mục/i.test(lower)) {
+    return "SmartHub bán các sản phẩm công nghệ chính hãng 🏪:\n📱 Điện thoại (iPhone, Samsung, Xiaomi…)\n💻 Laptop (Dell, HP, Asus, MacBook…)\n📟 Máy tính bảng (iPad, Samsung Tab…)\n🎧 Tai nghe & Phụ kiện\n📺 Tivi\n\nBạn muốn tìm sản phẩm nào? Mình tư vấn ngay! 🐰";
   }
 
   if (!intent.is_product_query) {
@@ -290,10 +295,14 @@ exports.chat = async (req, res) => {
         products.map((p, i) => `${i + 1}. ${p.ten} (${p.thuongHieu}) — ${fmt(p.giaSale ?? p.gia)}${p.giamGia ? ` giảm ${p.giamGia}%` : ""} — ★${p.danhGia}/5`).join("\n")
       : intent.is_product_query ? "\n[Không tìm thấy sản phẩm]" : "";
 
-    const systemPrompt = `Bạn là Bunny 🐰 — linh vật thỏ dễ thương của SmartHub, chuyên tư vấn điện tử Việt Nam.
+    const systemPrompt = `Bạn là Bunny 🐰 — linh vật thỏ dễ thương của SmartHub, shop điện tử tại Việt Nam.
+SmartHub chuyên bán: Điện thoại, Laptop, Máy tính bảng, Tai nghe & Phụ kiện, Tivi.
 Phong cách: thân thiện, nhiệt tình, ngắn gọn (tối đa 120 từ), dùng emoji vừa phải.
-Nếu có sản phẩm, tư vấn điểm nổi bật và gợi ý phù hợp nhu cầu.
-Không bịa thông tin ngoài danh sách.${productCtx}`;
+Hướng dẫn xử lý:
+- Khi được chào hỏi (bạn ơi, hi, hello, chào…) → chào lại thân thiện, giới thiệu bản thân, hỏi bạn cần tìm gì.
+- Khi hỏi shop bán gì / có gì → giới thiệu các danh mục: Điện thoại, Laptop, Máy tính bảng, Tai nghe, Tivi, Phụ kiện.
+- Khi hỏi về sản phẩm cụ thể → tư vấn dựa vào danh sách sản phẩm bên dưới (nếu có).
+- Không bịa thông tin sản phẩm ngoài danh sách được cung cấp.${productCtx}`;
 
     const aiReply = await callAI(systemPrompt, message, Array.isArray(history) ? history : []);
     const reply   = aiReply || buildTemplateReply(message, intent, products);

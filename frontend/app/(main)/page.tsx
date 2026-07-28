@@ -5,8 +5,7 @@ import Link from "next/link";
 import {
   ChevronLeft, ChevronRight, Star, ArrowRight,
   ShieldCheck, Truck, RefreshCw, Headphones,
-  Smartphone, Laptop, Tablet, Watch, Mouse, Speaker, Heart,
-  Wallet, CreditCard, Zap, Flame, Cpu, Timer,
+  Smartphone, Heart, Wallet, CreditCard, Zap, Flame, Cpu, Timer,
 } from "lucide-react";
 import { useFavorites, type FavoriteProduct } from "../components/favoritesContext";
 import { ARTICLES } from "./tin-tuc/data";
@@ -197,20 +196,38 @@ interface Category {
   description?: string;
   parent_id?: number | null;
   image_url?: string;
+  product_thumbnail?: string;
   status: string;
   created_at: string;
 }
 
-const categoriesIconMap: Record<string, React.ComponentType<{ className?: string }>> = {
-  "dien-thoai": Smartphone,
-  laptop: Laptop,
-  chuot: Mouse,
-  "tai-nghe": Headphones,
-  loa: Speaker,
-  "dong-ho": Watch,
-  "phu-kien": Headphones,
+
+
+const CAT_EMOJI: Record<string, string> = {
+  "dien-thoai": "📱", "laptop": "💻", "may-tinh-bang": "📟",
+  "chuot": "🖱️", "ban-phim": "⌨️", "tai-nghe": "🎧",
+  "loa": "🔊", "sac-cap": "🔌", "sac-va-cap": "🔌",
+  "tivi": "📺", "dong-ho": "⌚", "dong-ho-thong-minh": "⌚",
+  "may-anh": "📷", "phu-kien": "🎒",
 };
 
+// Fallback Unsplash — dùng khi DB không có ảnh
+const CAT_UNSPLASH: Record<string, string> = {
+  "dien-thoai":         "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=200&h=200&q=80&fit=crop",
+  "laptop":             "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=200&h=200&q=80&fit=crop",
+  "may-tinh-bang":      "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=200&h=200&q=80&fit=crop",
+  "chuot":              "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=200&h=200&q=80&fit=crop",
+  "ban-phim":           "https://images.unsplash.com/photo-1595225476474-4e8bbe5fb1e2?w=200&h=200&q=80&fit=crop",
+  "tai-nghe":           "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=200&h=200&q=80&fit=crop",
+  "loa":                "https://images.unsplash.com/photo-1545454675-3531b543be5d?w=200&h=200&q=80&fit=crop",
+  "sac-cap":            "https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=200&h=200&q=80&fit=crop",
+  "sac-va-cap":         "https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=200&h=200&q=80&fit=crop",
+  "tivi":               "https://images.unsplash.com/photo-1593784991095-a205069470b6?w=200&h=200&q=80&fit=crop",
+  "dong-ho":            "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200&h=200&q=80&fit=crop",
+  "dong-ho-thong-minh": "https://images.unsplash.com/photo-1579586337278-3befd40fd17a?w=200&h=200&q=80&fit=crop",
+  "may-anh":            "https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=200&h=200&q=80&fit=crop",
+  "phu-kien":           "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=200&h=200&q=80&fit=crop",
+};
 
 const tienIch = [
   { icon: ShieldCheck, title: "Hàng chính hãng 100%", sub: "Bảo hành toàn quốc" },
@@ -921,66 +938,71 @@ export default function HomePage() {
           className="bg-white rounded-3xl border border-gray-100 overflow-hidden"
           style={{ boxShadow: "0 16px 48px rgba(15,23,42,0.07), 0 2px 8px rgba(15,23,42,0.04)" }}
         >
-          {/* Categories — colorful gradient tiles */}
-          <div className="px-5 pt-5 pb-3">
-            <div className="flex items-stretch gap-1 overflow-x-auto scrollbar-hide">
+          {/* Categories — 1 hàng ngang, ảnh trên tên dưới */}
+          <div className="px-6 pt-5 pb-4">
+            <div className="flex items-start justify-evenly overflow-x-auto" style={{ scrollbarWidth: "none" }}>
               {loadingCats ? (
                 Array.from({ length: 7 }).map((_, i) => (
-                  <div key={i} className="flex-1 min-w-[84px] flex flex-col items-center gap-2 py-2">
-                    <div className="w-[52px] h-[52px] rounded-2xl bg-gray-100 animate-pulse" />
-                    <div className="w-12 h-2.5 rounded bg-gray-100 animate-pulse" />
+                  <div key={i} className="flex-shrink-0 w-[88px] flex flex-col items-center gap-2">
+                    <div className="w-[72px] h-[72px] rounded-2xl bg-gray-100 animate-pulse" />
+                    <div className="w-14 h-2.5 rounded bg-gray-100 animate-pulse" />
                   </div>
                 ))
               ) : errorCats ? (
                 <p className="text-sm text-red-500 px-2 py-4">{errorCats}</p>
               ) : (
                 categories
-                  .filter((cat) => cat.slug !== "phu-kien" && cat.category_name !== "Phụ kiện")
-                  .map((cat, i) => {
-                    const Icon = categoriesIconMap[cat.slug] || Tablet;
-                    const grads = [
-                      { bg: "linear-gradient(135deg,#3b82f6,#60a5fa)", glow: "rgba(59,130,246,0.35)"  },
-                      { bg: "linear-gradient(135deg,#8b5cf6,#a78bfa)", glow: "rgba(139,92,246,0.35)"  },
-                      { bg: "linear-gradient(135deg,#f97316,#fb923c)", glow: "rgba(249,115,22,0.35)"  },
-                      { bg: "linear-gradient(135deg,#10b981,#34d399)", glow: "rgba(16,185,129,0.35)"  },
-                      { bg: "linear-gradient(135deg,#ec4899,#f472b6)", glow: "rgba(236,72,153,0.35)"  },
-                      { bg: "linear-gradient(135deg,#06b6d4,#22d3ee)", glow: "rgba(6,182,212,0.35)"   },
-                      { bg: "linear-gradient(135deg,#6366f1,#818cf8)", glow: "rgba(99,102,241,0.35)"  },
-                    ];
-                    const g = grads[i % grads.length];
+                  .filter((cat) =>
+                    cat.slug !== "phu-kien" &&
+                    cat.slug !== "sac-cap" &&
+                    cat.slug !== "sac-va-cap" &&
+                    cat.category_name !== "Phụ kiện" &&
+                    !cat.category_name.toLowerCase().includes("sạc")
+                  )
+                  .map((cat) => {
+                    // Ưu tiên: ảnh sản phẩm thật từ DB (CellphoneS CDN) → Unsplash fallback
+                    const dbThumb    = cat.product_thumbnail || cat.image_url || "";
+                    const unsplashImg = CAT_UNSPLASH[cat.slug] || "";
+                    const imgSrc      = dbThumb || unsplashImg;
                     return (
                       <Link
                         key={cat.slug}
                         href={`/sanpham?danh-muc=${cat.slug}`}
-                        className="group flex-1 min-w-[84px] flex flex-col items-center gap-2 py-2 rounded-2xl hover:bg-gray-50/80 transition-colors"
+                        className="group flex-shrink-0 w-[88px] flex flex-col items-center gap-2"
                       >
-                        <div
-                          className="w-[52px] h-[52px] rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:-translate-y-1"
-                          style={{ background: g.bg, boxShadow: `0 8px 20px ${g.glow}` }}
-                        >
-                          <Icon className="w-6 h-6 text-white" />
+                        <div className="w-[72px] h-[72px] rounded-2xl overflow-hidden flex items-center justify-center transition-all duration-300 group-hover:scale-105 group-hover:drop-shadow-md">
+                          {imgSrc ? (
+                            <img
+                              src={imgSrc}
+                              alt={cat.category_name}
+                              className="w-full h-full object-contain drop-shadow-sm"
+                              loading="lazy"
+                              referrerPolicy="no-referrer"
+                              data-fallback={dbThumb ? unsplashImg : ""}
+                              onError={(e) => {
+                                const el = e.currentTarget;
+                                const next = el.getAttribute("data-fallback") || "";
+                                if (next && el.src !== next) {
+                                  el.src = next;
+                                  el.setAttribute("data-fallback", "");
+                                } else {
+                                  el.style.display = "none";
+                                  const parent = el.parentElement;
+                                  if (parent) parent.innerHTML = `<span style="font-size:28px">${CAT_EMOJI[cat.slug] || "🛒"}</span>`;
+                                }
+                              }}
+                            />
+                          ) : (
+                            <span style={{ fontSize: 28 }}>{CAT_EMOJI[cat.slug] || "🛒"}</span>
+                          )}
                         </div>
-                        <span className="text-[12px] font-semibold text-gray-600 group-hover:text-gray-900 whitespace-nowrap transition-colors">
+                        <span className="text-[11.5px] font-semibold text-gray-600 group-hover:text-red-500 text-center leading-tight transition-colors line-clamp-2">
                           {cat.category_name}
                         </span>
                       </Link>
                     );
                   })
               )}
-              <Link
-                href="/sanpham"
-                className="group flex-1 min-w-[84px] flex flex-col items-center gap-2 py-2 rounded-2xl hover:bg-red-50/60 transition-colors"
-              >
-                <div
-                  className="w-[52px] h-[52px] rounded-2xl flex items-center justify-center bg-white transition-all duration-300 group-hover:scale-110 group-hover:-translate-y-1"
-                  style={{ border: "2px dashed #fca5a5" }}
-                >
-                  <ArrowRight className="w-6 h-6 text-red-400" />
-                </div>
-                <span className="text-[12px] font-semibold text-red-400 group-hover:text-red-600 whitespace-nowrap transition-colors">
-                  Xem thêm
-                </span>
-              </Link>
             </div>
           </div>
 
