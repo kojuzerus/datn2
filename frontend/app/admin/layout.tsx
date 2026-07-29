@@ -15,9 +15,7 @@ import {
   Star,
   BarChart2,
   Settings,
-  Bell,
   Search,
-  HelpCircle,
   ChevronDown,
   LogOut,
   Home,
@@ -395,25 +393,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
           {/* Right actions */}
           <div className="flex items-center gap-2 ml-auto">
-
-            {/* Bell */}
-            <button
-              title="Thông báo"
-              className="relative w-9 h-9 rounded-xl border border-gray-200 bg-white flex items-center justify-center cursor-pointer hover:border-[#D32F2F] hover:bg-[#FFF5F5] transition-all duration-150"
-            >
-              <Bell size={16} className="text-gray-500" />
-              <span className="absolute -top-1 -right-1 w-[17px] h-[17px] bg-[#D32F2F] rounded-full text-[9px] text-white flex items-center justify-center font-bold border-2 border-white">
-                3
-              </span>
-            </button>
-
-            {/* Help */}
-            <button
-              title="Trợ giúp"
-              className="w-9 h-9 rounded-xl border border-gray-200 bg-white flex items-center justify-center cursor-pointer hover:border-[#D32F2F] hover:bg-[#FFF5F5] transition-all duration-150"
-            >
-              <HelpCircle size={16} className="text-gray-500" />
-            </button>
 
             {/* Divider */}
             <div className="w-px h-6 bg-gray-200 mx-1" />
