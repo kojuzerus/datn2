@@ -104,8 +104,16 @@ function extractIntent(message) {
     sort:          "newest",
   };
 
-  // Phát hiện query sản phẩm
-  const productTriggers = /tìm|muon|mua|xem|recommend|gợi ý|tư vấn|cho mình|có không|giá|rẻ|đắt|tốt nhất|bán chạy|new|mới|iphone|samsung|laptop|phone|tai nghe|tivi|xiaomi|oppo|apple|dell|hp|asus|lenovo/;
+  // Phát hiện query sản phẩm — gộp thêm toàn bộ BRAND_MAP để không bỏ sót các
+  // câu chỉ gõ tên hãng/dòng máy (VD: "macbook air") mà thiếu động từ kích hoạt.
+  const productTriggers = new RegExp(
+    [
+      "tìm", "muon", "mua", "xem", "recommend", "gợi ý", "tư vấn", "cho mình", "có không",
+      "giá", "rẻ", "đắt", "tốt nhất", "bán chạy", "new", "mới",
+      "iphone", "ipad", "macbook", "airpod", "tai nghe", "tivi", "phone", "laptop", "tablet",
+      ...BRAND_MAP,
+    ].join("|")
+  );
   intent.is_product_query = productTriggers.test(lower);
 
   // Danh mục
@@ -120,10 +128,14 @@ function extractIntent(message) {
 
   // Keyword (cụm từ sau "tìm", "mua", "xem" hoặc tên thương hiệu + model)
   const kwMatch = message.match(/(?:tìm|mua|xem|muốn|cần)\s+(.{3,40}?)(?:\s+(?:giá|dưới|từ|khoảng|với)|$)/i);
-  if (kwMatch) intent.keyword = kwMatch[1].trim();
-  else if (intent.brand_name) {
-    // "iPhone 16", "Samsung S25", etc.
-    const modelMatch = message.match(/(?:iphone|samsung|xiaomi|oppo|laptop|macbook)\s+[\w\s]{1,20}/i);
+  if (kwMatch) {
+    intent.keyword = kwMatch[1].trim();
+  } else {
+    // "iPhone 17", "Samsung S25", "iphone 17" gõ trực tiếp không kèm động từ...
+    // Dừng lại trước các từ chỉ giá (dưới/trên/khoảng/triệu...) để không nuốt luôn cụm giá vào từ khóa.
+    const modelMatch = message.match(
+      /(?:iphone|samsung|xiaomi|oppo|realme|vivo|laptop|macbook|asus|acer|lenovo|dell|hp|msi)(?:\s+(?!giá|dưới|trên|từ|khoảng|với|triệu|tr\b)[\w]+){0,3}/i
+    );
     if (modelMatch) intent.keyword = modelMatch[0].trim();
   }
 
@@ -259,7 +271,12 @@ exports.chat = async (req, res) => {
     let products = [];
     if (intent.is_product_query) {
       const filter = { status: "active" };
-      if (intent.keyword)       filter.product_name  = { $regex: intent.keyword.split(" ").slice(0, 3).join("|"), $options: "i" };
+      if (intent.keyword) {
+        // Yêu cầu tên sản phẩm chứa TẤT CẢ các từ khóa (AND), không phải chỉ 1 trong số đó (OR),
+        // để "iphone 17" không khớp nhầm các sản phẩm khác chỉ trùng "17" (VD: "OPPO A17").
+        const terms = intent.keyword.split(/\s+/).filter(Boolean).slice(0, 4);
+        filter.product_name = { $regex: terms.map((t) => `(?=.*${t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`).join(""), $options: "i" };
+      }
       if (intent.category_name) filter.category_name = { $regex: intent.category_name, $options: "i" };
       if (intent.brand_name)    filter.brand_name    = { $regex: intent.brand_name,    $options: "i" };
 
