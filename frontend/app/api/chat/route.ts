@@ -37,7 +37,20 @@ function extractIntent(msg: string): Intent {
     price_min: null, price_max: null, sort: "newest",
   };
 
-  const triggers = /tìm|muốn|mua|xem|cần|gợi ý|tư vấn|giá|rẻ|đắt|mới nhất|bán chạy|so sánh|khuyến mãi|sale|giảm giá|iphone|samsung|laptop|phone|tai nghe|tivi|xiaomi|oppo|apple|dell|hp|asus|lenovo|màn hình|sạc|chuột|bàn phím/i;
+  // Gộp thêm toàn bộ BRANDS + mọi từ khóa đã dùng để nhận diện danh mục
+  // (CATEGORY_PATTERNS) để không bỏ sót các câu chỉ gõ tên hãng/dòng máy/loại
+  // sản phẩm (VD: "macbook air", "vivo v30", "airpods") mà thiếu động từ kích
+  // hoạt phía trước. Lấy từ CATEGORY_PATTERNS thay vì liệt kê tay để tránh lặp
+  // lại kiểu lỗi "thiếu từ khóa" mỗi khi thêm danh mục mới.
+  const triggers = new RegExp(
+    [
+      "tìm", "muốn", "mua", "xem", "cần", "gợi ý", "tư vấn", "giá", "rẻ", "đắt",
+      "mới nhất", "bán chạy", "so sánh", "khuyến mãi", "sale", "giảm giá",
+      ...CATEGORY_PATTERNS.map(([re]) => re.source),
+      ...BRANDS,
+    ].join("|"),
+    "i"
+  );
   intent.is_product_query = triggers.test(lower);
 
   for (const [re, cat] of CATEGORY_PATTERNS) {
@@ -48,11 +61,20 @@ function extractIntent(msg: string): Intent {
   }
 
   const kwMatch = msg.match(/(?:tìm|mua|xem|muốn|cần|gợi ý)\s+(.{2,50}?)(?:\s+(?:giá|dưới|từ|khoảng|với|tốt|rẻ|bền)|[?.!]|$)/i);
-  if (kwMatch) intent.keyword = kwMatch[1].trim();
-  else if (intent.brand) {
-    const m2 = msg.match(/(?:iphone|samsung|xiaomi|oppo|laptop|macbook|galaxy|redmi|poco|vivobook|zenbook|ideapad)\s*[\w\s]{0,25}/i);
+  if (kwMatch) {
+    intent.keyword = kwMatch[1].trim();
+  } else {
+    // "iPhone 17", "vivo v30", "airpods", v.v. gõ trực tiếp không kèm động từ hay
+    // thương hiệu đã nhận diện được (BRANDS không có "iphone", chỉ có "apple") —
+    // không còn phụ thuộc vào intent.brand nữa. Gồm cả các từ chỉ LOẠI sản phẩm
+    // (airpod, tai nghe, loa...) chứ không chỉ tên hãng, để "airpods" tìm đúng
+    // AirPods thay vì trả về nguyên danh mục "Phụ kiện" (bàn phím, loa, tai nghe...
+    // trộn chung). Dừng trước các từ chỉ giá để không nuốt cụm giá.
+    const m2 = msg.match(
+      /(?:iphone|samsung|xiaomi|oppo|laptop|macbook|galaxy|redmi|poco|vivobook|zenbook|ideapad|vivo|realme|nokia|sony|lg|dell|hp|lenovo|asus|acer|msi|huawei|jbl|anker|logitech|razer|airpod|tai nghe|earbud|buds|loa|speaker|bàn phím|chuột|sạc|ốp lưng|tablet|ipad|đồng hồ|watch)(?:\s+(?!giá|dưới|trên|từ|khoảng|với|tốt|rẻ|bền|triệu|tr\b)[\w]+){0,3}/i
+    );
     if (m2) intent.keyword = m2[0].trim();
-    else intent.keyword = intent.brand;
+    else if (intent.brand) intent.keyword = intent.brand;
   }
 
   let m: RegExpMatchArray | null;
@@ -79,9 +101,19 @@ function extractIntent(msg: string): Intent {
 // ── Fetch sản phẩm ────────────────────────────────────────────────────────────
 const fmt = (n: number) => new Intl.NumberFormat("vi-VN").format(n) + "đ";
 
+// Backend dùng `search` trực tiếp làm regex trên product_name. Nếu truyền nguyên
+// cụm "samsung s26", nó chỉ khớp khi 2 từ đứng LIỀN NHAU — trong khi tên thật là
+// "Samsung Galaxy S26..." (có "Galaxy" chen giữa) nên sẽ không khớp gì cả. Build
+// một regex kiểu AND-lookahead để mỗi từ khóa chỉ cần xuất hiện đâu đó trong tên,
+// không cần liền kề hay đúng thứ tự.
+function buildSearchRegex(keyword: string): string {
+  const terms = keyword.split(/\s+/).filter(Boolean).slice(0, 4);
+  return terms.map((t) => `(?=.*${t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`).join("");
+}
+
 async function fetchProducts(intent: Intent) {
   const params = new URLSearchParams({ limit: "20" });
-  if (intent.keyword)        params.set("search", intent.keyword);
+  if (intent.keyword)        params.set("search", buildSearchRegex(intent.keyword));
   else if (intent.category)  params.set("category_name", intent.category);
   else if (intent.brand)     params.set("search", intent.brand);
   const sortMap: Record<string,string> = { newest:"newest", sold:"sold", rating:"rating", price_asc:"price_asc", price_desc:"price_desc" };
