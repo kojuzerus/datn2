@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import {
-  Search, RefreshCw, Plus, Download, Upload,
+  Search, RefreshCw, Plus,
   Eye, Edit2, Trash2, CheckCircle, XCircle, X, AlertTriangle, Package,
 } from "lucide-react";
 
@@ -614,12 +614,6 @@ export default function ProductsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button className="flex items-center gap-2 border border-gray-200 rounded-xl px-3.5 py-2.5 text-[13px] bg-white text-gray-600 hover:bg-gray-50 cursor-pointer transition-colors">
-            <Upload size={14} /> Nhập Excel
-          </button>
-          <button className="flex items-center gap-2 border border-gray-200 rounded-xl px-3.5 py-2.5 text-[13px] bg-white text-gray-600 hover:bg-gray-50 cursor-pointer transition-colors">
-            <Download size={14} /> Xuất Excel
-          </button>
           <button
             onClick={openAdd}
             className="flex items-center gap-2 bg-[#D32F2F] hover:bg-[#B71C1C] text-white border-none px-4 py-2.5 rounded-xl text-[13.5px] font-semibold cursor-pointer transition-colors"
