@@ -4,3 +4,4 @@ frontend/.next/
 Backend/node_modules/
 frontend/.env.local
 CLAUDE.md
+Backend/.env
