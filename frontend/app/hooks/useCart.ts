@@ -2,7 +2,8 @@
 // Hook dùng chung để thêm vào giỏ hàng từ bất kỳ trang nào
 
 import { useState } from 'react';
-import { requireLogin } from '../lib/authPrompt';
+import { isLoggedIn } from '../lib/authPrompt';
+import { addGuestCartItem } from '../lib/guestCart';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -17,8 +18,11 @@ export function useCart() {
     soLuong?: number;
     variant?: string;
   }) => {
-    if (!requireLogin('Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng.')) {
-      return false;
+    // Khách chưa đăng nhập vẫn thêm được vào giỏ hàng (lưu tạm ở máy).
+    // Chỉ bắt đăng nhập khi vào bước thanh toán.
+    if (!isLoggedIn()) {
+      addGuestCartItem(product);
+      return true;
     }
     const token = localStorage.getItem('smarthub_token');
 

@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { mergeGuestCartToServer } from '../lib/guestCart';
 
 function OAuthHandler() {
   const router = useRouter();
@@ -20,7 +21,8 @@ function OAuthHandler() {
     try {
       localStorage.setItem('smarthub_token', token);
       localStorage.setItem('smarthub_user', decodeURIComponent(user));
-      router.push('/');
+      mergeGuestCartToServer(token).finally(() => router.push('/'));
+      return;
     } catch {
       router.push('/dang-nhap?error=oauth_failed');
     }

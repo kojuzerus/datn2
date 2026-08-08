@@ -838,7 +838,7 @@ export default function ProductsPage() {
                         <div className="flex items-center justify-center gap-1.5">
                           <button
                             title="Xem trang sản phẩm"
-                            onClick={() => window.open(`/products/${p.slug}`, "_blank")}
+                            onClick={() => window.open(`/sanpham/${p.slug}`, "_blank")}
                             className="w-8 h-8 border border-gray-200 rounded-sm bg-white hover:bg-gray-50 hover:border-gray-300 cursor-pointer flex items-center justify-center transition-colors"
                           >
                             <Eye size={14} className="text-gray-500" />

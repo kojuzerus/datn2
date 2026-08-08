@@ -7,6 +7,10 @@ import {
   ShoppingCart, ArrowLeft, Trash2, Plus, Minus,
   Package, ShieldCheck, RotateCcw, BadgeCheck, Zap,
 } from 'lucide-react';
+import { requireLogin } from '../lib/authPrompt';
+import {
+  getGuestCart, updateGuestCartItem, removeGuestCartItem, clearGuestCart,
+} from '../lib/guestCart';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -34,7 +38,14 @@ export default function GioHangPage() {
   const token = typeof window !== 'undefined' ? localStorage.getItem('smarthub_token') : null;
 
   const fetchCart = async () => {
-    if (!token) { setLoading(false); return; }
+    // Khách chưa đăng nhập: đọc giỏ hàng tạm lưu ở máy
+    if (!token) {
+      const guestItems = getGuestCart();
+      setItems(guestItems);
+      setSelected(new Set(guestItems.map((i) => i._id)));
+      setLoading(false);
+      return;
+    }
     try {
       const res  = await fetch(`${API_URL}/api/cart`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -70,6 +81,11 @@ export default function GioHangPage() {
   // ── Cart actions ────────────────────────────────────────────────────────
   const updateQty = async (itemId: string, soLuong: number) => {
     if (soLuong < 1) return;
+    if (!token) {
+      updateGuestCartItem(itemId, soLuong);
+      setItems(getGuestCart());
+      return;
+    }
     setUpdating(itemId);
     try {
       const res  = await fetch(`${API_URL}/api/cart/item/${itemId}`, {
@@ -87,6 +103,12 @@ export default function GioHangPage() {
   };
 
   const removeItem = async (itemId: string) => {
+    if (!token) {
+      removeGuestCartItem(itemId);
+      setItems(getGuestCart());
+      setSelected(prev => { const n = new Set(prev); n.delete(itemId); return n; });
+      return;
+    }
     setUpdating(itemId);
     try {
       const res  = await fetch(`${API_URL}/api/cart/item/${itemId}`, {
@@ -105,6 +127,12 @@ export default function GioHangPage() {
 
   const clearCart = async () => {
     if (!confirm('Bạn có chắc muốn xóa toàn bộ giỏ hàng?')) return;
+    if (!token) {
+      clearGuestCart();
+      setItems([]);
+      setSelected(new Set());
+      return;
+    }
     try {
       await fetch(`${API_URL}/api/cart/clear`, {
         method: 'DELETE',
@@ -125,27 +153,15 @@ export default function GioHangPage() {
 
   const handleCheckout = () => {
     if (selected.size === 0) return alert('Vui lòng chọn ít nhất một sản phẩm');
+    // Chỉ bắt đăng nhập khi khách bấm thanh toán
+    if (!token) {
+      requireLogin('Vui lòng đăng nhập để tiến hành thanh toán.');
+      return;
+    }
     // Lưu danh sách ID được chọn để trang thanh toán đọc
     localStorage.setItem('smarthub_checkout_ids', JSON.stringify([...selected]));
     router.push('/thanhtoan');
   };
-
-  if (!token && !loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <div className="text-center">
-          <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-5">
-            <ShoppingCart className="w-10 h-10 text-red-400" />
-          </div>
-          <h2 className="text-xl font-bold text-gray-800 mb-2">Vui lòng đăng nhập</h2>
-          <p className="text-gray-500 text-sm mb-6">Đăng nhập để xem giỏ hàng của bạn</p>
-          <Link href="/login" className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-sm font-semibold transition">
-            Đăng nhập ngay
-          </Link>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">
