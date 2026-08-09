@@ -136,7 +136,7 @@ function LoginForm() {
         </form>
 
         <p className="text-xs text-right mt-2">
-          <span className="text-red-400 hover:underline cursor-pointer">Quên mật khẩu?</span>
+          <Link href="/quen-mat-khau" className="text-red-400 hover:underline">Quên mật khẩu?</Link>
         </p>
 
         <div className="flex items-center gap-3 my-4">

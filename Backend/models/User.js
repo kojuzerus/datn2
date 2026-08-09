@@ -11,6 +11,11 @@ const userSchema = new mongoose.Schema({
   avatar:      { type: String, default: null },
   role:        { type: String, enum: ["user", "admin"], default: "user" },
   status:      { type: String, enum: ["active", "banned"], default: "active" },
+
+  // Đặt lại mật khẩu qua email: chỉ lưu bản hash của token (không lưu token thô),
+  // giống nguyên tắc lưu mật khẩu — để lộ DB cũng không dùng token được.
+  resetPasswordTokenHash: { type: String, default: null, select: false },
+  resetPasswordExpires:   { type: Date,   default: null, select: false },
 }, { timestamps: true });
 
 // Email lưu đúng nguyên dạng người dùng nhập (hoa/thường), nhưng kiểm tra trùng lặp
