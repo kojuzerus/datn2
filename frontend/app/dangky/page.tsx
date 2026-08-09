@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { mergeGuestCartToServer } from '../lib/guestCart';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -76,6 +77,7 @@ export default function DangKyPage() {
       if (!res.ok) throw new Error(data.message || 'Đăng ký thất bại');
       localStorage.setItem('smarthub_token', data.token);
       localStorage.setItem('smarthub_user', JSON.stringify(data.user));
+      await mergeGuestCartToServer(data.token);
       router.push('/');
     } catch (err: any) {
       setError(err.message);

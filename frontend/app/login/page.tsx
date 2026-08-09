@@ -47,8 +47,7 @@ export default function DangNhapPage() {
       if (!res.ok) throw new Error(data.message || 'Đăng nhập thất bại');
       localStorage.setItem('smarthub_token', data.token);
       localStorage.setItem('smarthub_user', JSON.stringify(data.user));
-      // Gộp giỏ hàng đã thêm khi chưa đăng nhập vào giỏ trên server
-      await mergeGuestCartToServer(API_URL, data.token);
+      await mergeGuestCartToServer(data.token);
       router.push(data.user?.role === 'admin' ? '/admin' : '/');
     } catch (err: any) {
       setError(err.message);

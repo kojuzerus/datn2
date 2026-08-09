@@ -4,8 +4,6 @@ import { Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { mergeGuestCartToServer } from '../lib/guestCart';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-
 function OAuthHandler() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -23,8 +21,8 @@ function OAuthHandler() {
     try {
       localStorage.setItem('smarthub_token', token);
       localStorage.setItem('smarthub_user', decodeURIComponent(user));
-      // Gộp giỏ hàng đã thêm khi chưa đăng nhập vào giỏ trên server
-      mergeGuestCartToServer(API_URL, token).finally(() => router.push('/'));
+      mergeGuestCartToServer(token).finally(() => router.push('/'));
+      return;
     } catch {
       router.push('/dang-nhap?error=oauth_failed');
     }

@@ -4,6 +4,7 @@ const Variant      = require("../models/variantModel");
 const ProductImage = require("../models/productImageModel");
 const Brand        = require("../models/brandModel");
 const Category     = require("../models/categoryModel");
+const Order        = require("../models/orderModel");
 
 // ── In-memory TTL cache ───────────────────────────────────────────────────
 // Atlas ở xa nên mỗi round-trip tốn ~50-100ms; cache 60s cho các GET công khai
@@ -396,7 +397,21 @@ exports.getBySlug = async (req, res) => {
       return res.status(404).json({ success: false, message: "Không tìm thấy sản phẩm" });
 
     const variants = await Variant.find({ product_id: product.product_id }).lean();
-    product.variants = variants;
+
+    // Số lượng đã bán theo từng biến thể (màu) - tính từ đơn hàng thật, loại trừ đơn đã hủy
+    const soldAgg = await Order.aggregate([
+      { $match: { trangThai: { $ne: "da_huy" } } },
+      { $unwind: "$items" },
+      { $match: { "items.productId": String(product.product_id) } },
+      { $group: { _id: "$items.variant", total: { $sum: "$items.soLuong" } } },
+    ]);
+    const soldByVariant = {};
+    soldAgg.forEach((r) => { soldByVariant[r._id || ""] = r.total; });
+
+    product.variants = variants.map((v) => ({
+      ...v,
+      sold_quantity: soldByVariant[v.color || ""] || 0,
+    }));
     [product] = await attachProductImages([product]);
 
     const payload = { success: true, data: formatProduct(product) };

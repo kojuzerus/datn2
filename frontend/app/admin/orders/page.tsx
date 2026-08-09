@@ -159,6 +159,8 @@ export default function AdminOrdersPage() {
   const [updating, setUpdating] = useState(false);
   const [toasts, setToasts]   = useState<Toast[]>([]);
   const [pendingChange, setPendingChange] = useState<{ orderId: string; from: string; to: string } | null>(null);
+  const [page, setPage]   = useState(1);
+  const [limit, setLimit] = useState(10);
 
   const showToast = useCallback((type: Toast["type"], message: string) => {
     const id = Date.now();
@@ -217,7 +219,7 @@ export default function AdminOrdersPage() {
     }
   };
 
-  const displayed = orders.filter((o) => {
+  const filtered = orders.filter((o) => {
     if (statusFilter && o.trangThai !== statusFilter) return false;
     if (paymentFilter && o.paymentMethod !== paymentFilter) return false;
     if (search) {
@@ -227,6 +229,12 @@ export default function AdminOrdersPage() {
     }
     return true;
   });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / limit));
+  const safePage   = Math.min(page, totalPages);
+  const displayed  = filtered.slice((safePage - 1) * limit, safePage * limit);
+
+  useEffect(() => { setPage(1); }, [search, statusFilter, paymentFilter, limit]);
 
   return (
     <>
@@ -387,6 +395,55 @@ export default function AdminOrdersPage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Pagination */}
+        <div className="flex items-center px-5 py-3.5 border-t border-gray-100 bg-gray-50/50 gap-3">
+          <div className="flex items-center gap-2 text-[13px] text-gray-500">
+            Hiển thị
+            <select
+              value={limit}
+              onChange={(e) => setLimit(Number(e.target.value))}
+              className="border border-gray-200 rounded-sm px-2 py-1 text-[13px] outline-none cursor-pointer bg-white"
+            >
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+            </select>
+            / trang
+          </div>
+
+          <div className="text-[12.5px] text-gray-400 ml-auto">
+            {filtered.length > 0
+              ? `${(safePage - 1) * limit + 1}–${Math.min(safePage * limit, filtered.length)} trong ${filtered.length} đơn hàng`
+              : "0 đơn hàng"}
+          </div>
+
+          <div className="flex gap-1">
+            <button
+              disabled={safePage <= 1}
+              onClick={() => setPage((p) => p - 1)}
+              className="w-8 h-8 rounded-sm border border-gray-200 bg-white text-[13px] flex items-center justify-center cursor-pointer hover:bg-gray-100 disabled:opacity-30 disabled:cursor-default transition-colors"
+            >‹</button>
+
+            {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map((n) => (
+              <button
+                key={n}
+                onClick={() => setPage(n)}
+                className={`w-8 h-8 rounded-sm border text-[13px] flex items-center justify-center cursor-pointer transition-colors ${
+                  safePage === n
+                    ? "bg-[#D32F2F] text-white border-[#D32F2F] font-semibold"
+                    : "bg-white border-gray-200 text-gray-600 hover:bg-gray-100"
+                }`}
+              >{n}</button>
+            ))}
+
+            <button
+              disabled={safePage >= totalPages}
+              onClick={() => setPage((p) => p + 1)}
+              className="w-8 h-8 rounded-sm border border-gray-200 bg-white text-[13px] flex items-center justify-center cursor-pointer hover:bg-gray-100 disabled:opacity-30 disabled:cursor-default transition-colors"
+            >›</button>
+          </div>
         </div>
       </div>
 

@@ -26,6 +26,7 @@ interface Variant {
   stock_quantity: number;
   sku: string;
   image?: string;
+  sold_quantity?: number;
 }
 
 interface Product {
@@ -225,6 +226,7 @@ export default function ProductDetailPage() {
     ? Math.round(((originalPrice - displayPrice) / originalPrice) * 100)
     : 0;
   const inStock   = (selectedVariant?.stock_quantity ?? 0) > 0;
+  const soldCount = selectedVariant ? (selectedVariant.sold_quantity ?? 0) : product?.luotBan ?? 0;
   const allImages = product
     ? [product.thumbnail, ...(product.images || [])].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i)
     : [];
@@ -237,7 +239,7 @@ export default function ProductDetailPage() {
       tenSanPham: product.ten,
       hinhAnh: selectedVariant?.image || product.thumbnail,
       gia: displayPrice,
-      soLuong: qty,
+      soLuong: Math.max(1, qty),
       variant: selectedVariant?.color || "",
     });
     if (success) {
@@ -253,7 +255,7 @@ export default function ProductDetailPage() {
       tenSanPham: product.ten,
       hinhAnh: selectedVariant?.image || product.thumbnail,
       gia: displayPrice,
-      soLuong: qty,
+      soLuong: Math.max(1, qty),
       variant: selectedVariant?.color || "",
     });
     // Khách chưa đăng nhập: sản phẩm đã vào giỏ cục bộ, đưa về trang giỏ hàng
@@ -481,11 +483,11 @@ export default function ProductDetailPage() {
                   {product.luotDanhGia} đánh giá
                 </button>
               )}
-              {product.luotBan > 0 && (
+              {soldCount > 0 && (
                 <>
                   <span className="text-gray-300 text-[12px]">|</span>
                   <span className="text-[12.5px] text-gray-500">
-                    Đã bán <span className="font-semibold text-gray-700">{product.luotBan.toLocaleString("vi-VN")}</span>
+                    Đã bán <span className="font-semibold text-gray-700">{soldCount.toLocaleString("vi-VN")}</span>
                   </span>
                 </>
               )}
@@ -634,12 +636,6 @@ export default function ProductDetailPage() {
           {/* Stock + Qty + CTA */}
           <div className="py-4 border-b border-gray-100 space-y-3">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className={`w-2 h-2 rounded-full ${inStock ? "bg-green-500" : "bg-gray-300"}`} />
-                <span className={`text-[13px] font-medium ${inStock ? "text-green-700" : "text-gray-400"}`}>
-                  {inStock ? `Còn hàng (${selectedVariant?.stock_quantity} sản phẩm)` : "Hết hàng"}
-                </span>
-              </div>
               {inStock && (
                 <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
                   <button
@@ -647,26 +643,31 @@ export default function ProductDetailPage() {
                     className="w-9 h-9 flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors text-lg"
                   >-</button>
                   <input
-                    key={qty}
-                    type="number"
-                    min={1}
-                    max={selectedVariant?.stock_quantity ?? 99}
-                    defaultValue={qty}
-                    onBlur={(e) => {
-                      const v = parseInt(e.target.value, 10);
-                      const max = selectedVariant?.stock_quantity ?? 99;
-                      if (!Number.isNaN(v)) setQty(Math.min(max, Math.max(1, v)));
-                      else e.target.value = String(qty);
+                    type="text"
+                    inputMode="numeric"
+                    value={qty}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, "");
+                      setQty(digits === "" ? 0 : Number(digits));
                     }}
-                    onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
-                    className="w-12 h-9 text-center text-[14px] font-bold text-gray-900 border-x border-gray-200 outline-none focus:bg-red-50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    onBlur={() => {
+                      const max = selectedVariant?.stock_quantity ?? 99;
+                      setQty((q) => Math.min(max, Math.max(1, q || 1)));
+                    }}
+                    className="w-12 h-9 text-center text-[14px] font-bold text-gray-900 border-x border-gray-200 outline-none"
                   />
                   <button
-                    onClick={() => setQty((q) => Math.min(selectedVariant?.stock_quantity ?? 99, q + 1))}
+                    onClick={() => setQty((q) => Math.min(selectedVariant?.stock_quantity ?? 99, (q || 0) + 1))}
                     className="w-9 h-9 flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors text-lg"
                   >+</button>
                 </div>
               )}
+              <div className="flex items-center gap-2">
+                <span className={`w-2 h-2 rounded-full ${inStock ? "bg-green-500" : "bg-gray-300"}`} />
+                <span className={`text-[13px] font-medium ${inStock ? "text-green-700" : "text-gray-400"}`}>
+                  {inStock ? `Còn hàng (${selectedVariant?.stock_quantity} sản phẩm)` : "Hết hàng"}
+                </span>
+              </div>
             </div>
 
             <div ref={ctaRef} className="flex gap-2.5">

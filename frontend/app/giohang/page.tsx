@@ -38,11 +38,11 @@ export default function GioHangPage() {
   const token = typeof window !== 'undefined' ? localStorage.getItem('smarthub_token') : null;
 
   const fetchCart = async () => {
+    // Khách chưa đăng nhập: đọc giỏ hàng tạm lưu ở máy
     if (!token) {
-      // Khách chưa đăng nhập: đọc giỏ hàng từ localStorage
       const guestItems = getGuestCart();
       setItems(guestItems);
-      setSelected(new Set(guestItems.map(i => i._id)));
+      setSelected(new Set(guestItems.map((i) => i._id)));
       setLoading(false);
       return;
     }
@@ -82,8 +82,8 @@ export default function GioHangPage() {
   const updateQty = async (itemId: string, soLuong: number) => {
     if (soLuong < 1) return;
     if (!token) {
-      setItems(updateGuestCartItem(itemId, soLuong));
-      window.dispatchEvent(new Event('cart-updated'));
+      updateGuestCartItem(itemId, soLuong);
+      setItems(getGuestCart());
       return;
     }
     setUpdating(itemId);
@@ -104,9 +104,9 @@ export default function GioHangPage() {
 
   const removeItem = async (itemId: string) => {
     if (!token) {
-      setItems(removeGuestCartItem(itemId));
+      removeGuestCartItem(itemId);
+      setItems(getGuestCart());
       setSelected(prev => { const n = new Set(prev); n.delete(itemId); return n; });
-      window.dispatchEvent(new Event('cart-updated'));
       return;
     }
     setUpdating(itemId);
@@ -131,7 +131,6 @@ export default function GioHangPage() {
       clearGuestCart();
       setItems([]);
       setSelected(new Set());
-      window.dispatchEvent(new Event('cart-updated'));
       return;
     }
     try {
@@ -154,8 +153,11 @@ export default function GioHangPage() {
 
   const handleCheckout = () => {
     if (selected.size === 0) return alert('Vui lòng chọn ít nhất một sản phẩm');
-    // Thanh toán cần tài khoản (địa chỉ, đơn hàng) — giỏ cục bộ sẽ được gộp sau khi đăng nhập
-    if (!requireLogin('Vui lòng đăng nhập để thanh toán.')) return;
+    // Chỉ bắt đăng nhập khi khách bấm thanh toán
+    if (!token) {
+      requireLogin('Vui lòng đăng nhập để tiến hành thanh toán.');
+      return;
+    }
     // Lưu danh sách ID được chọn để trang thanh toán đọc
     localStorage.setItem('smarthub_checkout_ids', JSON.stringify([...selected]));
     router.push('/thanhtoan');
@@ -285,23 +287,9 @@ export default function GioHangPage() {
                         >
                           <Minus className="w-3.5 h-3.5" />
                         </button>
-                        <input
-                          key={`${item._id}-${item.soLuong}`}
-                          type="number"
-                          min={1}
-                          defaultValue={item.soLuong}
-                          disabled={updating === item._id}
-                          onBlur={e => {
-                            const v = parseInt(e.target.value, 10);
-                            if (!Number.isNaN(v) && v >= 1 && v !== item.soLuong) {
-                              updateQty(item._id, v);
-                            } else {
-                              e.target.value = String(item.soLuong);
-                            }
-                          }}
-                          onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
-                          className="w-12 h-8 text-center text-sm font-semibold text-gray-800 border-x border-gray-200 outline-none focus:bg-red-50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                        />
+                        <span className="w-9 text-center text-sm font-semibold text-gray-800 border-x border-gray-200">
+                          {item.soLuong}
+                        </span>
                         <button
                           onClick={() => updateQty(item._id, item.soLuong + 1)}
                           disabled={updating === item._id}

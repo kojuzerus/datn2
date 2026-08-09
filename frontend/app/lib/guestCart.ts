@@ -1,10 +1,12 @@
-// Giỏ hàng cho khách chưa đăng nhập, lưu trong localStorage.
-// Khi đăng nhập thành công, gọi mergeGuestCartToServer() để gộp vào giỏ trên server.
+// frontend/lib/guestCart.ts
+// Giỏ hàng cho khách chưa đăng nhập, lưu tạm ở localStorage.
+// Khi khách đăng nhập, giỏ hàng này được gộp vào giỏ hàng trên server rồi xóa đi.
 
-const STORAGE_KEY = 'smarthub_guest_cart';
+const KEY = 'smarthub_guest_cart';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 export interface GuestCartItem {
-  _id: string; // id cục bộ: productId + variant
+  _id: string;
   productId: string;
   tenSanPham: string;
   hinhAnh: string;
@@ -13,68 +15,78 @@ export interface GuestCartItem {
   variant: string;
 }
 
-export function getGuestCart(): GuestCartItem[] {
+function read(): GuestCartItem[] {
   if (typeof window === 'undefined') return [];
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    return JSON.parse(localStorage.getItem(KEY) || '[]');
   } catch {
     return [];
   }
 }
 
-function saveGuestCart(items: GuestCartItem[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+function write(items: GuestCartItem[]) {
+  localStorage.setItem(KEY, JSON.stringify(items));
+  window.dispatchEvent(new Event('cart-updated'));
 }
 
-export function addToGuestCart(item: Omit<GuestCartItem, '_id'>): GuestCartItem[] {
-  const items = getGuestCart();
-  const id = `${item.productId}__${item.variant}`;
-  const existing = items.find(i => i._id === id);
-  if (existing) {
-    existing.soLuong += item.soLuong;
-  } else {
-    items.push({ ...item, _id: id });
-  }
-  saveGuestCart(items);
-  return items;
-}
-
-export function updateGuestCartItem(id: string, soLuong: number): GuestCartItem[] {
-  const items = getGuestCart();
-  const item = items.find(i => i._id === id);
-  if (item && soLuong >= 1) {
-    item.soLuong = soLuong;
-    saveGuestCart(items);
-  }
-  return items;
-}
-
-export function removeGuestCartItem(id: string): GuestCartItem[] {
-  const items = getGuestCart().filter(i => i._id !== id);
-  saveGuestCart(items);
-  return items;
-}
-
-export function clearGuestCart() {
-  if (typeof window !== 'undefined') localStorage.removeItem(STORAGE_KEY);
+export function getGuestCart(): GuestCartItem[] {
+  return read();
 }
 
 export function guestCartCount(): number {
-  return getGuestCart().reduce((s, i) => s + i.soLuong, 0);
+  return read().reduce((s, i) => s + i.soLuong, 0);
 }
 
-// Gộp giỏ hàng khách vào giỏ trên server sau khi đăng nhập
-export async function mergeGuestCartToServer(apiUrl: string, token: string) {
-  const items = getGuestCart();
+export function addGuestCartItem(item: {
+  productId: string;
+  tenSanPham: string;
+  hinhAnh?: string;
+  gia: number;
+  soLuong?: number;
+  variant?: string;
+}) {
+  const items = read();
+  const variant = item.variant || '';
+  const id = `${item.productId}__${variant}`;
+  const idx = items.findIndex((i) => i._id === id);
+  if (idx > -1) {
+    items[idx].soLuong += item.soLuong || 1;
+  } else {
+    items.push({
+      _id: id,
+      productId: item.productId,
+      tenSanPham: item.tenSanPham,
+      hinhAnh: item.hinhAnh || '',
+      gia: item.gia,
+      soLuong: item.soLuong || 1,
+      variant,
+    });
+  }
+  write(items);
+}
+
+export function updateGuestCartItem(id: string, soLuong: number) {
+  if (soLuong < 1) return;
+  write(read().map((i) => (i._id === id ? { ...i, soLuong } : i)));
+}
+
+export function removeGuestCartItem(id: string) {
+  write(read().filter((i) => i._id !== id));
+}
+
+export function clearGuestCart() {
+  write([]);
+}
+
+// Gộp giỏ hàng khách vào giỏ hàng server ngay sau khi đăng nhập thành công.
+export async function mergeGuestCartToServer(token: string) {
+  const items = read();
   if (items.length === 0) return;
-  for (const item of items) {
-    try {
-      await fetch(`${apiUrl}/api/cart/add`, {
+  try {
+    for (const item of items) {
+      await fetch(`${API_URL}/api/cart/add`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           productId: item.productId,
           tenSanPham: item.tenSanPham,
@@ -84,8 +96,10 @@ export async function mergeGuestCartToServer(apiUrl: string, token: string) {
           variant: item.variant,
         }),
       });
-    } catch {}
+    }
+    clearGuestCart();
+    window.dispatchEvent(new Event('cart-updated'));
+  } catch {
+    // Giữ lại giỏ hàng khách nếu gộp thất bại, thử lại ở lần đăng nhập sau
   }
-  clearGuestCart();
-  window.dispatchEvent(new Event('cart-updated'));
 }
