@@ -611,14 +611,14 @@ export default function HomePage() {
   const [activeSlot,    setActiveSlot]    = useState(0);
   const saleScrollRef = useRef<HTMLDivElement>(null);
 
-  // ── Fetch sản phẩm nổi bật ──────────────────────────────────────────────
+  // ── Fetch sản phẩm mới ──────────────────────────────────────────────────
   useEffect(() => {
     setLoadingFeat(true);
-    fetch(`${BASE_URL}/api/products/featured?limit=10`)
+    fetch(`${BASE_URL}/api/products?sort=newest&limit=10`)
       .then((r) => r.json())
       .then((json) => {
         if (json.success) setFeatured(json.data);
-        else setErrorFeat("Không thể tải sản phẩm nổi bật");
+        else setErrorFeat("Không thể tải sản phẩm mới");
       })
       .catch(() => setErrorFeat("Lỗi kết nối server"))
       .finally(() => setLoadingFeat(false));
@@ -1174,9 +1174,9 @@ export default function HomePage() {
         </Link>
       </section>
 
-      {/* ── SẢN PHẨM NỔI BẬT ────────────────────────────────────────── */}
+      {/* ── SẢN PHẨM MỚI ────────────────────────────────────────────── */}
       <section className="max-w-screen-xl mx-auto px-6 mt-10">
-        <SectionHeader title="Sản phẩm nổi bật" href="/sanpham" />
+        <SectionHeader title="Sản phẩm mới" href="/sanpham?sort=newest" />
         {errorFeat ? (
           <p className="text-sm text-red-500 text-center py-8">{errorFeat}</p>
         ) : (

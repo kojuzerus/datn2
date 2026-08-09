@@ -1014,6 +1014,26 @@ export default function ProductDetailPage() {
         <ChevronLeft className="w-4 h-4" /> Tiếp tục mua sắm
       </Link>
 
+      {/* ── Banner quảng cáo ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
+        <Link href="/sanpham?tu-khoa=iphone" className="block rounded-2xl overflow-hidden border border-gray-100 group">
+          <img
+            src="/ads/690x300_iPhone17Pro_1.png"
+            alt="iPhone 17 Pro - Siu hời để lên đời"
+            className="w-full h-auto object-cover group-hover:scale-[1.02] transition-transform duration-300"
+            loading="lazy"
+          />
+        </Link>
+        <Link href="/sanpham?tu-khoa=galaxy" className="block rounded-2xl overflow-hidden border border-gray-100 group">
+          <img
+            src="/ads/Z8-OPEN.png"
+            alt="Samsung Galaxy Z Fold8 Ultra - Ưu đãi lên đời"
+            className="w-full h-auto object-cover group-hover:scale-[1.02] transition-transform duration-300"
+            loading="lazy"
+          />
+        </Link>
+      </div>
+
       {/* ── Sticky buy bar (hiện khi cuộn qua khối thông tin chính) ── */}
       {showStickyBar && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-white rounded-2xl border border-gray-200 shadow-lg p-3 flex items-center gap-4 w-[min(560px,calc(100vw-2rem))]">
