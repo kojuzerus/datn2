@@ -25,12 +25,16 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
       }
 
       // Chưa có → tạo mới
+      // Lưu ý: KHÔNG set soDienThoai: null ở đây — field soDienThoai có index
+      // unique+sparse, và sparse chỉ bỏ qua document hoàn toàn thiếu field đó.
+      // Nếu gán null tường minh, nó vẫn bị tính vào index unique, nên chỉ tài
+      // khoản Google đầu tiên (không có SĐT) tạo được, các tài khoản sau sẽ bị
+      // lỗi duplicate key. Bỏ hẳn field để sparse index hoạt động đúng.
       user = await User.create({
-        googleId:    profile.id,
+        googleId: profile.id,
         hoTen,
         email,
-        soDienThoai: null,   // Google không có SĐT
-        matKhau:     "google_oauth_no_password",
+        matKhau:  "google_oauth_no_password",
       });
 
       done(null, user);
