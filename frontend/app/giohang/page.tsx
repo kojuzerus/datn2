@@ -34,6 +34,7 @@ export default function GioHangPage() {
   const [loading, setLoading]     = useState(true);
   const [updating, setUpdating]   = useState<string | null>(null);
   const [selected, setSelected]   = useState<Set<string>>(new Set());
+  const [confirmClear, setConfirmClear] = useState(false);
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('smarthub_token') : null;
 
@@ -125,8 +126,11 @@ export default function GioHangPage() {
     setUpdating(null);
   };
 
-  const clearCart = async () => {
-    if (!confirm('Bạn có chắc muốn xóa toàn bộ giỏ hàng?')) return;
+  // Nút "Xóa tất cả" chỉ mở modal xác nhận; xóa thật khi bấm xác nhận trong modal
+  const clearCart = () => setConfirmClear(true);
+
+  const doClearCart = async () => {
+    setConfirmClear(false);
     if (!token) {
       clearGuestCart();
       setItems([]);
@@ -390,6 +394,43 @@ export default function GioHangPage() {
           </div>
         )}
       </div>
+
+      {/* ── Modal xác nhận xóa toàn bộ giỏ hàng ── */}
+      {confirmClear && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-[2px]"
+            onClick={() => setConfirmClear(false)}
+          />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center">
+            <div className="mx-auto w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mb-4">
+              <Trash2 className="w-7 h-7 text-red-500" />
+            </div>
+
+            <h2 className="text-base font-bold text-gray-900">Xóa toàn bộ giỏ hàng?</h2>
+            <p className="mt-2 text-sm text-gray-500 leading-relaxed">
+              {items.length} sản phẩm ({items.reduce((s, i) => s + i.soLuong, 0)} món) sẽ bị xóa khỏi giỏ.
+              Hành động này không thể hoàn tác.
+            </p>
+
+            <div className="mt-6 flex gap-2.5">
+              <button
+                onClick={() => setConfirmClear(false)}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                Giữ lại
+              </button>
+              <button
+                onClick={doClearCart}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors"
+              >
+                <Trash2 className="w-4 h-4" />
+                Xóa tất cả
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
