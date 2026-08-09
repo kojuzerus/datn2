@@ -2,7 +2,7 @@
 // Hook dùng chung để thêm vào giỏ hàng từ bất kỳ trang nào
 
 import { useState } from 'react';
-import { requireLogin } from '../lib/authPrompt';
+import { addToGuestCart } from '../lib/guestCart';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -17,10 +17,21 @@ export function useCart() {
     soLuong?: number;
     variant?: string;
   }) => {
-    if (!requireLogin('Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng.')) {
-      return false;
-    }
     const token = localStorage.getItem('smarthub_token');
+
+    // Chưa đăng nhập: lưu vào giỏ hàng cục bộ (localStorage)
+    if (!token) {
+      addToGuestCart({
+        productId:  product.productId,
+        tenSanPham: product.tenSanPham,
+        hinhAnh:    product.hinhAnh || '',
+        gia:        product.gia,
+        soLuong:    product.soLuong || 1,
+        variant:    product.variant || '',
+      });
+      window.dispatchEvent(new Event('cart-updated'));
+      return true;
+    }
 
     setAdding(true);
     try {

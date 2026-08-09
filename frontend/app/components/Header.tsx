@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import Logo from "./Logo";
 import MegaMenuButton from "./Megamenu";
 import { useComparison } from "./comparisonContext";
+import { guestCartCount } from "../lib/guestCart";
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 
@@ -138,7 +139,7 @@ export default function Header() {
   useEffect(() => {
     const fetchCartCount = async () => {
       const token = localStorage.getItem("smarthub_token");
-      if (!token) { setCartCount(0); return; }
+      if (!token) { setCartCount(guestCartCount()); return; }
       try {
         const res = await fetch(`${apiUrl}/api/cart`, {
           headers: { Authorization: `Bearer ${token}` },

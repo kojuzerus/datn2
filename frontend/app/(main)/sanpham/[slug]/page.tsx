@@ -13,7 +13,7 @@ import {
 import { useCart } from "../../../hooks/useCart";
 import { useComparison } from "../../../components/comparisonContext";
 import { useFavorites, type FavoriteProduct } from "../../../components/favoritesContext";
-import { requireLogin } from "../../../lib/authPrompt";
+import { requireLogin, isLoggedIn } from "../../../lib/authPrompt";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -36,6 +36,7 @@ interface Product {
   luotBan: number; badge: string; categoryName: string;
   warranty: string; variants: Variant[];
   specification?: { label: string; value: string }[];
+  category_id?: number | null;
 }
 
 /* ── Helpers ────────────────────────────────────────────────────────────── */
@@ -146,11 +147,12 @@ export default function ProductDetailPage() {
   const [descExpanded, setDescExpanded]     = useState(false);
   const [openFaq, setOpenFaq]               = useState<number | null>(0);
   const [showStickyBar, setShowStickyBar]   = useState(false);
+  const [related, setRelated]               = useState<Product[]>([]);
 
   const tabRef = useRef<HTMLDivElement>(null);
   const reviewsRef = useRef<HTMLDivElement>(null);
   const commitRef = useRef<HTMLDivElement>(null);
-  const topSectionRef = useRef<HTMLDivElement>(null);
+  const ctaRef = useRef<HTMLDivElement>(null);
   const scrollCommitments = (dir: 1 | -1) => {
     commitRef.current?.scrollBy({ left: dir * commitRef.current.clientWidth, behavior: "smooth" });
   };
@@ -186,9 +188,25 @@ export default function ProductDetailPage() {
       .finally(() => setLoading(false));
   }, [slug]);
 
-  /* ── Sticky buy bar: hiện khi cuộn qua khỏi khối thông tin chính ── */
+  /* ── Sản phẩm liên quan: cùng danh mục, ưu tiên bán chạy ── */
   useEffect(() => {
-    const el = topSectionRef.current;
+    if (!product) { setRelated([]); return; }
+    const query = product.category_id != null
+      ? `category_id=${product.category_id}`
+      : `category_name=${encodeURIComponent(product.categoryName)}`;
+    fetch(`${API_BASE}/api/products?${query}&sort=sold&limit=9`)
+      .then((r) => r.json())
+      .then((j) => {
+        if (j.success && Array.isArray(j.data)) {
+          setRelated(j.data.filter((p: Product) => p.id !== product.id).slice(0, 8));
+        }
+      })
+      .catch(() => {});
+  }, [product?.id]);
+
+  /* ── Sticky buy bar: hiện khi hai nút Mua ngay / Thêm vào giỏ khuất khỏi màn hình ── */
+  useEffect(() => {
+    const el = ctaRef.current;
     if (!el) return;
     const observer = new IntersectionObserver(
       ([entry]) => setShowStickyBar(!entry.isIntersecting),
@@ -238,7 +256,8 @@ export default function ProductDetailPage() {
       soLuong: qty,
       variant: selectedVariant?.color || "",
     });
-    if (success) router.push("/thanhtoan");
+    // Khách chưa đăng nhập: sản phẩm đã vào giỏ cục bộ, đưa về trang giỏ hàng
+    if (success) router.push(isLoggedIn() ? "/thanhtoan" : "/giohang");
   };
 
   const scrollToTab = (tab: "mo-ta" | "danh-gia") => {
@@ -336,7 +355,7 @@ export default function ProductDetailPage() {
       </nav>
 
       {/* ── 2-col main ── */}
-      <div ref={topSectionRef} className="grid grid-cols-1 lg:grid-cols-[440px_1fr] gap-6 mb-10 lg:items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-[440px_1fr] gap-6 mb-10 lg:items-start">
 
         {/* Gallery */}
         <div className="lg:sticky lg:top-[96px] lg:self-start">
@@ -627,9 +646,21 @@ export default function ProductDetailPage() {
                     onClick={() => setQty((q) => Math.max(1, q - 1))}
                     className="w-9 h-9 flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors text-lg"
                   >-</button>
-                  <span className="w-10 h-9 flex items-center justify-center text-[14px] font-bold text-gray-900 border-x border-gray-200">
-                    {qty}
-                  </span>
+                  <input
+                    key={qty}
+                    type="number"
+                    min={1}
+                    max={selectedVariant?.stock_quantity ?? 99}
+                    defaultValue={qty}
+                    onBlur={(e) => {
+                      const v = parseInt(e.target.value, 10);
+                      const max = selectedVariant?.stock_quantity ?? 99;
+                      if (!Number.isNaN(v)) setQty(Math.min(max, Math.max(1, v)));
+                      else e.target.value = String(qty);
+                    }}
+                    onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+                    className="w-12 h-9 text-center text-[14px] font-bold text-gray-900 border-x border-gray-200 outline-none focus:bg-red-50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
                   <button
                     onClick={() => setQty((q) => Math.min(selectedVariant?.stock_quantity ?? 99, q + 1))}
                     className="w-9 h-9 flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors text-lg"
@@ -638,7 +669,7 @@ export default function ProductDetailPage() {
               )}
             </div>
 
-            <div className="flex gap-2.5">
+            <div ref={ctaRef} className="flex gap-2.5">
               <button
                 disabled={!inStock || adding}
                 onClick={handleBuyNow}
@@ -905,6 +936,75 @@ export default function ProductDetailPage() {
         </div>
       </div>
 
+      {/* ── Sản phẩm liên quan ── */}
+      {related.length > 0 && (
+        <div className="mb-10">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-gray-800">Sản phẩm liên quan</h2>
+            {product.categoryName && (
+              <Link
+                href={`/sanpham?danh-muc=${product.categoryName.toLowerCase().replace(/\s+/g, "-")}`}
+                className="text-[13px] text-red-500 hover:text-red-600 font-medium flex items-center gap-0.5 transition-colors"
+              >
+                Xem tất cả <ChevronRight className="w-3.5 h-3.5" />
+              </Link>
+            )}
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {related.map((p) => (
+              <Link
+                key={p.id}
+                href={`/sanpham/${p.slug}`}
+                className="group bg-white border border-gray-100 rounded-2xl overflow-hidden hover:shadow-lg hover:border-red-100 hover:-translate-y-0.5 transition-all duration-300 flex flex-col"
+              >
+                {/* Badge giảm giá */}
+                <div className="px-2.5 pt-2.5 min-h-[26px]">
+                  {p.giamGia > 0 && (
+                    <span className="bg-red-500 text-white text-[11px] font-bold px-2 py-0.5 rounded">
+                      Giảm {p.giamGia}%
+                    </span>
+                  )}
+                </div>
+
+                {/* Ảnh */}
+                <div className="flex items-center justify-center h-36 px-4 py-1.5 overflow-hidden">
+                  <img
+                    src={p.thumbnail || "https://placehold.co/300x300?text=No+Image"}
+                    alt={p.ten}
+                    className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
+                    loading="lazy"
+                  />
+                </div>
+
+                {/* Thông tin */}
+                <div className="px-2.5 pb-3 flex flex-col gap-1.5 flex-1">
+                  <h3 className="font-semibold text-gray-800 text-[12.5px] leading-snug line-clamp-2 min-h-[36px]">
+                    {p.ten}
+                  </h3>
+                  <div className="flex items-baseline gap-1.5 mt-auto">
+                    <p className="text-[14px] font-bold text-red-600">{fmt(p.giaSale ?? p.gia)}</p>
+                    {p.giamGia > 0 && (
+                      <p className="text-[10.5px] text-gray-400 line-through">{fmt(p.gia)}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between pt-1.5 border-t border-gray-50">
+                    {p.danhGia > 0 ? (
+                      <span className="flex items-center gap-0.5">
+                        <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                        <span className="text-[11px] font-semibold text-gray-600">{p.danhGia.toFixed(1)}</span>
+                      </span>
+                    ) : <span />}
+                    {p.luotBan > 0 && (
+                      <span className="text-[10.5px] text-gray-400">Đã bán {p.luotBan.toLocaleString("vi-VN")}</span>
+                    )}
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Back */}
       <Link
         href="/sanpham"
@@ -930,20 +1030,33 @@ export default function ProductDetailPage() {
               )}
             </div>
           </div>
-          <button
-            disabled={!inStock || adding}
-            onClick={handleAddToCart}
-            className={`shrink-0 flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl text-[13px] font-semibold transition-all whitespace-nowrap ${
-              addedToCart
-                ? "bg-green-50 text-green-700 border border-green-500"
-                : inStock && !adding
-                ? "bg-red-600 text-white hover:bg-red-700"
-                : "bg-gray-200 text-gray-400 cursor-not-allowed"
-            }`}
-          >
-            <ShoppingCart className="w-3.5 h-3.5" />
-            {adding ? "Đang thêm..." : addedToCart ? "Đã thêm!" : "Thêm vào giỏ"}
-          </button>
+          <div className="shrink-0 flex items-center gap-2">
+            <button
+              disabled={!inStock || adding}
+              onClick={handleBuyNow}
+              className={`flex items-center justify-center px-4 py-2.5 rounded-xl text-[13px] font-bold transition-all whitespace-nowrap ${
+                inStock && !adding
+                  ? "bg-red-600 text-white hover:bg-red-700"
+                  : "bg-gray-200 text-gray-400 cursor-not-allowed"
+              }`}
+            >
+              {adding ? "Đang xử lý..." : "Mua ngay"}
+            </button>
+            <button
+              disabled={!inStock || adding}
+              onClick={handleAddToCart}
+              className={`flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-[13px] font-semibold border-2 transition-all whitespace-nowrap ${
+                addedToCart
+                  ? "border-green-500 bg-green-50 text-green-700"
+                  : inStock && !adding
+                  ? "border-red-500 text-red-600 hover:bg-red-50"
+                  : "border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed"
+              }`}
+            >
+              <ShoppingCart className="w-3.5 h-3.5" />
+              {adding ? "Đang thêm..." : addedToCart ? "Đã thêm!" : "Thêm vào giỏ"}
+            </button>
+          </div>
         </div>
       )}
     </div>

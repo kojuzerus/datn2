@@ -3,6 +3,7 @@ import './globals.css';
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "./components/ThemeContext";
 import ThemeToggle from "./components/ThemeToggle";
+import LoginPromptModal from "./components/LoginPromptModal";
 
 
 const geistSans = Geist({
@@ -35,6 +36,7 @@ export default function RootLayout({
         <ThemeProvider>
           <ThemeToggle />
           {children}
+          <LoginPromptModal />
         </ThemeProvider>
       </body>
     </html>

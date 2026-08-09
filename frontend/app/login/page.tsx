@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { mergeGuestCartToServer } from '../lib/guestCart';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -46,6 +47,8 @@ export default function DangNhapPage() {
       if (!res.ok) throw new Error(data.message || 'Đăng nhập thất bại');
       localStorage.setItem('smarthub_token', data.token);
       localStorage.setItem('smarthub_user', JSON.stringify(data.user));
+      // Gộp giỏ hàng đã thêm khi chưa đăng nhập vào giỏ trên server
+      await mergeGuestCartToServer(API_URL, data.token);
       router.push(data.user?.role === 'admin' ? '/admin' : '/');
     } catch (err: any) {
       setError(err.message);

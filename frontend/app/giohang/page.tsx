@@ -7,6 +7,10 @@ import {
   ShoppingCart, ArrowLeft, Trash2, Plus, Minus,
   Package, ShieldCheck, RotateCcw, BadgeCheck, Zap,
 } from 'lucide-react';
+import { requireLogin } from '../lib/authPrompt';
+import {
+  getGuestCart, updateGuestCartItem, removeGuestCartItem, clearGuestCart,
+} from '../lib/guestCart';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -34,7 +38,14 @@ export default function GioHangPage() {
   const token = typeof window !== 'undefined' ? localStorage.getItem('smarthub_token') : null;
 
   const fetchCart = async () => {
-    if (!token) { setLoading(false); return; }
+    if (!token) {
+      // Khách chưa đăng nhập: đọc giỏ hàng từ localStorage
+      const guestItems = getGuestCart();
+      setItems(guestItems);
+      setSelected(new Set(guestItems.map(i => i._id)));
+      setLoading(false);
+      return;
+    }
     try {
       const res  = await fetch(`${API_URL}/api/cart`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -70,6 +81,11 @@ export default function GioHangPage() {
   // ── Cart actions ────────────────────────────────────────────────────────
   const updateQty = async (itemId: string, soLuong: number) => {
     if (soLuong < 1) return;
+    if (!token) {
+      setItems(updateGuestCartItem(itemId, soLuong));
+      window.dispatchEvent(new Event('cart-updated'));
+      return;
+    }
     setUpdating(itemId);
     try {
       const res  = await fetch(`${API_URL}/api/cart/item/${itemId}`, {
@@ -87,6 +103,12 @@ export default function GioHangPage() {
   };
 
   const removeItem = async (itemId: string) => {
+    if (!token) {
+      setItems(removeGuestCartItem(itemId));
+      setSelected(prev => { const n = new Set(prev); n.delete(itemId); return n; });
+      window.dispatchEvent(new Event('cart-updated'));
+      return;
+    }
     setUpdating(itemId);
     try {
       const res  = await fetch(`${API_URL}/api/cart/item/${itemId}`, {
@@ -105,6 +127,13 @@ export default function GioHangPage() {
 
   const clearCart = async () => {
     if (!confirm('Bạn có chắc muốn xóa toàn bộ giỏ hàng?')) return;
+    if (!token) {
+      clearGuestCart();
+      setItems([]);
+      setSelected(new Set());
+      window.dispatchEvent(new Event('cart-updated'));
+      return;
+    }
     try {
       await fetch(`${API_URL}/api/cart/clear`, {
         method: 'DELETE',
@@ -125,27 +154,12 @@ export default function GioHangPage() {
 
   const handleCheckout = () => {
     if (selected.size === 0) return alert('Vui lòng chọn ít nhất một sản phẩm');
+    // Thanh toán cần tài khoản (địa chỉ, đơn hàng) — giỏ cục bộ sẽ được gộp sau khi đăng nhập
+    if (!requireLogin('Vui lòng đăng nhập để thanh toán.')) return;
     // Lưu danh sách ID được chọn để trang thanh toán đọc
     localStorage.setItem('smarthub_checkout_ids', JSON.stringify([...selected]));
     router.push('/thanhtoan');
   };
-
-  if (!token && !loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <div className="text-center">
-          <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-5">
-            <ShoppingCart className="w-10 h-10 text-red-400" />
-          </div>
-          <h2 className="text-xl font-bold text-gray-800 mb-2">Vui lòng đăng nhập</h2>
-          <p className="text-gray-500 text-sm mb-6">Đăng nhập để xem giỏ hàng của bạn</p>
-          <Link href="/login" className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-sm font-semibold transition">
-            Đăng nhập ngay
-          </Link>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -271,9 +285,23 @@ export default function GioHangPage() {
                         >
                           <Minus className="w-3.5 h-3.5" />
                         </button>
-                        <span className="w-9 text-center text-sm font-semibold text-gray-800 border-x border-gray-200">
-                          {item.soLuong}
-                        </span>
+                        <input
+                          key={`${item._id}-${item.soLuong}`}
+                          type="number"
+                          min={1}
+                          defaultValue={item.soLuong}
+                          disabled={updating === item._id}
+                          onBlur={e => {
+                            const v = parseInt(e.target.value, 10);
+                            if (!Number.isNaN(v) && v >= 1 && v !== item.soLuong) {
+                              updateQty(item._id, v);
+                            } else {
+                              e.target.value = String(item.soLuong);
+                            }
+                          }}
+                          onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+                          className="w-12 h-8 text-center text-sm font-semibold text-gray-800 border-x border-gray-200 outline-none focus:bg-red-50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
                         <button
                           onClick={() => updateQty(item._id, item.soLuong + 1)}
                           disabled={updating === item._id}

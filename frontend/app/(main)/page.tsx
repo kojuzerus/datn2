@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   ChevronLeft, ChevronRight, Star, ArrowRight,
   ShieldCheck, Truck, RefreshCw, Headphones,
-  Smartphone, Heart, Wallet, CreditCard, Zap, Flame, Cpu, Timer,
+  Smartphone, Heart, Wallet, CreditCard, Zap, Flame, Timer,
 } from "lucide-react";
 import { useFavorites, type FavoriteProduct } from "../components/favoritesContext";
 import { ARTICLES } from "./tin-tuc/data";
@@ -524,13 +524,6 @@ function FlashSaleProductCard({ p }: { p: ProductFeatured }) {
             <p className="text-[11px] font-bold text-gray-600 uppercase tracking-widest truncate">{p.thuongHieu || "Thương hiệu"}</p>
           </div>
 
-          {/* Short desc */}
-          {p.moTa && (
-            <div className="px-3 pb-1.5">
-              <p className="text-[10px] text-gray-400 line-clamp-2 leading-relaxed">{p.moTa}</p>
-            </div>
-          )}
-
           {/* Image + discount badge */}
           <div className="relative h-[140px] mx-3 rounded-xl bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center overflow-hidden">
             {p.giamGia > 0 && (
@@ -615,7 +608,6 @@ export default function HomePage() {
   const [saleProducts,  setSaleProducts]  = useState<ProductFeatured[]>([]);
   const [loadingSale,   setLoadingSale]   = useState(true);
   const [saleTimeLeft,  setSaleTimeLeft]  = useState({ h: 0, m: 0, s: 0 });
-  const [activeTab,     setActiveTab]     = useState(0);
   const [activeSlot,    setActiveSlot]    = useState(0);
   const saleScrollRef = useRef<HTMLDivElement>(null);
 
@@ -1082,43 +1074,19 @@ export default function HomePage() {
           <div className="relative z-10 mx-4 mt-2 mb-0 h-px"
             style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.14), transparent)" }} />
 
-          {/* ── Tab bar ── */}
-          <div className="relative z-10 flex items-stretch px-4 pt-2 gap-1.5">
-            {([
-              { label: "Flash Sale",         Icon: Zap   },
-              { label: "Săn Deal Công Nghệ", Icon: Cpu   },
-              { label: "Hot Sale Cuối Tuần", Icon: Flame },
-            ] as const).map((tab, i) => (
-              <button key={tab.label} onClick={() => setActiveTab(i)}
-                className={`relative flex-1 py-3 px-3 font-bold text-[11px] sm:text-xs tracking-wide rounded-t-xl transition-all duration-200 flex items-center justify-center gap-2 ${
-                  i === activeTab ? "bg-white text-red-600" : "text-white/75 hover:-translate-y-0.5"
-                }`}
-                style={i === activeTab
-                  ? { transform: "translateY(-1px)", boxShadow: "0 -2px 14px rgba(0,0,0,0.12)" }
-                  : { background: "rgba(0,0,0,0.22)", boxShadow: "0 4px 0 rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.08)" }
-                }
-              >
-                <tab.Icon className={`w-3.5 h-3.5 flex-shrink-0 ${i === activeTab ? "text-red-500" : "text-white/55"}`} />
-                <span className="truncate">{tab.label}</span>
-              </button>
-            ))}
-          </div>
-
           {/* ── Inner panel ── */}
-          <div className="relative z-10 bg-white/[0.97] mx-2 mb-2 rounded-xl p-4">
+          <div className="relative z-10 bg-white/[0.97] mx-2 mb-2 mt-2 rounded-xl p-4">
 
             {/* Date + Time + Countdown */}
             <div className="flex items-center gap-2 mb-4 flex-wrap">
               {(() => {
                 const today = new Date();
-                const prev  = new Date(today); prev.setDate(today.getDate() - 1);
                 const f2 = (d: Date) => `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}`;
-                return [f2(prev), f2(today)].map((date, i) => (
-                  <button key={date} className={`px-3.5 py-1.5 rounded-full text-xs font-bold border transition-all ${
-                    i === 1 ? "border-red-400 text-red-600 shadow-sm shadow-red-100"
-                            : "border-gray-200 text-gray-400 hover:border-gray-300"
-                  }`}>{date}</button>
-                ));
+                return (
+                  <span className="px-3.5 py-1.5 rounded-full text-xs font-bold border border-red-400 text-red-600 shadow-sm shadow-red-100">
+                    {f2(today)}
+                  </span>
+                );
               })()}
 
               <div className="w-px h-5 bg-gray-200 mx-1" />
