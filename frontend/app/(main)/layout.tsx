@@ -4,7 +4,6 @@ import { SearchProvider } from "../components/searchContext";
 import { ComparisonProvider } from "../components/comparisonContext";
 import { FavoritesProvider } from "../components/favoritesContext";
 import ComparisonBar from "../components/ComparisonBar";
-import ScrollToTop from "../components/ScrollToTop";
 import AIChatBox from "../components/AIChatBox";
 
 export default function MainLayout({
@@ -22,7 +21,6 @@ export default function MainLayout({
           </main>
           <Footer />
           <ComparisonBar />
-          <ScrollToTop />
           <AIChatBox />
         </FavoritesProvider>
       </ComparisonProvider>

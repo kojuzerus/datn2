@@ -10,6 +10,7 @@ import {
 import { useComparison } from "../../components/comparisonContext";
 import { useFavorites, type FavoriteProduct } from "../../components/favoritesContext";
 import BrandSpinner from "../../components/BrandSpinner";
+import { specChips } from "../../lib/specChips";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -20,6 +21,7 @@ interface Product {
   thumbnail: string; moTa: string; gia: number; giaSale: number | null;
   giamGia: number; danhGia: number; luotBan: number; badge: string;
   categoryName: string; variants?: Variant[];
+  specification?: { label: string; value: string }[];
 }
 interface Category { category_id: number; category_name: string; slug: string; parent_id?: number | null; }
 interface Brand    { brand_id: number; brand_name: string; }
@@ -128,6 +130,15 @@ function ProductCard({ p }: { p: Product }) {
             <h3 className="font-semibold text-gray-800 text-[12.5px] leading-snug line-clamp-2 min-h-[36px]">
               {p.ten}
             </h3>
+
+            {/* Chip thông số nổi bật */}
+            <div className="flex flex-wrap gap-1 min-h-[18px]">
+              {specChips(p.specification).map((c) => (
+                <span key={c} className="bg-gray-100 text-gray-600 text-[10px] font-medium px-1.5 py-0.5 rounded whitespace-nowrap">
+                  {c}
+                </span>
+              ))}
+            </div>
 
             {/* Price */}
             <div className="flex items-baseline gap-1.5">

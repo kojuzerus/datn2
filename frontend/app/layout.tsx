@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "./components/ThemeContext";
 import ThemeToggle from "./components/ThemeToggle";
 import LoginPromptModal from "./components/LoginPromptModal";
+import ScrollToTop from "./components/ScrollToTop";
 
 
 const geistSans = Geist({
@@ -37,6 +38,7 @@ export default function RootLayout({
           <ThemeToggle />
           {children}
           <LoginPromptModal />
+          <ScrollToTop />
         </ThemeProvider>
       </body>
     </html>

@@ -8,6 +8,7 @@ import {
   Smartphone, Heart, Wallet, CreditCard, Zap, Flame, Timer,
 } from "lucide-react";
 import { useFavorites, type FavoriteProduct } from "../components/favoritesContext";
+import { specChips } from "../lib/specChips";
 import { ARTICLES } from "./tin-tuc/data";
 import HeroBanner from "../components/HeroBanner";
 
@@ -28,6 +29,7 @@ interface ProductFeatured {
   danhGia: number;
   luotDanhGia: number;
   badge: string;
+  specification?: { label: string; value: string }[];
 }
 
 interface ProductBestSelling {
@@ -294,6 +296,7 @@ function SkeletonCard() {
 // ─── PRODUCT CARD (Nổi bật) ───────────────────────────────────────────────────
 function ProductCard({ p }: { p: ProductFeatured }) {
   const displayPrice = p.giaSale ?? p.gia;
+  const chips = specChips(p.specification);
   const { isFavorite, toggleItem } = useFavorites();
   const liked = isFavorite(p.id);
 
@@ -341,6 +344,15 @@ function ProductCard({ p }: { p: ProductFeatured }) {
           <h3 className="font-semibold text-gray-900 text-sm leading-snug line-clamp-2 min-h-[2.6rem]">
             {p.ten}
           </h3>
+
+          {/* Chip thông số nổi bật */}
+          <div className="flex flex-wrap gap-1 min-h-[20px]">
+            {chips.map((c) => (
+              <span key={c} className="bg-gray-100 text-gray-600 text-[10.5px] font-medium px-1.5 py-0.5 rounded whitespace-nowrap">
+                {c}
+              </span>
+            ))}
+          </div>
 
           <div>
             <p className="text-red-500 font-bold text-[15px]">{fmt(displayPrice)}</p>
@@ -606,6 +618,8 @@ export default function HomePage() {
 
   // Flash Sale state
   const [saleProducts,  setSaleProducts]  = useState<ProductFeatured[]>([]);
+  const [btsProducts,   setBtsProducts]   = useState<ProductFeatured[]>([]);
+  const [loadingBts,    setLoadingBts]    = useState(true);
   const [loadingSale,   setLoadingSale]   = useState(true);
   const [saleTimeLeft,  setSaleTimeLeft]  = useState({ h: 0, m: 0, s: 0 });
   const [activeSlot,    setActiveSlot]    = useState(0);
@@ -661,6 +675,16 @@ export default function HomePage() {
       .then((json) => { if (json.success) setSaleProducts(json.data); })
       .catch(() => {})
       .finally(() => setLoadingSale(false));
+  }, []);
+
+  // ── Fetch deal Back To School (hàng giảm giá bán chạy) ──────────────────
+  useEffect(() => {
+    setLoadingBts(true);
+    fetch(`${BASE_URL}/api/products?discount_only=1&sort=sold&limit=10`)
+      .then((r) => r.json())
+      .then((json) => { if (json.success) setBtsProducts(json.data); })
+      .catch(() => {})
+      .finally(() => setLoadingBts(false));
   }, []);
 
   // ── Countdown Flash Sale ─────────────────────────────────────────────────
@@ -1193,50 +1217,15 @@ export default function HomePage() {
         )}
       </section>
 
-      {/* ── PROMO BANNER iPhone 17 ──────────────────────────────────── */}
+      {/* ── PROMO BANNER — Laptop tựu trường ────────────────────────── */}
       <section className="max-w-screen-xl mx-auto px-6 mt-10">
-        <Link href="/sanpham?tu-khoa=iPhone%2017" className="block group">
-          <div
-            className="relative flex items-center rounded-2xl overflow-hidden"
-            style={{ background: "#111", height: 110 }}
-          >
-            {/* Ảnh Apple làm background bên phải */}
-            <div className="absolute inset-y-0 right-0 z-0" style={{ width: "58%" }}>
-              <img
-                src="https://www.apple.com/newsroom/images/2025/09/apple-debuts-iphone-17/article/Apple-iPhone-17-color-lineup-250909_big.jpg.large.jpg"
-                alt=""
-                aria-hidden
-                className="w-full h-full object-cover object-center select-none pointer-events-none"
-              />
-              {/* Fade trái: hoà vào nền đen */}
-              <div className="absolute inset-0" style={{ background: "linear-gradient(90deg,#111 0%,rgba(17,17,17,0.55) 35%,transparent 65%)" }} />
-              {/* Fade phải: tối lại cho button */}
-              <div className="absolute inset-0" style={{ background: "linear-gradient(270deg,#111 0%,rgba(17,17,17,0.7) 30%,transparent 65%)" }} />
-              {/* Tối nhẹ toàn ảnh */}
-              <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.28)" }} />
-            </div>
-
-            {/* LEFT — text */}
-            <div className="relative z-10 flex-shrink-0 pl-10">
-              <p className="text-white font-black text-[28px] leading-tight tracking-tight">iPhone 17 Series</p>
-              <p className="text-gray-400 text-[13px] mt-1.5">
-                1 đổi 1 - 12 tháng&nbsp;&nbsp;|&nbsp;&nbsp;Trả góp 0%&nbsp;&nbsp;|&nbsp;&nbsp;Thu cũ đổi mới giá cao
-              </p>
-            </div>
-
-            <div className="flex-1" />
-
-            {/* RIGHT — CTA */}
-            <div className="relative z-10 flex-shrink-0 pr-10">
-              <span
-                className="inline-flex items-center gap-2 text-gray-900 font-bold text-[14px] px-6 py-3 rounded-full transition-all whitespace-nowrap group-hover:scale-105"
-                style={{ background: "linear-gradient(135deg,#ffffff 0%,#f0f0f0 100%)", boxShadow: "0 4px 20px rgba(255,255,255,0.25), 0 2px 8px rgba(0,0,0,0.4)" }}
-              >
-                Đang sẵn hàng
-                <ArrowRight className="w-4 h-4" />
-              </span>
-            </div>
-          </div>
+        <Link href="/sanpham?tu-khoa=laptop" className="block group rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow">
+          <img
+            src="/ads/tgdd-laptop.png"
+            alt="Laptop tựu trường - tặng Microsoft Office bản quyền, giảm thêm đến 3 triệu"
+            className="w-full h-auto object-cover group-hover:scale-[1.01] transition-transform duration-300"
+            loading="lazy"
+          />
         </Link>
       </section>
 
@@ -1287,6 +1276,45 @@ export default function HomePage() {
           </Link>
         </div>
       </section>
+
+      {/* ── BACK TO SCHOOL — DEAL CỰC COOL ──────────────────────────── */}
+      {(loadingBts || btsProducts.length > 0) && (
+        <section className="max-w-screen-xl mx-auto px-6 mt-12">
+          <div className="rounded-3xl p-5 sm:p-6 border border-red-100" style={{ background: "linear-gradient(180deg,#fff5f5 0%,#fee2e2 100%)" }}>
+            <h2 className="text-[22px] font-black text-gray-900 mb-4">
+              Back To School <span className="text-red-600">- Deal Cực Cool</span>
+            </h2>
+            <div className="flex items-stretch gap-4">
+              {/* Banner dọc bên trái */}
+              <Link
+                href="/sanpham?giam-gia=1"
+                className="hidden lg:block relative w-[210px] shrink-0 rounded-2xl overflow-hidden group/bts"
+              >
+                <img
+                  src="/ads/portrait-iphone17.png"
+                  alt="Back To School - Siu hời để lên đời"
+                  className="absolute inset-0 w-full h-full object-cover group-hover/bts:scale-[1.03] transition-transform duration-300"
+                  loading="lazy"
+                />
+              </Link>
+
+              {/* Dàn sản phẩm giảm giá */}
+              <div className="flex-1 min-w-0">
+                <ProductCarousel cardWidth={240}>
+                  {loadingBts
+                    ? Array.from({ length: 5 }).map((_, i) => (
+                        <div key={i} className="flex-shrink-0 w-[240px]"><SkeletonCard /></div>
+                      ))
+                    : btsProducts.map((p) => (
+                        <div key={p.id} className="flex-shrink-0 w-[240px]"><ProductCard p={p} /></div>
+                      ))
+                  }
+                </ProductCarousel>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ── ƯU ĐÃI GIÁO DỤC & THANH TOÁN ─────────────────────────────── */}
       <section className="max-w-screen-xl mx-auto px-6 mt-12">

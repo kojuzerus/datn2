@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Package, ChevronRight, Clock3, CreditCard, XCircle } from 'lucide-react';
+import { Package, ChevronRight, Clock3, CreditCard, XCircle, Home } from 'lucide-react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -104,6 +104,14 @@ export default function DonHangPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-6xl">
+        <div className="mb-4 flex items-center gap-1.5 text-[12.5px] text-gray-400">
+          <Link href="/" className="hover:text-red-500 transition flex items-center gap-1">
+            <Home className="h-3.5 w-3.5" /> Trang chủ
+          </Link>
+          <ChevronRight className="h-3 w-3 text-gray-300" />
+          <span className="font-medium text-gray-700">Đơn hàng</span>
+        </div>
+
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-sm uppercase tracking-[0.3em] text-red-500">Tài khoản của tôi</p>
