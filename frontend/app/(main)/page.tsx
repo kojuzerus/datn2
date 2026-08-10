@@ -5,12 +5,13 @@ import Link from "next/link";
 import {
   ChevronLeft, ChevronRight, Star, ArrowRight,
   ShieldCheck, Truck, RefreshCw, Headphones,
-  Smartphone, Heart, Wallet, CreditCard, Zap, Flame, Timer,
+  Smartphone, Heart, Wallet, CreditCard, Flame,
 } from "lucide-react";
 import { useFavorites, type FavoriteProduct } from "../components/favoritesContext";
 import { specChips } from "../lib/specChips";
 import { ARTICLES } from "./tin-tuc/data";
 import HeroBanner from "../components/HeroBanner";
+import Rabbit3D from "../components/Rabbit3D";
 
 // ─── API CONFIG ───────────────────────────────────────────────────────────────
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -316,7 +317,7 @@ function ProductCard({ p }: { p: ProductFeatured }) {
       <div className="group bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col h-full cursor-pointer">
 
         {/* ── Ảnh + badges ── */}
-        <div className="relative bg-gray-50 px-5 pt-9 pb-4">
+        <div className="relative bg-white px-5 pt-9 pb-4">
           {/* Giảm % — top-left pill */}
           {p.giamGia > 0 && (
             <span className="absolute top-3 left-3 z-10 bg-red-500 text-white text-[11px] font-bold px-2.5 py-[3px] rounded-full">
@@ -537,7 +538,7 @@ function FlashSaleProductCard({ p }: { p: ProductFeatured }) {
           </div>
 
           {/* Image + discount badge */}
-          <div className="relative h-[140px] mx-3 rounded-xl bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center overflow-hidden">
+          <div className="relative h-[140px] mx-3 flex items-center justify-center overflow-hidden bg-white">
             {p.giamGia > 0 && (
               <div className="absolute top-1.5 left-1.5 z-10 bg-gradient-to-br from-red-500 to-rose-700 text-white font-black text-[11px] px-2 py-0.5 rounded-md"
                 style={{ boxShadow: "0 2px 8px rgba(239,68,68,0.5)" }}
@@ -548,7 +549,7 @@ function FlashSaleProductCard({ p }: { p: ProductFeatured }) {
             <img
               src={p.thumbnail || "https://placehold.co/300x300?text=No+Image"}
               alt={p.ten}
-              className="h-full w-full object-contain"
+              className="h-full w-full object-contain p-1"
               style={{ transition: "transform 0.4s ease" }}
               loading="lazy"
             />
@@ -622,7 +623,6 @@ export default function HomePage() {
   const [loadingBts,    setLoadingBts]    = useState(true);
   const [loadingSale,   setLoadingSale]   = useState(true);
   const [saleTimeLeft,  setSaleTimeLeft]  = useState({ h: 0, m: 0, s: 0 });
-  const [activeSlot,    setActiveSlot]    = useState(0);
   const saleScrollRef = useRef<HTMLDivElement>(null);
 
   // ── Fetch sản phẩm mới ──────────────────────────────────────────────────
@@ -1071,26 +1071,57 @@ export default function HomePage() {
                 animation: `fs-particle ${1.8 + (i % 4) * 0.6}s ease-in-out ${i * 0.25}s infinite` }} />
           ))}
 
-          {/* ── Header ── */}
-          <div className="relative z-10 flex items-center justify-between px-5 pt-4 pb-1">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                style={{ background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.22)" }}>
-                <Zap className="w-4 h-4 text-yellow-300 fill-yellow-300" />
+          {/* ── Header lớn: tiêu đề + linh vật + đếm ngược ── */}
+          <div className="relative z-10 flex items-center justify-between gap-4 px-6 sm:px-10 pt-6 pb-5 min-h-[120px]">
+            {/* Trái: tiêu đề */}
+            <div className="shrink-0">
+              <div className="flex items-center gap-3">
+                <Flame className="w-8 h-8 sm:w-10 sm:h-10 text-yellow-300 fill-yellow-300"
+                  style={{ filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.35))" }} />
+                <p className="text-white text-[26px] sm:text-4xl font-black uppercase tracking-[0.18em] leading-none"
+                  style={{ textShadow: "0 3px 10px rgba(0,0,0,0.35)" }}>
+                  Flash Sale
+                </p>
               </div>
-              <div>
-                <p className="text-white text-[12px] font-black uppercase tracking-[0.2em] leading-none">Flash Sale</p>
-                <p className="text-white/60 text-[9px] font-semibold mt-0.5">Giá sốc · Số lượng có hạn</p>
+              <div className="mt-2.5 ml-12 sm:ml-14 h-1 w-24 rounded-full bg-yellow-300/90" />
+              <p className="ml-12 sm:ml-14 mt-1.5 text-white/70 text-[11px] font-semibold">
+                Giá sốc mỗi ngày · Số lượng có hạn
+              </p>
+            </div>
+
+            {/* Giữa: linh vật thỏ SmartHub nhảy tưng tưng + badge deal */}
+            <div className="hidden md:flex items-center gap-3 absolute left-1/2 -translate-x-1/2 bottom-0">
+              <div style={{ animation: "rabbit-jump 2.4s ease-in-out infinite" }}>
+                <Rabbit3D size={82} />
+              </div>
+              <div className="-rotate-6 bg-yellow-300 text-red-700 font-black text-[15px] leading-tight px-3.5 py-2 rounded-xl shadow-lg mb-8"
+                style={{ boxShadow: "0 6px 18px rgba(0,0,0,0.3)" }}>
+                DEAL SỐC<br />BAY GIÁ
               </div>
             </div>
-            <div className="flex items-center gap-2.5">
-              <div className="text-right hidden sm:block">
-                <p className="text-white text-[12px] font-black uppercase tracking-[0.2em] leading-none">Đừng bỏ lỡ</p>
-                <p className="text-white/60 text-[9px] font-semibold mt-0.5">Ưu đãi giới hạn mỗi ngày</p>
-              </div>
-              <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                style={{ background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.22)" }}>
-                <Flame className="w-4 h-4 text-orange-300" />
+
+            {/* Phải: đếm ngược */}
+            <div className="shrink-0 flex items-center gap-3">
+              <span className="hidden sm:block text-white/80 text-[11px] font-black uppercase tracking-[0.18em] text-right leading-tight">
+                Kết thúc<br />sau
+              </span>
+              <div className="flex items-center gap-1.5">
+                {[
+                  { val: pad(saleTimeLeft.h), label: "GIỜ" },
+                  { val: pad(saleTimeLeft.m), label: "PHÚT" },
+                  { val: pad(saleTimeLeft.s), label: "GIÂY" },
+                ].map(({ val, label }, i) => (
+                  <div key={i} className="flex items-center gap-1.5">
+                    <div className="flex flex-col items-center justify-center rounded-xl w-12 h-14 pt-1"
+                      style={{ background: "linear-gradient(180deg,#1a1a2e 0%,#16213e 100%)",
+                        boxShadow: "0 4px 12px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.08)" }}>
+                      <span key={val} className="font-mono font-black text-[24px] text-white leading-none fs-flip-digit">{val}</span>
+                      <span className="text-[7px] font-bold tracking-[0.18em] text-white/30 mt-1">{label}</span>
+                    </div>
+                    {i < 2 && <span className="font-black text-2xl text-white/70 leading-none pb-2"
+                      style={{ animation: "fs-dot-pulse 1s ease-in-out infinite" }}>:</span>}
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -1101,55 +1132,24 @@ export default function HomePage() {
           {/* ── Inner panel ── */}
           <div className="relative z-10 bg-white/[0.97] mx-2 mb-2 mt-2 rounded-xl p-4">
 
-            {/* Date + Time + Countdown */}
-            <div className="flex items-center gap-2 mb-4 flex-wrap">
-              {(() => {
-                const today = new Date();
-                const f2 = (d: Date) => `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}`;
-                return (
-                  <span className="px-3.5 py-1.5 rounded-full text-xs font-bold border border-red-400 text-red-600 shadow-sm shadow-red-100">
-                    {f2(today)}
-                  </span>
+            {/* Dải tab ngày: hôm nay đang mở, các ngày sau sắp mở */}
+            <div className="flex items-center justify-center gap-2.5 mb-4 flex-wrap">
+              {Array.from({ length: 4 }).map((_, i) => {
+                const d = new Date();
+                d.setDate(d.getDate() + i);
+                const f2 = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+                return i === 0 ? (
+                  <div key={i} className="px-5 py-2 rounded-xl border-2 border-red-500 bg-red-50 text-center shadow-sm shadow-red-100">
+                    <p className="text-[13px] font-black text-red-600 uppercase leading-tight">Hôm nay</p>
+                    <p className="text-[10.5px] text-gray-500 font-semibold">Kết thúc: <span className="font-bold text-gray-700">23:59</span></p>
+                  </div>
+                ) : (
+                  <div key={i} className="px-5 py-2 rounded-xl border border-gray-200 text-center opacity-80">
+                    <p className="text-[13px] font-bold text-gray-700 leading-tight tabular-nums">{f2}</p>
+                    <p className="text-[10px] font-bold text-amber-500 uppercase tracking-wide">Sắp mở</p>
+                  </div>
                 );
-              })()}
-
-              <div className="w-px h-5 bg-gray-200 mx-1" />
-
-              {["12-14h", "20-22h"].map((slot, i) => (
-                <button key={slot} onClick={() => setActiveSlot(i)}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-bold border transition-all ${
-                    i === activeSlot
-                      ? "bg-red-600 border-red-600 text-white shadow-sm shadow-red-400/30"
-                      : "border-gray-200 text-gray-500 hover:border-red-300 hover:text-red-500"
-                  }`}
-                >{slot}</button>
-              ))}
-
-              {/* Countdown */}
-              <div className="ml-auto flex items-center gap-2.5 flex-shrink-0">
-                <div className="hidden sm:flex items-center gap-1.5">
-                  <Timer className="w-3.5 h-3.5 text-gray-400" />
-                  <span className="text-[11px] font-black text-gray-500 uppercase tracking-widest">Bắt đầu sau</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  {[
-                    { val: pad(saleTimeLeft.h), label: "GIỜ" },
-                    { val: pad(saleTimeLeft.m), label: "PHÚT" },
-                    { val: pad(saleTimeLeft.s), label: "GIÂY" },
-                  ].map(({ val, label }, i) => (
-                    <div key={i} className="flex items-center gap-1.5">
-                      <div className="flex flex-col items-center justify-center rounded-xl w-11 h-12 pt-1"
-                        style={{ background: "linear-gradient(180deg,#1a1a2e 0%,#16213e 100%)",
-                          boxShadow: "0 4px 12px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.06)" }}>
-                        <span key={val} className="font-mono font-black text-[22px] text-white leading-none fs-flip-digit">{val}</span>
-                        <span className="text-[7px] font-bold tracking-[0.18em] text-white/30 mt-1">{label}</span>
-                      </div>
-                      {i < 2 && <span className="font-black text-2xl text-gray-400 leading-none pb-2"
-                        style={{ animation: "fs-dot-pulse 1s ease-in-out infinite" }}>:</span>}
-                    </div>
-                  ))}
-                </div>
-              </div>
+              })}
             </div>
 
             {/* Product carousel */}

@@ -188,6 +188,7 @@ function formatProduct(p) {
     badge:         p.badge || "",
     categoryName:  p.category_name || "",
     warranty:      p.warranty || "",
+    videoId:       p.video_id || "",
     variants:      p.variants,
     // Admin fields
     sku:           p.sku || "",

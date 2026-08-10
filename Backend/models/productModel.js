@@ -44,6 +44,9 @@ const productSchema = new mongoose.Schema(
     // Badge hiển thị ngoài FE
     badge:             { type: String, default: "" },
 
+    // ID video đánh giá trên YouTube (nhúng ở trang chi tiết)
+    video_id:          { type: String, default: "" },
+
     // Thông số kỹ thuật [{label, value}]
     specification: [{
       label: { type: String, default: "" },

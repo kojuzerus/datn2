@@ -36,6 +36,7 @@ interface ProductDetail {
   categoryName: string;
   warranty: string;
   variants: Variant[];
+  specification?: { label: string; value: string }[];
 }
 
 const COMPARE_ROWS: { label: string; getValue: (p: ProductDetail) => string }[] = [
@@ -87,6 +88,19 @@ export default function ComparisonPage() {
   }, [items]);
 
   const colCount = items.length + (items.length < 3 ? 1 : 0);
+
+  // Gộp nhãn thông số kỹ thuật của mọi sản phẩm đang so sánh (giữ thứ tự xuất hiện)
+  const specLabels: string[] = [];
+  products.forEach(p =>
+    p?.specification?.forEach(s => {
+      const label = s.label.trim();
+      if (label && !specLabels.some(l => l.toLowerCase() === label.toLowerCase())) {
+        specLabels.push(label);
+      }
+    })
+  );
+  const specOf = (p: ProductDetail, label: string) =>
+    p.specification?.find(s => s.label.trim().toLowerCase() === label.toLowerCase())?.value;
 
   return (
     <div className="max-w-screen-xl mx-auto pb-24">
@@ -247,18 +261,40 @@ export default function ComparisonPage() {
                   {items.length < 3 && <td />}
                 </tr>
 
-                {/* ── Other rows ── */}
-                {COMPARE_ROWS.map((row, ri) => (
-                  <tr key={ri} className={`border-b border-gray-100 ${ri % 2 === 0 ? 'bg-gray-50/40' : ''}`}>
-                    <td className="p-5 text-sm font-semibold text-gray-700">{row.label}</td>
-                    {products.map((product, i) => (
-                      <td key={i} className="p-5 text-center text-sm text-gray-700">
-                        {product ? row.getValue(product) : <span className="text-gray-400">—</span>}
+                {/* ── Thông số kỹ thuật ── */}
+                {specLabels.length > 0 ? (
+                  <>
+                    <tr className="bg-gray-50 border-b border-gray-100">
+                      <td colSpan={colCount + 1} className="px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                        Thông số kỹ thuật
                       </td>
+                    </tr>
+                    {specLabels.map((label, ri) => (
+                      <tr key={label} className={`border-b border-gray-100 ${ri % 2 === 0 ? 'bg-gray-50/40' : ''}`}>
+                        <td className="p-5 text-sm font-semibold text-gray-700">{label}</td>
+                        {products.map((product, i) => (
+                          <td key={i} className="p-5 text-center text-sm text-gray-700">
+                            {(product && specOf(product, label)) || <span className="text-gray-400">—</span>}
+                          </td>
+                        ))}
+                        {items.length < 3 && <td />}
+                      </tr>
                     ))}
-                    {items.length < 3 && <td />}
-                  </tr>
-                ))}
+                  </>
+                ) : (
+                  // Sản phẩm chưa nhập thông số kỹ thuật → so sánh thông tin chung
+                  COMPARE_ROWS.map((row, ri) => (
+                    <tr key={ri} className={`border-b border-gray-100 ${ri % 2 === 0 ? 'bg-gray-50/40' : ''}`}>
+                      <td className="p-5 text-sm font-semibold text-gray-700">{row.label}</td>
+                      {products.map((product, i) => (
+                        <td key={i} className="p-5 text-center text-sm text-gray-700">
+                          {product ? row.getValue(product) : <span className="text-gray-400">—</span>}
+                        </td>
+                      ))}
+                      {items.length < 3 && <td />}
+                    </tr>
+                  ))
+                )}
 
                 {/* ── Action row ── */}
                 <tr>
