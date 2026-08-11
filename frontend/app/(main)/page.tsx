@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   ChevronLeft, ChevronRight, Star, ArrowRight,
   ShieldCheck, Truck, RefreshCw, Headphones,
-  Smartphone, Heart, Wallet, CreditCard, Flame,
+  Smartphone, Heart, Wallet, CreditCard,
 } from "lucide-react";
 import { useFavorites, type FavoriteProduct } from "../components/favoritesContext";
 import { specChips } from "../lib/specChips";
@@ -701,7 +701,7 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="bg-white min-h-screen">
 
       {/* ── VIDEO BANNER ─────────────────────────────────────────────── */}
       {false && <section className="relative overflow-hidden" style={{ height: "clamp(520px, 60vw, 700px)" }}>
@@ -1060,7 +1060,6 @@ export default function HomePage() {
             <div className="flex items-center justify-between">
               {/* Trái: FLASH SALE */}
               <div className="flex items-center gap-2.5 shrink-0">
-                <Flame className="w-7 h-7 text-yellow-300 fill-yellow-300" />
                 <span
                   className="text-white font-black uppercase tracking-wider"
                   style={{ fontSize: "clamp(1.3rem, 2vw, 1.7rem)", textShadow: "0 2px 8px rgba(0,0,0,0.3)" }}

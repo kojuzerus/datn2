@@ -1,350 +1,316 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import {
-  ArrowRight, ShoppingBag, Shield, CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Smartphone,
+  Laptop,
+  Tv2,
+  Headphones,
+  Clock,
 } from "lucide-react";
 
-/* ── Spec callout card ─────────────────────────────────────── */
-function SpecCard({
-  title,
-  items,
-  align = "left",
-}: {
-  title: string;
-  items: string[];
-  align?: "left" | "right";
-}) {
-  return (
-    <div
-      style={{
-        background: "#ffffff",
-        border: "1px solid #efefef",
-        borderRadius: 14,
-        padding: "10px 14px",
-        boxShadow:
-          "0 4px 18px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.04)",
-        textAlign: align,
-        maxWidth: 175,
-        minWidth: 148,
-      }}
-    >
-      <p
-        style={{
-          fontSize: 11,
-          fontWeight: 700,
-          color: "#111111",
-          marginBottom: 5,
-          lineHeight: 1.3,
-        }}
-      >
-        {title}
-      </p>
-      {items.map((item) => (
-        <p
-          key={item}
-          style={{ fontSize: 10, color: "#9ca3af", lineHeight: 1.55 }}
-        >
-          {item}
-        </p>
-      ))}
-    </div>
-  );
+// ── Slide data ───────────────────────────────────────────────────────
+const SLIDES = [
+  {
+    id: 1,
+    tag: "KHUYẾN MÃI HÔM NAY",
+    tabLabel: "Siêu phẩm công nghệ 2026",
+    title: "iPhone 17",
+    titleLine2: "Pro Max",
+    subtitle: "Titanium Deep Blue. Camera 200MP kép đỉnh.\nChip A19 Bionic thế hệ mới nhất.",
+    cta: "Đặt trước ngay",
+    href: "/sanpham?tu-khoa=iPhone%2017%20Pro%20Max",
+    productImg: "/banners/iphone-17-pro.png",
+    bg: "linear-gradient(135deg, #fff7ed 0%, #ffedd5 60%, #fef3e2 100%)",
+    tagColor: "#ea580c",
+    ctaBg: "#ea580c",
+  },
+  {
+    id: 2,
+    tag: "GALAXY AI FLAGSHIP",
+    tabLabel: "Chiến game đỉnh - Làm việc nhanh",
+    title: "Samsung S25",
+    titleLine2: "Ultra",
+    subtitle: "Galaxy AI mạnh nhất. S Pen thông minh.\nSnapdragon 8 Elite — vượt mọi giới hạn.",
+    cta: "Mua ngay",
+    href: "/sanpham?tu-khoa=Samsung%20S25%20Ultra",
+    productImg: "/banners/samsung-s25-ultra.png",
+    bg: "linear-gradient(135deg, #f5f0ff 0%, #ede8ff 60%, #f2ecff 100%)",
+    tagColor: "#7c3aed",
+    ctaBg: "#7c3aed",
+  },
+  {
+    id: 3,
+    tag: "APPLE SILICON M4",
+    tabLabel: "Làm việc nhanh - Sống đẳng cấp",
+    title: "MacBook Air",
+    titleLine2: "M4 2025",
+    subtitle: "Mỏng nhẹ nhất. Pin 18h. Siêu nhanh.\nLiquid Retina — màu sắc sống động.",
+    cta: "Khám phá ngay",
+    href: "/sanpham?tu-khoa=MacBook%20Air%20M4",
+    productImg: "/banners/macbook-air-m4.png",
+    bg: "linear-gradient(135deg, #f0fff8 0%, #d1fae5 60%, #e8fff4 100%)",
+    tagColor: "#059669",
+    ctaBg: "#059669",
+  },
+];
+
+// ── Sidebar categories ───────────────────────────────────────────────
+const SIDEBAR_CATS = [
+  { label: "Điện thoại", Icon: Smartphone, href: "/sanpham?danh-muc=dien-thoai" },
+  { label: "Laptop",     Icon: Laptop,     href: "/sanpham?danh-muc=laptop" },
+  { label: "Điện máy",   Icon: Tv2,        href: "/sanpham?danh-muc=dien-may" },
+  { label: "Phụ Kiện",   Icon: Headphones, href: "/sanpham?danh-muc=phu-kien" },
+];
+
+// ── Right promo banners (ảnh thật từ /public/banners) ────────────────
+const PROMO_CARDS = [
+  { src: "/banners/promo-unpacked.webp", href: "/sanpham?tu-khoa=Samsung", alt: "Samsung Unpacked" },
+  { src: "/banners/promo-vivobook.jpg",  href: "/sanpham?danh-muc=laptop", alt: "ASUS Vivobook ưu đãi" },
+  { src: "/banners/promo-oppo.webp",     href: "/sanpham?tu-khoa=OPPO",    alt: "OPPO ưu đãi" },
+];
+
+interface RecentProduct {
+  id: number;
+  ten: string;
+  thumbnail: string;
+  gia: number;
+  giaSale?: number;
+  slug: string;
 }
 
-/* ── Callout data — vị trí SVG tính theo % của phone-panel ── */
-/*
-  Ảnh iPhone 17 Pro PNG: back phone (trái) + front phone (phải) xếp chồng
-  x/y là toạ độ chấm đỏ trên ảnh (% của container phone-panel)
-  cx/cy là góc card gần chấm nhất
-*/
-const CALLOUTS = [
-  {
-    id: "camera",
-    title: "Triple Camera System",
-    items: ["Main: 200MP f/1.8 OIS", "Ultra-wide: 48MP", "Telephoto: 12MP 5×"],
-    align: "left" as const,
-    // vị trí chấm đỏ trên phone (camera module – top-left của back phone)
-    dotX: 43, dotY: 19,
-    // vị trí card (left side)
-    cardTop: "12%", cardLeft: "2%",
-    // điểm neo của đường kẻ tính từ mép card đến chấm đỏ
-    lineX1: 27, lineY1: 20,
-  },
-  {
-    id: "chip",
-    title: "Chip A19 Bionic",
-    items: ["CPU 6-core thế hệ mới", "GPU 6-core", "Neural Engine 16-core"],
-    align: "left" as const,
-    dotX: 40, dotY: 52,
-    cardTop: "46%", cardLeft: "2%",
-    lineX1: 27, lineY1: 53,
-  },
-  {
-    id: "screen",
-    title: "Super Retina XDR 6.9\"",
-    items: ["OLED ProMotion 120Hz", "2868 × 1320 px", "Always-On Display"],
-    align: "right" as const,
-    dotX: 63, dotY: 40,
-    cardTop: "20%", cardLeft: undefined,
-    cardRight: "2%",
-    lineX1: 75, lineY1: 30,
-  },
-  {
-    id: "titanium",
-    title: "Titanium Deep Blue",
-    items: ["IP68 · 6m · 30 phút", "Khung titan hàng không", "MagSafe 25W"],
-    align: "right" as const,
-    dotX: 55, dotY: 73,
-    cardTop: "60%", cardLeft: undefined,
-    cardRight: "2%",
-    lineX1: 76, lineY1: 67,
-  },
-] as const;
+const fmt = (n: number) =>
+  new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(n);
 
-/* ── Main component ────────────────────────────────────────── */
 export default function HeroBanner() {
-  const [ready, setReady] = useState(false);
+  const [current, setCurrent] = useState(0);
+  const [imgKey, setImgKey]   = useState(0);
+  const [recent, setRecent]   = useState<RecentProduct[]>([]);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
-    const t = setTimeout(() => setReady(true), 80);
-    return () => clearTimeout(t);
+  const startTimer = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setCurrent((c) => (c + 1) % SLIDES.length);
+      setImgKey((k) => k + 1);
+    }, 5000);
   }, []);
 
+  useEffect(() => {
+    startTimer();
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [startTimer]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("smarthub_recently_viewed");
+      if (raw) setRecent(JSON.parse(raw).slice(0, 10));
+    } catch {}
+  }, []);
+
+  const goTo = (idx: number) => {
+    const n = ((idx % SLIDES.length) + SLIDES.length) % SLIDES.length;
+    setCurrent(n);
+    setImgKey((k) => k + 1);
+    startTimer();
+  };
+
+  const slide = SLIDES[current];
+
   return (
-    <section
-      className="relative w-full overflow-hidden"
-      style={{
-        height: "clamp(580px, 88vh, 920px)",
-        background: "#f8f8f8",
-      }}
-    >
-      {/* Wash trắng trung tâm */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(ellipse 75% 70% at 62% 50%, #ffffff 25%, rgba(245,244,242,0.55) 100%)",
-        }}
-      />
+    <section className="max-w-screen-xl mx-auto px-6 mt-4">
+      <div className="flex gap-3" style={{ height: 400 }}>
 
-      {/* ── Layout ──────────────────────────────────────────────── */}
-      <div
-        className="relative z-10 h-full flex items-center"
-        style={{
-          opacity: ready ? 1 : 0,
-          transition: "opacity 0.7s ease",
-        }}
-      >
-        {/* ━━━ LEFT: Text ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-        <div
-          className="flex-shrink-0 pl-6 sm:pl-10 lg:pl-16 xl:pl-22 pr-4"
-          style={{
-            width: "min(40%, 500px)",
-            transform: ready ? "translateX(0)" : "translateX(-28px)",
-            transition: "transform 0.9s cubic-bezier(0.23,1,0.32,1) 0.1s",
-          }}
-        >
-          {/* Label */}
-          <p
-            className="text-[11px] font-semibold uppercase tracking-[0.28em] mb-6"
-            style={{ color: "#dc2626" }}
-          >
-            Ra mắt độc quyền · 2025
-          </p>
-
-          {/* Headline */}
-          <h1
-            className="font-black tracking-tight leading-[0.88]"
-            style={{
-              fontSize: "clamp(2.4rem, 4.6vw, 4.4rem)",
-              color: "#111111",
-              whiteSpace: "nowrap",
-              marginBottom: "0.15em",
-            }}
-          >
-            iPhone 17
-          </h1>
-          <h1
-            className="font-black tracking-tight leading-[1] mb-6"
-            style={{
-              fontSize: "clamp(2rem, 3.9vw, 3.8rem)",
-              color: "#111111",
-              whiteSpace: "nowrap",
-            }}
-          >
-            Pro Max
-          </h1>
-
-          {/* Mô tả */}
-          <p
-            className="leading-relaxed mb-8"
-            style={{
-              fontSize: "clamp(0.88rem, 1.25vw, 1rem)",
-              color: "#6b7280",
-            }}
-          >
-            Titanium Deep Blue. Camera 200MP kép đỉnh.
-            <br />
-            Chip A19 Bionic — thế hệ hiệu năng mới nhất.
-          </p>
-
-          {/* CTA */}
-          <div className="flex items-center gap-3 flex-wrap mb-10">
-            <Link
-              href="/sanpham?tu-khoa=iPhone%2017%20Pro%20Max"
-              className="group inline-flex items-center gap-2.5 px-6 py-3.5 rounded-full font-bold text-sm text-white no-underline transition-all duration-300 hover:opacity-90 hover:-translate-y-0.5"
-              style={{
-                background: "#dc2626",
-                boxShadow: "0 4px 14px rgba(220,38,38,0.28)",
-              }}
-            >
-              <ShoppingBag className="w-4 h-4" />
-              Đặt trước ngay
-              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
-            </Link>
-            <Link
-              href="/sanpham?tu-khoa=iPhone"
-              className="group inline-flex items-center gap-2.5 px-6 py-3.5 rounded-full font-bold text-sm no-underline transition-all duration-300 hover:-translate-y-0.5"
-              style={{
-                color: "#374151",
-                border: "1.5px solid #d1d5db",
-                background: "#ffffff",
-              }}
-            >
-              Xem tất cả iPhone
-              <ArrowRight className="w-4 h-4 text-gray-400 transition-transform group-hover:translate-x-0.5" />
-            </Link>
+        {/* ── Left: Sidebar danh mục + đã xem gần đây ─────────── */}
+        <div className="w-[198px] flex-shrink-0 bg-white rounded-2xl flex flex-col overflow-hidden">
+          {/* Danh mục */}
+          <div className="px-3 pt-4">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2 px-1">
+              Danh mục
+            </p>
+            {SIDEBAR_CATS.map(({ label, Icon, href }) => (
+              <Link
+                key={href}
+                href={href}
+                className="flex items-center gap-2.5 px-2 py-[9px] rounded-xl hover:bg-red-50 group transition-colors"
+              >
+                <span className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center flex-shrink-0 group-hover:bg-red-100 transition-colors">
+                  <Icon className="w-3.5 h-3.5 text-red-500" />
+                </span>
+                <span className="flex-1 text-[12.5px] font-semibold text-gray-700 group-hover:text-red-600 transition-colors">
+                  {label}
+                </span>
+                <ChevronRight className="w-3.5 h-3.5 text-gray-300 group-hover:text-red-400 transition-colors" />
+              </Link>
+            ))}
           </div>
 
-          {/* Giá + trust */}
-          <div className="flex items-center gap-5 flex-wrap">
-            <div>
-              <p
-                className="text-[10px] font-semibold uppercase tracking-widest mb-0.5"
-                style={{ color: "#9ca3af" }}
-              >
-                Giá từ
+          {/* Divider */}
+          <div className="mx-3 my-2 h-px bg-gray-100" />
+
+          {/* Đã xem gần đây */}
+          <div className="px-3 pb-4 flex-1 overflow-y-auto" style={{ scrollbarWidth: "thin", scrollbarColor: "#d1d5db transparent" }}>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2 px-1 flex items-center gap-1">
+              <Clock className="w-3 h-3" /> Đã xem gần đây
+            </p>
+            {recent.length === 0 ? (
+              <p className="text-[11px] text-gray-400 px-1 leading-snug">
+                Sản phẩm bạn đã xem sẽ hiển thị ở đây.
               </p>
-              <p
-                className="font-black leading-none"
-                style={{ fontSize: "clamp(1.4rem, 2.4vw, 1.9rem)", color: "#111111" }}
-              >
-                34.990.000
-                <span className="text-sm font-semibold ml-1" style={{ color: "#6b7280" }}>đ</span>
-              </p>
-            </div>
-            <div className="h-8 w-px" style={{ background: "#e5e7eb" }} />
-            <div className="flex flex-col gap-2">
-              {[
-                { icon: Shield,        label: "Bảo hành 12 tháng Apple" },
-                { icon: CheckCircle2,  label: "Trả góp 0% — 24 tháng" },
-              ].map(({ icon: Icon, label }) => (
-                <div key={label} className="flex items-center gap-2">
-                  <Icon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "#9ca3af" }} />
-                  <span className="text-xs font-medium" style={{ color: "#6b7280" }}>
-                    {label}
-                  </span>
-                </div>
-              ))}
-            </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {recent.map((p) => (
+                  <Link
+                    key={p.id}
+                    href={`/sanpham/${p.slug}`}
+                    className="flex items-center gap-2 group"
+                  >
+                    <img
+                      src={p.thumbnail}
+                      alt={p.ten}
+                      className="w-10 h-10 rounded-lg border border-gray-100 object-contain"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10.5px] font-medium text-gray-700 group-hover:text-red-500 line-clamp-1 transition-colors">
+                        {p.ten}
+                      </p>
+                      <p className="text-[10.5px] font-bold text-red-600">
+                        {fmt(p.giaSale ?? p.gia)}
+                      </p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* ━━━ RIGHT: Phone panel + spec callouts ━━━━━━━━━━━━━━━━ */}
+        {/* ── Center: Slider ───────────────────────────────────── */}
         <div
-          className="flex-1 relative h-full"
-          style={{
-            transform: ready
-              ? "translateX(0) scale(1)"
-              : "translateX(36px) scale(0.96)",
-            transition: "transform 1.05s cubic-bezier(0.23,1,0.32,1) 0.12s",
-          }}
+          className="flex-1 rounded-2xl overflow-hidden flex flex-col relative border border-gray-100"
+          style={{ background: slide.bg, transition: "background 0.5s ease" }}
         >
-          {/* SVG connector lines + dots ─────────────────────────── */}
-          <svg
-            className="absolute inset-0 pointer-events-none"
-            style={{ width: "100%", height: "100%", zIndex: 18 }}
-          >
-            {CALLOUTS.map((c) => (
-              <g key={c.id}>
-                {/* Đường kẻ mờ */}
-                <line
-                  x1={`${c.lineX1}%`}
-                  y1={`${c.lineY1}%`}
-                  x2={`${c.dotX}%`}
-                  y2={`${c.dotY}%`}
-                  stroke="#d1d5db"
-                  strokeWidth="1.2"
-                  strokeDasharray="0"
-                />
-                {/* Vòng ngoài chấm (halo) */}
-                <circle
-                  cx={`${c.dotX}%`}
-                  cy={`${c.dotY}%`}
-                  r="5"
-                  fill="rgba(220,38,38,0.12)"
-                />
-                {/* Chấm đỏ */}
-                <circle
-                  cx={`${c.dotX}%`}
-                  cy={`${c.dotY}%`}
-                  r="2.8"
-                  fill="#dc2626"
-                />
-              </g>
-            ))}
-          </svg>
+          {/* Slide content — hai cột cố định, không chồng chéo */}
+          <div className="flex-1 flex items-stretch relative overflow-hidden">
 
-          {/* iPhone image — centered ─────────────────────────────── */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <img
-              src="/banners/iphone-17-pro.png"
-              alt="iPhone 17 Pro Max"
+            {/* Cột trái: Text */}
+            <div className="w-[50%] flex flex-col justify-center pl-10 pr-4 py-6 z-10">
+              <span
+                className="inline-block text-[10.5px] font-bold uppercase tracking-[0.18em] px-3 py-1 rounded-full mb-4 w-fit"
+                style={{ background: `${slide.tagColor}18`, color: slide.tagColor }}
+              >
+                {slide.tag}
+              </span>
+              <h2
+                className="font-black leading-tight mb-3 text-gray-900"
+                style={{ fontSize: "clamp(1.5rem, 2.4vw, 2.2rem)" }}
+              >
+                {slide.title}
+                <br />
+                <span style={{ color: slide.tagColor }}>{slide.titleLine2}</span>
+              </h2>
+              <p className="text-[13px] text-gray-500 leading-relaxed mb-6 whitespace-pre-line">
+                {slide.subtitle}
+              </p>
+              <Link
+                href={slide.href}
+                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full font-bold text-sm text-white transition-all hover:opacity-90 hover:-translate-y-0.5 shadow-md w-fit"
+                style={{ background: slide.ctaBg, boxShadow: `0 4px 14px ${slide.ctaBg}44` }}
+              >
+                {slide.cta}
+                <ChevronRight className="w-4 h-4" />
+              </Link>
+            </div>
+
+            {/* Cột phải: Ảnh sản phẩm */}
+            <div className="flex-1 flex items-center justify-center pr-6 overflow-hidden">
+              <img
+                key={imgKey}
+                src={slide.productImg}
+                alt={slide.title}
+                style={{
+                  maxHeight: 270,
+                  maxWidth: "100%",
+                  width: "auto",
+                  objectFit: "contain",
+                  animation: "hero-slide-in 0.45s cubic-bezier(0.23,1,0.32,1)",
+                }}
+                className="drop-shadow-2xl"
+              />
+            </div>
+
+            {/* Prev arrow */}
+            <button
+              onClick={() => goTo(current - 1)}
+              className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/70 hover:bg-white shadow flex items-center justify-center transition-all z-20"
+            >
+              <ChevronLeft className="w-4 h-4 text-gray-600" />
+            </button>
+
+            {/* Next arrow */}
+            <button
+              onClick={() => goTo(current + 1)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/70 hover:bg-white shadow flex items-center justify-center transition-all z-20"
+            >
+              <ChevronRight className="w-4 h-4 text-gray-600" />
+            </button>
+          </div>
+
+          {/* Progress bar */}
+          <div className="h-0.5 bg-black/10">
+            <div
+              key={`${current}-progress`}
+              className="h-full"
               style={{
-                position: "relative",
-                zIndex: 10,
-                maxHeight: "clamp(380px, 68vh, 640px)",
-                maxWidth: "68%",
-                width: "auto",
-                objectFit: "contain",
-                filter:
-                  "drop-shadow(0 36px 72px rgba(0,0,0,0.11)) drop-shadow(0 8px 20px rgba(0,0,0,0.07))",
-                animation: "hero-phone-float 7s ease-in-out infinite",
+                background: slide.ctaBg,
+                transformOrigin: "left center",
+                animation: "banner-progress 5s linear forwards",
               }}
             />
           </div>
 
-          {/* Spec callout cards ─────────────────────────────────── */}
-          {CALLOUTS.map((c, i) => (
-            <div
-              key={c.id}
-              className="absolute hidden sm:block"
-              style={{
-                top: c.cardTop,
-                left: "cardLeft" in c ? c.cardLeft : undefined,
-                right: "cardRight" in c ? c.cardRight : undefined,
-                zIndex: 20,
-                opacity: 0,
-                animation: `hero-callout-in 0.5s cubic-bezier(0.23,1,0.32,1) ${0.4 + i * 0.12}s forwards`,
-              }}
+          {/* Tab bar */}
+          <div className="bg-white/85 backdrop-blur-sm flex">
+            {SLIDES.map((s, i) => (
+              <button
+                key={s.id}
+                onClick={() => goTo(i)}
+                className={`flex-1 px-3 py-2.5 text-[10px] font-semibold text-center transition-all border-b-2 leading-tight ${
+                  i === current
+                    ? "border-orange-500 text-orange-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                {s.tabLabel}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Right: Promo banners ─────────────────────────────── */}
+        <div className="w-[246px] flex-shrink-0 flex flex-col gap-2">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 px-1">
+            Khuyến mãi nổi bật
+          </p>
+          {PROMO_CARDS.map((b) => (
+            <Link
+              key={b.href}
+              href={b.href}
+              className="flex-1 rounded-xl overflow-hidden block group"
             >
-              <SpecCard
-                title={c.title}
-                items={[...c.items]}
-                align={c.align}
+              <img
+                src={b.src}
+                alt={b.alt}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               />
-            </div>
+            </Link>
           ))}
         </div>
-      </div>
 
-      {/* Đường kẻ đáy */}
-      <div
-        className="absolute bottom-0 inset-x-0 h-px pointer-events-none"
-        style={{ background: "#e5e7eb" }}
-      />
+      </div>
     </section>
   );
 }

@@ -210,6 +210,25 @@ export default function ProductDetailPage() {
       .finally(() => setLoading(false));
   }, [slug]);
 
+  /* ── Lưu vào "đã xem gần đây" ── */
+  useEffect(() => {
+    if (!product) return;
+    try {
+      const KEY = "smarthub_recently_viewed";
+      const prev = JSON.parse(localStorage.getItem(KEY) || "[]");
+      const item = {
+        id: product.id,
+        ten: product.ten,
+        slug: product.slug,
+        thumbnail: product.thumbnail,
+        gia: product.gia,
+        giaSale: product.giaSale,
+      };
+      const next = [item, ...prev.filter((p: { id: number }) => p.id !== product.id)].slice(0, 10);
+      localStorage.setItem(KEY, JSON.stringify(next));
+    } catch {}
+  }, [product?.id]);
+
   /* ── Sản phẩm liên quan: cùng danh mục, ưu tiên bán chạy ── */
   useEffect(() => {
     if (!product) { setRelated([]); return; }
@@ -282,18 +301,20 @@ export default function ProductDetailPage() {
     }
   };
 
-  const handleBuyNow = async () => {
+  const handleBuyNow = () => {
     if (!product || !inStock) return;
-    const success = await addToCart({
+    if (!isLoggedIn()) { router.push('/login'); return; }
+    const item = {
+      _id: `buynow_${product.id}`,
       productId: String(product.id),
       tenSanPham: product.ten,
       hinhAnh: selectedVariant?.image || product.thumbnail,
       gia: displayPrice,
       soLuong: Math.max(1, qty),
-      variant: selectedVariant?.color || "",
-    });
-    // Khách chưa đăng nhập: sản phẩm đã vào giỏ cục bộ, đưa về trang giỏ hàng
-    if (success) router.push(isLoggedIn() ? "/thanhtoan" : "/giohang");
+      variant: selectedVariant?.color || '',
+    };
+    sessionStorage.setItem('smarthub_buynow_item', JSON.stringify(item));
+    router.push('/thanhtoan');
   };
 
   const scrollToTab = (tab: "mo-ta" | "danh-gia") => {

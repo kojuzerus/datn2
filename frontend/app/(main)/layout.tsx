@@ -17,7 +17,7 @@ export default function MainLayout({
       <ComparisonProvider>
         <FavoritesProvider>
           <Header />
-          <main className="flex-1 w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <main className="flex-1 w-full">
             {children}
           </main>
           <Footer />

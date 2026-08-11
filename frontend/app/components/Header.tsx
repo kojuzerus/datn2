@@ -4,7 +4,7 @@ import Link from "next/link";
 import {
   Search, User, ShoppingCart, Menu, X, Repeat, Phone, Smartphone,
   Laptop, Tv2, Headphones, TabletSmartphone, Speaker, Watch,
-  BatteryCharging, TrendingUp, Newspaper,
+  BatteryCharging, TrendingUp, Newspaper, Heart, Package,
 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -288,20 +288,22 @@ export default function Header() {
       <header className="sticky top-0 z-50 w-full bg-white dark:bg-slate-900 shadow-sm dark:shadow-slate-900/50">
 
       {/* ── Top bar ── */}
-      <div className="bg-red-700 dark:bg-red-900">
-        <div className="max-w-screen-xl mx-auto px-6 py-1.5 flex items-center justify-between">
-          <span className="text-xs text-red-200">
-            Chào mừng đến với{" "}
-            <span className="text-white font-semibold">SMARTHUB</span>{" "}
-            — Thế giới công nghệ
-          </span>
-          <a
-            href="tel:18009999"
-            className="flex items-center gap-1.5 text-white text-xs font-medium hover:text-red-200 transition-colors"
-          >
-            <Phone className="w-3.5 h-3.5" />
-            1800 9999
-          </a>
+      <div className="hidden sm:block" style={{ background: "linear-gradient(90deg,#991b1b 0%,#dc2626 50%,#991b1b 100%)" }}>
+        <div className="max-w-screen-xl mx-auto px-6 flex items-center justify-between h-8">
+          <p className="text-[11.5px] text-red-100 font-medium tracking-wide">
+            <span className="text-yellow-300 font-semibold">SmartHub</span> — Công nghệ đỉnh cao, giá cả hợp lý, giao hàng tận nơi!
+          </p>
+          <div className="flex items-center gap-4">
+            <Link href="/don-hang" className="flex items-center gap-1 text-[11px] text-red-200 hover:text-white transition-colors">
+              <Package className="w-3 h-3" />
+              Theo dõi đơn hàng
+            </Link>
+            <span className="text-red-600 text-xs">|</span>
+            <a href="tel:18009999" className="flex items-center gap-1 text-[11px] text-yellow-300 font-semibold hover:text-yellow-200 transition-colors">
+              <Phone className="w-3 h-3" />
+              1800 9999
+            </a>
+          </div>
         </div>
       </div>
 
@@ -481,16 +483,26 @@ export default function Header() {
                     <Link
                       href="/nguoidung"
                       onClick={() => setShowUserMenu(false)}
-                      className="block px-4 py-2.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors"
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors"
                     >
+                      <User className="w-4 h-4" />
                       Thông tin cá nhân
                     </Link>
                     <Link
                       href="/don-hang"
                       onClick={() => setShowUserMenu(false)}
-                      className="block px-4 py-2.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors"
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors"
                     >
+                      <Package className="w-4 h-4" />
                       Đơn hàng của tôi
+                    </Link>
+                    <Link
+                      href="/yeu-thich"
+                      onClick={() => setShowUserMenu(false)}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-600 hover:text-red-500 hover:bg-red-50 transition-colors"
+                    >
+                      <Heart className="w-4 h-4" />
+                      Sản phẩm yêu thích
                     </Link>
                     {userRole === "admin" && (
                       <Link

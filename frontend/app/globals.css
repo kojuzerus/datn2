@@ -2,7 +2,7 @@
 @variant dark (&:is(.dark, .dark *));
 
 :root {
-  --background: #f3f6f9;
+  --background: #ffffff;
   --foreground: #0f1724;
   --accent-50: #ecfeff;
   --accent-300: #7dd3fc;
@@ -223,6 +223,11 @@ body {
 @keyframes hero-callout-in {
   from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes hero-slide-in {
+  from { opacity: 0; transform: translateX(28px) scale(0.96); }
+  to   { opacity: 1; transform: translateX(0)    scale(1); }
 }
 
 .animate-ticker {
