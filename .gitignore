@@ -5,3 +5,7 @@ Backend/node_modules/
 frontend/.env.local
 CLAUDE.md
 Backend/.env
+
+# Không commit file nén (từng làm .git phình lên 361MB và bị GitHub từ chối push
+# vì vượt giới hạn 100MB/file)
+*.zip
