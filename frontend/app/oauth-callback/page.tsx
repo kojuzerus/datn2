@@ -14,7 +14,7 @@ function OAuthHandler() {
     const error = searchParams.get('error');
 
     if (error || !token || !user) {
-      router.push('/dang-nhap?error=oauth_failed');
+      router.push('/login?error=oauth_failed');
       return;
     }
 
@@ -24,7 +24,7 @@ function OAuthHandler() {
       mergeGuestCartToServer(token).finally(() => router.push('/'));
       return;
     } catch {
-      router.push('/dang-nhap?error=oauth_failed');
+      router.push('/login?error=oauth_failed');
     }
   }, [router, searchParams]);
 

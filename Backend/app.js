@@ -4,6 +4,8 @@ const cors     = require("cors");
 const path     = require("path");
 require("dotenv").config();
 
+const passport = require("./config/passport");
+
 const productRoutes  = require("./routes/product");
 const authRoutes     = require("./routes/auth");
 const cartRoutes     = require("./routes/cart");
@@ -40,6 +42,7 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
+app.use(passport.initialize());
 
 app.use("/api/products",   productRoutes);
 app.use("/api/auth",       authRoutes);

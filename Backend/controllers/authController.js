@@ -1,8 +1,14 @@
 const User    = require("../models/User");
 const bcrypt  = require("bcryptjs");
 const jwt     = require("jsonwebtoken");
+const crypto  = require("crypto");
+const { sendResetPasswordEmail } = require("../utils/mailer");
 
-const SECRET = process.env.JWT_SECRET || "smarthub_secret_2024";
+const SECRET       = process.env.JWT_SECRET   || "smarthub_secret_2024";
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
+const RESET_TOKEN_TTL_MS = 15 * 60 * 1000; // 15 phút
+
+const hashToken = (token) => crypto.createHash("sha256").update(token).digest("hex");
 
 // ── Đăng ký ──────────────────────────────────────────────────────────────
 exports.register = async (req, res) => {
@@ -123,6 +129,72 @@ exports.changePassword = async (req, res) => {
     user.matKhau = await bcrypt.hash(matKhauMoi, 10);
     await user.save();
     res.json({ message: "Đổi mật khẩu thành công" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Lỗi server" });
+  }
+};
+
+// ── Quên mật khẩu: gửi email chứa link đặt lại ──────────────────────────────
+exports.forgotPassword = async (req, res) => {
+  // Luôn trả về cùng 1 thông điệp dù tài khoản có tồn tại hay không, để tránh
+  // lộ thông tin ai đã đăng ký (tránh dò email/SĐT hàng loạt).
+  const generic = { message: "Nếu tài khoản tồn tại và có email, chúng tôi đã gửi hướng dẫn đặt lại mật khẩu tới email đó." };
+
+  try {
+    const identifier = req.body.identifier?.trim();
+    if (!identifier)
+      return res.status(400).json({ message: "Vui lòng nhập số điện thoại hoặc email" });
+
+    const user = await User.findOne({
+      $or: [{ soDienThoai: identifier }, { email: identifier }],
+    }).collation({ locale: "en", strength: 2 });
+
+    if (!user || !user.email) return res.json(generic);
+
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    user.resetPasswordTokenHash = hashToken(rawToken);
+    user.resetPasswordExpires   = new Date(Date.now() + RESET_TOKEN_TTL_MS);
+    await user.save();
+
+    const resetUrl = `${FRONTEND_URL}/dat-lai-mat-khau?token=${rawToken}`;
+    try {
+      await sendResetPasswordEmail(user.email, user.hoTen, resetUrl);
+    } catch (mailErr) {
+      // Không để lộ lỗi gửi mail ra ngoài (vẫn trả lời chung chung), chỉ log để debug.
+      console.error("Gửi email đặt lại mật khẩu thất bại:", mailErr.message);
+    }
+
+    res.json(generic);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Lỗi server" });
+  }
+};
+
+// ── Quên mật khẩu: xác nhận token, đặt mật khẩu mới ─────────────────────────
+exports.resetPassword = async (req, res) => {
+  try {
+    const { token, matKhauMoi } = req.body;
+    if (!token || !matKhauMoi)
+      return res.status(400).json({ message: "Thiếu thông tin" });
+    if (matKhauMoi.length < 6)
+      return res.status(400).json({ message: "Mật khẩu mới phải có ít nhất 6 ký tự" });
+
+    const user = await User.findOne({
+      resetPasswordTokenHash: hashToken(token),
+      resetPasswordExpires:   { $gt: new Date() },
+    });
+
+    if (!user)
+      return res.status(400).json({ message: "Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn" });
+
+    user.matKhau = await bcrypt.hash(matKhauMoi, 10);
+    user.resetPasswordTokenHash = null;
+    user.resetPasswordExpires   = null;
+    await user.save();
+
+    res.json({ message: "Đặt lại mật khẩu thành công" });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Lỗi server" });

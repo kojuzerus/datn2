@@ -1,6 +1,6 @@
 const express = require("express");
 const router  = express.Router();
-const { register, login, getMe, updateProfile, changePassword } = require("../controllers/authController");
+const { register, login, getMe, updateProfile, changePassword, forgotPassword, resetPassword } = require("../controllers/authController");
 const authMiddleware = require("../middleware/auth");
 const passport = require("passport");
 const jwt      = require("jsonwebtoken");
@@ -27,12 +27,14 @@ router.post("/login",            login);
 router.get("/me",                authMiddleware, getMe);
 router.put("/profile",           authMiddleware, updateProfile);
 router.put("/change-password",   authMiddleware, changePassword);
+router.post("/forgot-password",  forgotPassword);
+router.post("/reset-password",   resetPassword);
 
 // ── Google OAuth ──────────────────────────────────────────────────────────
 router.get("/google", passport.authenticate("google", { scope: ["profile", "email"] }));
 
 router.get("/google/callback",
-  passport.authenticate("google", { session: false, failureRedirect: `${FRONTEND_URL}/dang-nhap?error=google_failed` }),
+  passport.authenticate("google", { session: false, failureRedirect: `${FRONTEND_URL}/login?error=google_failed` }),
   (req, res) => res.redirect(makeRedirect(makeToken(req.user), req.user))
 );
 
@@ -85,7 +87,7 @@ router.get("/zalo/callback", async (req, res) => {
     res.redirect(makeRedirect(makeToken(user), user));
   } catch (err) {
     console.error("Zalo OAuth error:", err.message);
-    res.redirect(`${FRONTEND_URL}/dang-nhap?error=zalo_failed`);
+    res.redirect(`${FRONTEND_URL}/login?error=zalo_failed`);
   }
 });
 
