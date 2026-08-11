@@ -37,12 +37,24 @@ interface Order {
   createdAt: string;
 }
 
-const statusSteps: Array<{ key: string; label: string; description: string }> = [
+type StatusStep = { key: string; label: string; description: string };
+
+const onlineStatusSteps: StatusStep[] = [
   { key: 'cho_xac_nhan', label: 'Đã Đặt', description: 'Đơn hàng được tạo' },
   { key: 'da_xac_nhan', label: 'Đã Thanh Toán', description: 'Thanh toán thành công' },
   { key: 'dang_giao', label: 'Đã Giao ĐVVC', description: 'Gửi đơn vị vận chuyển' },
   { key: 'da_giao', label: 'Chờ Giao Hàng', description: 'Đang trên đường' },
 ];
+
+const codStatusSteps: StatusStep[] = [
+  { key: 'cho_xac_nhan', label: 'Đã Đặt', description: 'Đơn hàng được tạo' },
+  { key: 'da_xac_nhan', label: 'Đã Xác Nhận', description: 'Đơn hàng được xác nhận' },
+  { key: 'dang_giao', label: 'Đã Giao ĐVVC', description: 'Gửi đơn vị vận chuyển' },
+  { key: 'da_giao', label: 'Đã Giao Hàng', description: 'Thanh toán khi nhận' },
+];
+
+const getStatusSteps = (paymentMethod: string): StatusStep[] =>
+  paymentMethod?.toLowerCase() === 'cod' ? codStatusSteps : onlineStatusSteps;
 
 const statusLabels: Record<string, string> = {
   cho_xac_nhan: 'Chờ xác nhận',
@@ -130,7 +142,8 @@ export default function OrderDetailPage() {
     }
   };
 
-  const activeIndex = order ? statusSteps.findIndex((s) => s.key === order.trangThai) : -1;
+  const statusSteps: StatusStep[] = getStatusSteps(order?.paymentMethod ?? '');
+  const activeIndex: number = order ? statusSteps.findIndex((s: StatusStep) => s.key === order.trangThai) : -1;
 
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">

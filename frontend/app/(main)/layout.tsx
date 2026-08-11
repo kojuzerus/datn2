@@ -5,6 +5,7 @@ import { ComparisonProvider } from "../components/comparisonContext";
 import { FavoritesProvider } from "../components/favoritesContext";
 import ComparisonBar from "../components/ComparisonBar";
 import AIChatBox from "../components/AIChatBox";
+import PromoModal from "../components/PromoModal";
 
 export default function MainLayout({
   children,
@@ -22,6 +23,7 @@ export default function MainLayout({
           <Footer />
           <ComparisonBar />
           <AIChatBox />
+          <PromoModal />
         </FavoritesProvider>
       </ComparisonProvider>
     </SearchProvider>

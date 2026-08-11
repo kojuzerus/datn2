@@ -463,122 +463,101 @@ function BestSellingCard({ p }: { p: ProductBestSelling }) {
 function FlashSaleSkeletonCard() {
   return (
     <div className="flex-shrink-0 w-[190px] bg-white rounded-xl overflow-hidden animate-pulse border border-gray-100">
-      <div className="p-3 space-y-1.5">
-        <div className="h-3 bg-gray-200 rounded w-2/5" />
-        <div className="h-2 bg-gray-100 rounded w-3/4" />
-        <div className="h-2 bg-gray-100 rounded w-2/3" />
-      </div>
-      <div className="h-[145px] mx-3 rounded-lg bg-gray-200" />
+      <div className="h-[150px] bg-gray-100 mx-3 mt-3 rounded-lg" />
       <div className="p-3 space-y-2 mt-1">
         <div className="h-3 bg-gray-200 rounded w-4/5" />
         <div className="h-3 bg-gray-100 rounded w-3/4" />
-        <div className="h-4 bg-gray-200 rounded w-2/5 mt-1" />
-        <div className="h-5 bg-red-100 rounded-full" />
+        <div className="h-4 bg-gray-200 rounded w-2/5" />
+        <div className="h-1.5 bg-gray-100 rounded-full" />
+        <div className="h-7 bg-red-100 rounded-full" />
       </div>
     </div>
   );
 }
 
-// ─── FLASH SALE PRODUCT CARD — 3D tilt + cursor shine ────────────────────────
+// ─── FLASH SALE PRODUCT CARD ──────────────────────────────────────────────────
 function FlashSaleProductCard({ p }: { p: ProductFeatured }) {
-  const cardRef  = useRef<HTMLDivElement>(null);
-  const shineRef = useRef<HTMLDivElement>(null);
   const displayPrice = p.giaSale ?? p.gia;
+  const chips = specChips(p.specification);
   const totalSlots = ((p.id * 13 + 7) % 40) + 10;
   const soldSlots  = Math.floor(totalSlots * (((p.id * 7 + 3) % 60) + 10) / 100);
   const soldPct    = Math.max((soldSlots / totalSlots) * 100, 8);
+  const { isFavorite, toggleItem } = useFavorites();
+  const liked = isFavorite(p.id);
 
-  const onMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const el = cardRef.current;
-    if (!el) return;
-    const r  = el.getBoundingClientRect();
-    const x  = (e.clientX - r.left) / r.width;
-    const y  = (e.clientY - r.top)  / r.height;
-    const rx = (y - 0.5) * -18;
-    const ry = (x - 0.5) *  18;
-    el.style.transform  = `perspective(700px) rotateX(${rx}deg) rotateY(${ry}deg) scale3d(1.04,1.04,1.04)`;
-    el.style.transition = "transform 0.08s linear";
-    el.style.boxShadow  = `${ry * -0.8}px ${rx * 0.8}px 28px rgba(239,68,68,0.22), 0 12px 28px rgba(0,0,0,0.14)`;
-    if (shineRef.current) {
-      shineRef.current.style.background = `radial-gradient(circle at ${x * 100}% ${y * 100}%, rgba(255,255,255,0.26) 0%, transparent 65%)`;
-      shineRef.current.style.opacity    = "1";
-    }
-  };
-
-  const onLeave = () => {
-    const el = cardRef.current;
-    if (!el) return;
-    el.style.transform  = "perspective(700px) rotateX(0deg) rotateY(0deg) scale3d(1,1,1)";
-    el.style.transition = "transform 0.55s cubic-bezier(0.23,1,0.32,1), box-shadow 0.55s ease";
-    el.style.boxShadow  = "";
-    if (shineRef.current) shineRef.current.style.opacity = "0";
+  const handleToggleFavorite = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const fav: FavoriteProduct = {
+      id: p.id, ten: p.ten, slug: p.slug, thumbnail: p.thumbnail,
+      gia: p.gia, giaSale: p.giaSale, giamGia: p.giamGia,
+      danhGia: p.danhGia, thuongHieu: p.thuongHieu, categoryName: "",
+    };
+    toggleItem(fav);
   };
 
   return (
-    <Link href={`/sanpham/${p.slug}`} style={{ display: "block", flexShrink: 0 }}>
-      <div
-        ref={cardRef}
-        onMouseMove={onMove}
-        onMouseLeave={onLeave}
-        className="w-[190px] bg-white rounded-xl overflow-visible border border-gray-100 cursor-pointer relative"
-        style={{ willChange: "transform", transformStyle: "preserve-3d" }}
-      >
-        {/* Inner clip so content doesn't overflow the rounded corners */}
-        <div className="rounded-xl overflow-hidden">
-          {/* Cursor-tracking light reflection */}
-          <div
-            ref={shineRef}
-            className="absolute inset-0 pointer-events-none z-30 rounded-xl opacity-0"
-            style={{ transition: "opacity 0.3s ease" }}
+    <Link href={`/sanpham/${p.slug}`} className="block flex-shrink-0 w-[195px]">
+      <div className="bg-white rounded-xl border border-gray-100 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 overflow-hidden flex flex-col h-full">
+
+        {/* Spec chips */}
+        <div className="flex gap-1 px-3 pt-3 min-h-[24px] flex-wrap">
+          {chips.slice(0, 2).map((c) => (
+            <span key={c} className="bg-gray-100 text-gray-500 text-[10px] font-medium px-1.5 py-0.5 rounded whitespace-nowrap">
+              {c}
+            </span>
+          ))}
+        </div>
+
+        {/* Image */}
+        <div className="relative h-[148px] flex items-center justify-center px-3 py-2">
+          {p.giamGia > 0 && (
+            <span className="absolute top-2 left-4 z-10 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+              -{p.giamGia}%
+            </span>
+          )}
+          <img
+            src={p.thumbnail || "https://placehold.co/300x300?text=No+Image"}
+            alt={p.ten}
+            className="h-full w-full object-contain"
+            loading="lazy"
           />
+        </div>
 
-          {/* Brand */}
-          <div className="px-3 pt-3 pb-0.5">
-            <p className="text-[11px] font-bold text-gray-600 uppercase tracking-widest truncate">{p.thuongHieu || "Thương hiệu"}</p>
-          </div>
-
-          {/* Image + discount badge */}
-          <div className="relative h-[140px] mx-3 flex items-center justify-center overflow-hidden bg-white">
+        {/* Info */}
+        <div className="px-3 pb-3 flex flex-col gap-2 flex-1">
+          {/* Price row */}
+          <div>
+            <p className="text-red-600 font-bold text-[15px] leading-tight">{fmt(displayPrice)}</p>
             {p.giamGia > 0 && (
-              <div className="absolute top-1.5 left-1.5 z-10 bg-gradient-to-br from-red-500 to-rose-700 text-white font-black text-[11px] px-2 py-0.5 rounded-md"
-                style={{ boxShadow: "0 2px 8px rgba(239,68,68,0.5)" }}
-              >
-                -{p.giamGia}%
-              </div>
+              <p className="text-gray-400 text-[11px] line-through">{fmt(p.gia)}</p>
             )}
-            <img
-              src={p.thumbnail || "https://placehold.co/300x300?text=No+Image"}
-              alt={p.ten}
-              className="h-full w-full object-contain p-1"
-              style={{ transition: "transform 0.4s ease" }}
-              loading="lazy"
-            />
           </div>
 
           {/* Name */}
-          <div className="px-3 pt-2">
-            <h3 className="text-xs font-semibold text-gray-800 line-clamp-2 leading-snug min-h-[2.5rem]">{p.ten}</h3>
-          </div>
-
-          {/* Price */}
-          <div className="px-3 pt-1 flex items-baseline gap-2">
-            <span className="text-[15px] font-black text-red-600">{fmt(displayPrice)}</span>
-            {p.giamGia > 0 && (
-              <span className="text-[11px] text-gray-400 line-through">{fmt(p.gia)}</span>
-            )}
-          </div>
+          <p className="text-[12px] font-semibold text-gray-800 line-clamp-2 leading-snug flex-1">{p.ten}</p>
 
           {/* Progress bar */}
-          <div className="px-3 pt-1.5 pb-3">
-            <div className="relative h-[22px] rounded-full overflow-hidden" style={{ background: "#f3f4f6", border: "1px solid #e5e7eb" }}>
-              <div
-                className="absolute inset-y-0 left-0 rounded-full"
-                style={{ width: `${soldPct}%`, background: "#dc2626" }}
-              />
-              <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold z-10" style={{ color: "#111111" }}>
-                Đã bán {soldSlots}/{totalSlots} suất
-              </span>
+          <div>
+            <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+              <div className="h-full bg-red-500 rounded-full transition-all" style={{ width: `${soldPct}%` }} />
             </div>
+            <p className="text-[10px] text-gray-400 mt-0.5">Đã bán {soldSlots}/{totalSlots} suất</p>
+          </div>
+
+          {/* Bottom: Mua ngay + yêu thích */}
+          <div className="flex items-center gap-2 mt-auto">
+            <button className="flex-1 py-1.5 rounded-full border border-red-500 text-red-600 text-[12px] font-bold hover:bg-red-500 hover:text-white transition-colors">
+              Mua ngay
+            </button>
+            <button
+              onClick={handleToggleFavorite}
+              className={`w-7 h-7 rounded-full border flex items-center justify-center flex-shrink-0 transition-colors ${
+                liked ? "border-red-400 bg-red-50 text-red-500" : "border-gray-200 text-gray-300 hover:border-red-300 hover:text-red-400"
+              }`}
+            >
+              <Heart className={`w-3.5 h-3.5 ${liked ? "fill-red-500" : ""}`} />
+            </button>
           </div>
         </div>
       </div>
@@ -1054,113 +1033,119 @@ export default function HomePage() {
       </section>
 
       {/* ── FLASH SALE ────────────────────────────────────────────────── */}
-      <section className="max-w-screen-xl mx-auto px-6 mt-10 relative z-20">
-        <div
-          className="relative rounded-2xl overflow-hidden fs-bg-animated"
-          style={{ boxShadow: "0 20px 60px rgba(185,28,28,0.38), 0 6px 20px rgba(0,0,0,0.22)" }}
-        >
-          {/* Ánh sáng quét chéo */}
-          <div className="absolute inset-0 pointer-events-none z-0 opacity-12"
-            style={{ background: "linear-gradient(110deg, transparent 20%, rgba(255,255,255,0.7) 50%, transparent 80%)", animation: "fs-shine-sweep 6s ease-in-out infinite" }} />
+      {/* pt-14 để dành chỗ cho tai thỏ nhô lên */}
+      <section className="max-w-screen-xl mx-auto px-6 mt-6 pt-14 relative">
 
-          {/* Hạt confetti trắng */}
-          {[...Array(14)].map((_, i) => (
-            <span key={i} className="absolute rounded-full bg-white pointer-events-none z-0"
-              style={{ width: `${1.5 + (i % 3)}px`, height: `${1.5 + (i % 3)}px`,
-                left: `${5 + i * 6.5}%`, bottom: "8%", opacity: 0,
-                animation: `fs-particle ${1.8 + (i % 4) * 0.6}s ease-in-out ${i * 0.25}s infinite` }} />
-          ))}
+        {/* Con thỏ đặt ngoài khung — tai nhô lên trên */}
+        <div className="hidden md:flex items-end gap-2 absolute left-1/2 -translate-x-1/2 top-0 z-30">
+          <div style={{ animation: "rabbit-jump 2.4s ease-in-out infinite" }}>
+            <Rabbit3D size={96} />
+          </div>
+          <div
+            className="-rotate-6 bg-yellow-300 text-red-700 font-black leading-tight px-3 py-1.5 rounded-xl mb-10"
+            style={{ fontSize: "0.8rem", boxShadow: "0 4px 14px rgba(0,0,0,0.22)" }}
+          >
+            DEAL SỤT<br />BAY GIÁ
+          </div>
+        </div>
 
-          {/* ── Header lớn: tiêu đề + linh vật + đếm ngược ── */}
-          <div className="relative z-10 flex items-center justify-between gap-4 px-6 sm:px-10 pt-6 pb-5 min-h-[120px]">
-            {/* Trái: tiêu đề */}
-            <div className="shrink-0">
-              <div className="flex items-center gap-3">
-                <Flame className="w-8 h-8 sm:w-10 sm:h-10 text-yellow-300 fill-yellow-300"
-                  style={{ filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.35))" }} />
-                <p className="text-white text-[26px] sm:text-4xl font-black uppercase tracking-[0.18em] leading-none"
-                  style={{ textShadow: "0 3px 10px rgba(0,0,0,0.35)" }}>
+        {/* Khung chính — KHÔNG overflow-hidden để tai thỏ nhô ra */}
+        <div className="rounded-2xl" style={{ boxShadow: "0 8px 32px rgba(220,38,38,0.22), 0 2px 8px rgba(0,0,0,0.1)" }}>
+
+          {/* ── Header đỏ ── */}
+          <div
+            className="relative px-6 pt-5 pb-16 rounded-t-2xl"
+            style={{ background: "linear-gradient(90deg, #b91c1c 0%, #dc2626 50%, #b91c1c 100%)" }}
+          >
+            <div className="flex items-center justify-between">
+              {/* Trái: FLASH SALE */}
+              <div className="flex items-center gap-2.5 shrink-0">
+                <Flame className="w-7 h-7 text-yellow-300 fill-yellow-300" />
+                <span
+                  className="text-white font-black uppercase tracking-wider"
+                  style={{ fontSize: "clamp(1.3rem, 2vw, 1.7rem)", textShadow: "0 2px 8px rgba(0,0,0,0.3)" }}
+                >
                   Flash Sale
-                </p>
+                </span>
               </div>
-              <div className="mt-2.5 ml-12 sm:ml-14 h-1 w-24 rounded-full bg-yellow-300/90" />
-              <p className="ml-12 sm:ml-14 mt-1.5 text-white/70 text-[11px] font-semibold">
-                Giá sốc mỗi ngày · Số lượng có hạn
-              </p>
-            </div>
 
-            {/* Giữa: linh vật thỏ SmartHub nhảy tưng tưng + badge deal */}
-            <div className="hidden md:flex items-center gap-3 absolute left-1/2 -translate-x-1/2 bottom-0">
-              <div style={{ animation: "rabbit-jump 2.4s ease-in-out infinite" }}>
-                <Rabbit3D size={82} />
-              </div>
-              <div className="-rotate-6 bg-yellow-300 text-red-700 font-black text-[15px] leading-tight px-3.5 py-2 rounded-xl shadow-lg mb-8"
-                style={{ boxShadow: "0 6px 18px rgba(0,0,0,0.3)" }}>
-                DEAL SỐC<br />BAY GIÁ
-              </div>
-            </div>
-
-            {/* Phải: đếm ngược */}
-            <div className="shrink-0 flex items-center gap-3">
-              <span className="hidden sm:block text-white/80 text-[11px] font-black uppercase tracking-[0.18em] text-right leading-tight">
-                Kết thúc<br />sau
-              </span>
-              <div className="flex items-center gap-1.5">
-                {[
-                  { val: pad(saleTimeLeft.h), label: "GIỜ" },
-                  { val: pad(saleTimeLeft.m), label: "PHÚT" },
-                  { val: pad(saleTimeLeft.s), label: "GIÂY" },
-                ].map(({ val, label }, i) => (
-                  <div key={i} className="flex items-center gap-1.5">
-                    <div className="flex flex-col items-center justify-center rounded-xl w-12 h-14 pt-1"
-                      style={{ background: "linear-gradient(180deg,#1a1a2e 0%,#16213e 100%)",
-                        boxShadow: "0 4px 12px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.08)" }}>
-                      <span key={val} className="font-mono font-black text-[24px] text-white leading-none fs-flip-digit">{val}</span>
-                      <span className="text-[7px] font-bold tracking-[0.18em] text-white/30 mt-1">{label}</span>
+              {/* Phải: đếm ngược */}
+              <div className="flex items-center gap-2.5 shrink-0">
+                <span className="hidden sm:block text-white/70 text-[11px] font-bold uppercase tracking-widest text-right leading-tight">
+                  Kết thúc<br />sau
+                </span>
+                <div className="flex items-center gap-1">
+                  {[pad(saleTimeLeft.h), pad(saleTimeLeft.m), pad(saleTimeLeft.s)].map((val, i) => (
+                    <div key={i} className="flex items-center gap-1">
+                      <div
+                        className="font-mono font-black text-white flex items-center justify-center rounded-lg"
+                        style={{
+                          fontSize: "clamp(1.1rem, 1.8vw, 1.4rem)",
+                          width: "2.6rem", height: "2.6rem",
+                          background: "linear-gradient(180deg,#1a1a2e 0%,#111827 100%)",
+                          boxShadow: "0 3px 10px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08)",
+                        }}
+                      >
+                        {val}
+                      </div>
+                      {i < 2 && <span className="text-white/70 font-bold text-lg leading-none">:</span>}
                     </div>
-                    {i < 2 && <span className="font-black text-2xl text-white/70 leading-none pb-2"
-                      style={{ animation: "fs-dot-pulse 1s ease-in-out infinite" }}>:</span>}
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="relative z-10 mx-4 mt-2 mb-0 h-px"
-            style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.14), transparent)" }} />
+          {/* ── Panel trắng — top cong nhô lên ── */}
+          <div
+            className="bg-white relative z-10 rounded-b-2xl"
+            style={{ borderRadius: "28px 28px 16px 16px", marginTop: "-28px" }}
+          >
+            {/* Tab ngày */}
+            <div
+              className="flex items-center justify-center gap-2 px-5 pt-4 pb-3 border-b border-gray-100 overflow-x-auto"
+              style={{ scrollbarWidth: "none" }}
+            >
+              <button className="flex-shrink-0 w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-50 transition">
+                <ChevronLeft className="w-4 h-4" />
+              </button>
 
-          {/* ── Inner panel ── */}
-          <div className="relative z-10 bg-white/[0.97] mx-2 mb-2 mt-2 rounded-xl p-4">
-
-            {/* Dải tab ngày: hôm nay đang mở, các ngày sau sắp mở */}
-            <div className="flex items-center justify-center gap-2.5 mb-4 flex-wrap">
               {Array.from({ length: 4 }).map((_, i) => {
                 const d = new Date();
                 d.setDate(d.getDate() + i);
                 const f2 = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
                 return i === 0 ? (
-                  <div key={i} className="px-5 py-2 rounded-xl border-2 border-red-500 bg-red-50 text-center shadow-sm shadow-red-100">
-                    <p className="text-[13px] font-black text-red-600 uppercase leading-tight">Hôm nay</p>
-                    <p className="text-[10.5px] text-gray-500 font-semibold">Kết thúc: <span className="font-bold text-gray-700">23:59</span></p>
+                  <div key={i} className="px-5 py-2 rounded-xl border-2 border-red-500 bg-red-50 text-center flex-shrink-0 shadow-sm shadow-red-100">
+                    <p className="text-red-600 text-[13px] font-black uppercase leading-tight">Hôm nay</p>
+                    <p className="text-gray-500 text-[10px] font-medium">Kết thúc: <strong className="text-gray-700">23:59</strong></p>
                   </div>
                 ) : (
-                  <div key={i} className="px-5 py-2 rounded-xl border border-gray-200 text-center opacity-80">
-                    <p className="text-[13px] font-bold text-gray-700 leading-tight tabular-nums">{f2}</p>
-                    <p className="text-[10px] font-bold text-amber-500 uppercase tracking-wide">Sắp mở</p>
+                  <div key={i} className="px-5 py-2 rounded-xl border border-gray-200 text-center flex-shrink-0">
+                    <p className="text-gray-700 text-[13px] font-bold tabular-nums leading-tight">{f2}</p>
+                    <p className="text-red-500 text-[10px] font-bold uppercase tracking-wide">Sắp mở</p>
                   </div>
                 );
               })}
+
+              <button className="flex-shrink-0 w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-50 transition">
+                <ChevronRight className="w-4 h-4" />
+              </button>
             </div>
 
             {/* Product carousel */}
-            <div className="relative">
-              <button onClick={() => saleScrollRef.current?.scrollBy({ left: -420, behavior: "smooth" })}
-                className="absolute -left-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-50 border border-gray-100 transition-all hover:scale-110"
-                style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.15)" }}>
+            <div className="px-5 py-4 relative">
+              <button
+                onClick={() => saleScrollRef.current?.scrollBy({ left: -420, behavior: "smooth" })}
+                className="absolute left-1 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white rounded-full flex items-center justify-center text-gray-500 border border-gray-200 hover:bg-gray-50 transition shadow-md"
+              >
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <div ref={saleScrollRef} className="flex gap-3 overflow-x-auto pb-1"
-                style={{ scrollbarWidth: "none", msOverflowStyle: "none" as React.CSSProperties["msOverflowStyle"] }}>
+
+              <div
+                ref={saleScrollRef}
+                className="flex gap-3 overflow-x-auto pb-1"
+                style={{ scrollbarWidth: "none", msOverflowStyle: "none" as React.CSSProperties["msOverflowStyle"] }}
+              >
                 {loadingSale
                   ? Array.from({ length: 6 }).map((_, i) => <FlashSaleSkeletonCard key={i} />)
                   : saleProducts.length > 0
@@ -1168,19 +1153,21 @@ export default function HomePage() {
                     : <div className="w-full py-10 text-center"><p className="text-gray-400 text-sm">Hiện chưa có sản phẩm Flash Sale</p></div>
                 }
               </div>
-              <button onClick={() => saleScrollRef.current?.scrollBy({ left: 420, behavior: "smooth" })}
-                className="absolute -right-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-50 border border-gray-100 transition-all hover:scale-110"
-                style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.15)" }}>
+
+              <button
+                onClick={() => saleScrollRef.current?.scrollBy({ left: 420, behavior: "smooth" })}
+                className="absolute right-1 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white rounded-full flex items-center justify-center text-gray-500 border border-gray-200 hover:bg-gray-50 transition shadow-md"
+              >
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
-          </div>
 
-          {/* Bottom note */}
-          <div className="relative z-10 px-4 pb-4">
-            <p className="text-center text-[10px] text-white/40 leading-relaxed">
-              Chỉ áp dụng thanh toán online thành công — Mỗi tài khoản chỉ được mua 1 sản phẩm cùng loại — Không áp dụng cùng ưu đãi khác
-            </p>
+            {/* Footer note */}
+            <div className="px-5 pb-4 border-t border-gray-50">
+              <p className="text-center text-[10px] text-gray-400 pt-2">
+                Chỉ áp dụng thanh toán online · Mỗi tài khoản 1 sản phẩm cùng loại · Không áp dụng cùng ưu đãi khác
+              </p>
+            </div>
           </div>
         </div>
       </section>
