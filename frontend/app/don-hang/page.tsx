@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Package, ChevronRight, Clock3, CreditCard, XCircle, Home } from 'lucide-react';
+import { Package, ChevronRight, ChevronLeft, Clock3, CreditCard, XCircle, Home } from 'lucide-react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -71,6 +71,18 @@ export default function DonHangPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeStatus, setActiveStatus] = useState<StatusKey>('all');
+  const [page, setPage] = useState(1);
+
+  // Phân trang phía client: mỗi trang 5 đơn
+  const PAGE_SIZE = 5;
+  const filtered = activeStatus === 'all' ? orders : orders.filter(o => o.trangThai === activeStatus);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pagedOrders = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const goToPage = (p: number) => {
+    setPage(p);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   useEffect(() => {
     const token = getToken();
@@ -138,7 +150,7 @@ export default function DonHangPage() {
                 return (
                   <button
                     key={tab.key}
-                    onClick={() => setActiveStatus(tab.key)}
+                    onClick={() => { setActiveStatus(tab.key); setPage(1); }}
                     className={`relative shrink-0 flex items-center gap-2 px-5 py-3.5 text-sm font-medium whitespace-nowrap transition-colors border-b-2 ${
                       isActive
                         ? 'border-red-500 text-red-600 bg-red-50/50'
@@ -183,8 +195,7 @@ export default function DonHangPage() {
             </div>
           )}
 
-          {!loading && !error && orders.length > 0 &&
-            (activeStatus === 'all' ? orders : orders.filter(o => o.trangThai === activeStatus)).length === 0 && (
+          {!loading && !error && orders.length > 0 && filtered.length === 0 && (
             <div className="rounded-sm border border-gray-200 bg-white p-12 text-center shadow-sm">
               <Package className="h-10 w-10 text-gray-300 mx-auto mb-3" />
               <p className="font-semibold text-gray-600">Không có đơn hàng</p>
@@ -192,8 +203,7 @@ export default function DonHangPage() {
             </div>
           )}
 
-          {!loading && orders.map((order) => {
-            if (activeStatus !== 'all' && order.trangThai !== activeStatus) return null;
+          {!loading && pagedOrders.map((order) => {
             const status = statusLabels[order.trangThai] || { text: 'Không xác định', color: 'bg-gray-100 text-gray-700' };
             return (
               <div key={order._id} className="overflow-hidden rounded-sm border border-gray-200 bg-white shadow-sm">
@@ -282,6 +292,39 @@ export default function DonHangPage() {
             );
           })}
         </div>
+
+        {/* ── Phân trang ── */}
+        {!loading && !error && totalPages > 1 && (
+          <div className="mt-8 flex items-center justify-center gap-2">
+            <button
+              disabled={safePage <= 1}
+              onClick={() => goToPage(safePage - 1)}
+              className="w-9 h-9 rounded-md border border-gray-200 bg-white flex items-center justify-center text-gray-500 disabled:opacity-40 disabled:cursor-not-allowed hover:border-red-400 hover:text-red-500 transition"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            {Array.from({ length: totalPages }).map((_, i) => (
+              <button
+                key={i}
+                onClick={() => goToPage(i + 1)}
+                className={`w-9 h-9 rounded-md border text-sm font-semibold transition tabular-nums ${
+                  safePage === i + 1
+                    ? 'border-red-500 bg-red-500 text-white'
+                    : 'border-gray-200 bg-white text-gray-600 hover:border-red-400 hover:text-red-500'
+                }`}
+              >
+                {i + 1}
+              </button>
+            ))}
+            <button
+              disabled={safePage >= totalPages}
+              onClick={() => goToPage(safePage + 1)}
+              className="w-9 h-9 rounded-md border border-gray-200 bg-white flex items-center justify-center text-gray-500 disabled:opacity-40 disabled:cursor-not-allowed hover:border-red-400 hover:text-red-500 transition"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

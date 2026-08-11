@@ -789,8 +789,9 @@ export default function ProductDetailPage() {
         </div>
       </div>
 
-      {/* ── Mô tả sản phẩm ── */}
-      <div ref={tabRef} className="scroll-mt-[64px] mb-8">
+      {/* ── Mô tả sản phẩm + Video đánh giá (2 cột) ── */}
+      <div ref={tabRef} className="scroll-mt-[64px] mb-8 grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        <div className={product.videoId ? "lg:col-span-2" : "lg:col-span-3"}>
         <h2 className="text-lg font-bold text-gray-800 mb-4">Mô tả sản phẩm</h2>
         <div className="bg-white border border-gray-100 rounded-md overflow-hidden">
           <div
@@ -822,29 +823,50 @@ export default function ProductDetailPage() {
             </div>
           )}
         </div>
+
+        {/* Banner quảng cáo lấp khoảng trống khi mô tả ngắn */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+          <Link href="/sanpham?tu-khoa=oppo" className="block rounded-md overflow-hidden border border-gray-100 group/ad1">
+            <img
+              src="/ads/OppoReno16F-2.jpg"
+              alt="OPPO Reno16 F 5G - ưu đãi chính hãng"
+              className="w-full h-auto object-cover group-hover/ad1:scale-[1.02] transition-transform duration-300"
+              loading="lazy"
+            />
+          </Link>
+          <Link href="/sanpham?tu-khoa=redmi" className="block rounded-md overflow-hidden border border-gray-100 group/ad2">
+            <img
+              src="/ads/redmi-17-home.png"
+              alt="Redmi 17 Series - mở bán giá tốt"
+              className="w-full h-auto object-cover group-hover/ad2:scale-[1.02] transition-transform duration-300"
+              loading="lazy"
+            />
+          </Link>
+        </div>
       </div>
 
-      {/* ── Video đánh giá ── */}
-      {product.videoId && (
-        <div className="mb-8">
-          <h2 className="text-lg font-bold text-gray-800 mb-4">Video đánh giá</h2>
-          <div className="bg-white border border-gray-100 rounded-md overflow-hidden">
-            <div className="aspect-video bg-black">
-              <iframe
-                className="w-full h-full"
-                src={`https://www.youtube.com/embed/${product.videoId}`}
-                title={`Video đánh giá ${product.ten}`}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                loading="lazy"
-              />
+        {/* Cột phải: video đánh giá — hộp nhỏ */}
+        {product.videoId && (
+          <div>
+            <h2 className="text-lg font-bold text-gray-800 mb-4">Video đánh giá</h2>
+            <div className="bg-white border border-gray-100 rounded-md overflow-hidden">
+              <div className="aspect-video bg-black">
+                <iframe
+                  className="w-full h-full"
+                  src={`https://www.youtube.com/embed/${product.videoId}`}
+                  title={`Video đánh giá ${product.ten}`}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  loading="lazy"
+                />
+              </div>
+              <p className="px-4 py-3 text-[12px] text-gray-400 border-t border-gray-100">
+                Nguồn YouTube, thuộc bản quyền của kênh đăng tải.
+              </p>
             </div>
-            <p className="px-6 py-3.5 text-[12.5px] text-gray-400 border-t border-gray-100">
-              Video đánh giá {product.ten} — nguồn YouTube, thuộc bản quyền của kênh đăng tải.
-            </p>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* ── Thông số kỹ thuật ── */}
       <div ref={specSecRef} className="mb-8 scroll-mt-[64px]">

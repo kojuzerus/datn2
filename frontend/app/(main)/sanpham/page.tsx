@@ -364,7 +364,8 @@ function ProductsContent() {
         if (!v) p.delete(k); else p.set(k, v);
       });
       if (!("trang" in updates)) p.delete("trang");
-      router.push(`/sanpham?${p.toString()}`);
+      // scroll: false — đổi bộ lọc không nhảy lên đầu trang
+      router.push(`/sanpham?${p.toString()}`, { scroll: false });
     },
     [searchParams, router],
   );
