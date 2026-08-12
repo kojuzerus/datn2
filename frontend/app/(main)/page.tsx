@@ -568,6 +568,112 @@ function SectionHeader({ title, href }: { title: string; href?: string }) {
   );
 }
 
+// ─── YOUTUBE VIDEO CARD ───────────────────────────────────────────────────────
+function YoutubeVideoCard({ v }: { v: (typeof youtubeReviews)[number] }) {
+  const [playing, setPlaying] = useState(false);
+  return (
+    <div className="flex flex-col gap-3">
+      {/* Video embed area */}
+      <div className="relative rounded-2xl overflow-hidden bg-black" style={{ aspectRatio: "16/9" }}>
+        {playing ? (
+          <iframe
+            src={`https://www.youtube.com/embed/${v.videoId}?autoplay=1&rel=0`}
+            title={v.title}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+            className="absolute inset-0 w-full h-full"
+          />
+        ) : (
+          <button
+            className="absolute inset-0 w-full h-full group"
+            onClick={() => setPlaying(true)}
+            aria-label={`Xem video: ${v.title}`}
+          >
+            <img
+              src={`https://img.youtube.com/vi/${v.videoId}/hqdefault.jpg`}
+              alt={v.title}
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              loading="lazy"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).src =
+                  "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=480&q=70&fit=crop";
+              }}
+            />
+            <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors" />
+            {/* YouTube-style play button (rounded rectangle) */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="group-hover:scale-110 transition-transform duration-200 ease-out">
+                <div
+                  className="flex items-center justify-center w-[68px] h-[48px] rounded-[14px]"
+                  style={{
+                    background: "rgba(255,0,0,0.93)",
+                    boxShadow: "0 6px 28px rgba(0,0,0,0.55), 0 0 0 3px rgba(255,255,255,0.18)",
+                  }}
+                >
+                  <svg viewBox="0 0 24 24" className="w-[22px] h-[22px] fill-white ml-1">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            {/* Duration */}
+            <span className="absolute bottom-2 right-2.5 bg-black/80 backdrop-blur-sm text-white text-[11px] font-bold px-2 py-[3px] rounded-md tracking-wide">
+              {v.duration}
+            </span>
+          </button>
+        )}
+      </div>
+
+      {/* Channel avatar + title */}
+      <div className="flex gap-2.5">
+        <img
+          src={v.channelAvatar}
+          alt={v.channel}
+          className="w-8 h-8 rounded-full flex-shrink-0 mt-0.5 shadow-sm object-cover"
+          referrerPolicy="no-referrer"
+          onError={(e) => {
+            const el = e.currentTarget;
+            el.style.display = "none";
+            const parent = el.parentElement;
+            if (parent) {
+              const d = document.createElement("div");
+              d.style.cssText = "width:32px;height:32px;border-radius:50%;background:#cc0000;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px";
+              d.innerHTML = `<span style="color:white;font-weight:900;font-size:12px">${v.channel[0]}</span>`;
+              parent.insertBefore(d, el.nextSibling);
+            }
+          }}
+        />
+        <div className="flex-1 min-w-0">
+          <h4 className="text-[13px] font-semibold text-gray-900 line-clamp-2 leading-snug">{v.title}</h4>
+          <p className="text-[11px] text-gray-400 mt-0.5 font-medium">{v.channel}</p>
+        </div>
+      </div>
+
+      {/* Linked product */}
+      <Link
+        href={`/sanpham/${v.product.slug}`}
+        className="group/prod flex items-center gap-3 p-2.5 rounded-xl border border-gray-100 bg-gray-50 hover:bg-red-50 hover:border-red-100 transition-all duration-200"
+      >
+        <div className="w-12 h-12 rounded-xl overflow-hidden bg-white flex-shrink-0 shadow-sm border border-gray-100 flex items-center justify-center">
+          <img src={v.product.thumbnail} alt={v.product.ten} className="w-full h-full object-cover" loading="lazy" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[11.5px] font-semibold text-gray-800 line-clamp-2 leading-snug group-hover/prod:text-red-700 transition-colors">
+            {v.product.ten}
+          </p>
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            <span className="text-[13px] font-bold text-red-500">{fmt(v.product.giaSale ?? v.product.gia)}</span>
+            {v.product.giaSale && (
+              <span className="text-[11px] text-gray-400 line-through">{fmt(v.product.gia)}</span>
+            )}
+          </div>
+        </div>
+        <ChevronRight className="w-4 h-4 text-gray-300 group-hover/prod:text-red-400 flex-shrink-0 transition-colors" />
+      </Link>
+    </div>
+  );
+}
+
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 export default function HomePage() {
   const [current, setCurrent] = useState(0);
@@ -1314,102 +1420,7 @@ export default function HomePage() {
         {/* Video grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {youtubeReviews.map((v) => (
-            <div key={v.videoId} className="flex flex-col gap-3">
-              {/* Thumbnail + play */}
-              <a
-                href={`https://www.youtube.com/watch?v=${v.videoId}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block group relative rounded-2xl overflow-hidden bg-gray-900"
-                style={{ aspectRatio: "16/9" }}
-              >
-                <img
-                  src={`https://img.youtube.com/vi/${v.videoId}/hqdefault.jpg`}
-                  alt={v.title}
-                  className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-all duration-300 group-hover:scale-105"
-                  loading="lazy"
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).src =
-                      "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=480&q=70&fit=crop";
-                  }}
-                />
-                {/* Gradient overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
-                {/* Play button */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div
-                    className="w-14 h-14 rounded-full flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform duration-200"
-                    style={{ background: "rgba(255,0,0,0.92)" }}
-                  >
-                    <svg viewBox="0 0 24 24" className="w-6 h-6 fill-white ml-1">
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
-                  </div>
-                </div>
-                {/* Duration badge */}
-                <span className="absolute bottom-2 right-2.5 bg-black/80 text-white text-[11px] font-bold px-2 py-[3px] rounded-md">
-                  {v.duration}
-                </span>
-              </a>
-
-              {/* Channel avatar + title */}
-              <div className="flex gap-2.5">
-                <img
-                  src={v.channelAvatar}
-                  alt={v.channel}
-                  className="w-8 h-8 rounded-full flex-shrink-0 mt-0.5 shadow-sm object-cover"
-                  referrerPolicy="no-referrer"
-                  onError={(e) => {
-                    const el = e.currentTarget;
-                    el.style.display = "none";
-                    const parent = el.parentElement;
-                    if (parent) {
-                      const div = document.createElement("div");
-                      div.className = "w-8 h-8 rounded-full flex-shrink-0 mt-0.5 bg-red-600 flex items-center justify-center";
-                      div.innerHTML = `<span class="text-white font-black text-[12px]">${v.channel[0]}</span>`;
-                      parent.insertBefore(div, el.nextSibling);
-                    }
-                  }}
-                />
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-[13px] font-semibold text-gray-900 line-clamp-2 leading-snug">
-                    {v.title}
-                  </h4>
-                  <p className="text-[11px] text-gray-400 mt-0.5 font-medium">{v.channel}</p>
-                </div>
-              </div>
-
-              {/* Linked product card */}
-              <Link
-                href={`/sanpham/${v.product.slug}`}
-                className="group/prod flex items-center gap-3 p-2.5 rounded-xl border border-gray-100 bg-gray-50 hover:bg-red-50 hover:border-red-100 transition-all duration-200"
-              >
-                <div className="w-12 h-12 rounded-xl overflow-hidden bg-white flex-shrink-0 shadow-sm border border-gray-100 flex items-center justify-center">
-                  <img
-                    src={v.product.thumbnail}
-                    alt={v.product.ten}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                  />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[11.5px] font-semibold text-gray-800 line-clamp-2 leading-snug group-hover/prod:text-red-700 transition-colors">
-                    {v.product.ten}
-                  </p>
-                  <div className="flex items-center gap-2 mt-1 flex-wrap">
-                    <span className="text-[13px] font-bold text-red-500">
-                      {fmt(v.product.giaSale ?? v.product.gia)}
-                    </span>
-                    {v.product.giaSale && (
-                      <span className="text-[11px] text-gray-400 line-through">
-                        {fmt(v.product.gia)}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-gray-300 group-hover/prod:text-red-400 flex-shrink-0 transition-colors" />
-              </Link>
-            </div>
+            <YoutubeVideoCard key={v.videoId} v={v} />
           ))}
         </div>
       </section>
