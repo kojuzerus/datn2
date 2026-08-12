@@ -458,6 +458,7 @@ export default function Header() {
 
             <Link
               href="/giohang"
+              id="cart-icon"
               title="Giỏ hàng"
               className="w-10 h-10 flex items-center justify-center rounded-xl text-gray-500 hover:text-red-600 hover:bg-red-50 border border-gray-200 hover:border-red-200 transition-all relative"
             >

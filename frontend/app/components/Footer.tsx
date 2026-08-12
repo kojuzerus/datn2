@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { Phone, Mail, MapPin, Clock, ShieldCheck, Star, Store, CreditCard, Smartphone, Wallet } from "lucide-react";
+import React from "react";
+import { Phone, Mail, MapPin, Clock, ShieldCheck, Star, Store } from "lucide-react";
 import { FaFacebookF, FaYoutube, FaTiktok } from "react-icons/fa";
-import { SiZalo, SiVisa, SiMastercard } from "react-icons/si";
-import { BsCash, BsBank2 } from "react-icons/bs";
+import { SiZalo } from "react-icons/si";
 import Logo from "./Logo";
 
 export default function Footer() {
@@ -71,13 +71,76 @@ export default function Footer() {
     { href: "/doi-tac", label: "Đối tác thương hiệu" },
   ];
 
-  const payments = [
-    { label: "Visa / Mastercard", icon: SiVisa, color: "#1A1F71", bg: "#EEF2FF" },
-    { label: "Chuyển khoản", icon: BsBank2, color: "#0369a1", bg: "#e0f2fe" },
-    { label: "Tiền mặt", icon: BsCash, color: "#15803d", bg: "#dcfce7" },
-    { label: "MoMo", icon: Smartphone, color: "#ae2070", bg: "#fdf2f8" },
-    { label: "ZaloPay", icon: Wallet, color: "#0068ff", bg: "#eff6ff" },
-    { label: "VNPay", icon: CreditCard, color: "#e53e3e", bg: "#fff5f5" },
+  const paymentBadges: { label: string; node: React.ReactNode }[] = [
+    {
+      label: "Apple Pay",
+      node: (
+        <div className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:border-gray-300 transition-colors h-9">
+          <svg viewBox="0 0 24 24" height="16" fill="currentColor" className="text-gray-900">
+            <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+          </svg>
+          <span className="text-[12px] font-semibold text-gray-900 tracking-tight">Pay</span>
+        </div>
+      ),
+    },
+    {
+      label: "VNPAY",
+      node: (
+        <div className="flex items-center justify-center px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:border-gray-300 transition-colors h-9">
+          <span className="font-black text-[13px] tracking-tight" style={{ color: "#e53e3e" }}>VN</span>
+          <span className="font-black text-[13px] tracking-tight" style={{ color: "#0066cc" }}>PAY</span>
+        </div>
+      ),
+    },
+    {
+      label: "MoMo",
+      node: (
+        <div className="flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:border-gray-300 transition-colors h-9">
+          <div className="w-5 h-5 rounded-full flex items-center justify-center" style={{ background: "#ae2070" }}>
+            <span className="text-white font-black" style={{ fontSize: "8px" }}>M</span>
+          </div>
+          <span className="font-black text-[12px]" style={{ color: "#ae2070" }}>momo</span>
+        </div>
+      ),
+    },
+    {
+      label: "OnePay",
+      node: (
+        <div className="flex items-center justify-center px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:border-gray-300 transition-colors h-9">
+          <span className="font-black text-[11px]" style={{ color: "#003087" }}>One</span>
+          <span className="font-black text-[11px]" style={{ color: "#e53e3e" }}>Pay</span>
+        </div>
+      ),
+    },
+    {
+      label: "Kredivo",
+      node: (
+        <div className="flex items-center justify-center px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:border-gray-300 transition-colors h-9">
+          <span className="font-black text-[12px] italic" style={{ color: "#e8360a" }}>Kre</span>
+          <span className="font-black text-[12px] italic" style={{ color: "#111" }}>divo</span>
+        </div>
+      ),
+    },
+    {
+      label: "ZaloPay",
+      node: (
+        <div className="flex items-center justify-center px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:border-gray-300 transition-colors h-9">
+          <span className="font-black text-[11px]" style={{ color: "#0068ff" }}>Zalo</span>
+          <span className="font-black text-[11px]" style={{ color: "#00aaff" }}>Pay</span>
+        </div>
+      ),
+    },
+    {
+      label: "Fundiin",
+      node: (
+        <div className="flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:border-gray-300 transition-colors h-9">
+          <div className="w-4 h-4 rounded-sm flex items-center justify-center" style={{ background: "#00b14f" }}>
+            <span className="text-white font-black" style={{ fontSize: "7px" }}>F</span>
+          </div>
+          <span className="font-bold text-[11px] text-gray-800">Fundiin</span>
+        </div>
+      ),
+    },
   ];
 
   const socials = [
@@ -152,16 +215,9 @@ export default function Footer() {
             </ul>
             <div className="mt-8">
               <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-[0.2em] mb-4">Thanh toán</h4>
-              <div className="grid grid-cols-3 gap-3">
-                {payments.map(({ label, icon: Icon, color, bg }) => (
-                  <div
-                    key={label}
-                    className="flex items-center gap-2 rounded-xl border border-gray-100 px-3 py-2 text-[11px] font-medium"
-                    style={{ background: bg, color }}
-                  >
-                    <Icon size={16} />
-                    <span className="truncate">{label}</span>
-                  </div>
+              <div className="flex flex-wrap gap-2">
+                {paymentBadges.map(({ label, node }) => (
+                  <div key={label} title={label}>{node}</div>
                 ))}
               </div>
             </div>

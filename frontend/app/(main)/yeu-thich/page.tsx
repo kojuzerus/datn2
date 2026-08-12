@@ -1,18 +1,23 @@
 'use client';
 
+import { useRef } from 'react';
 import Link from 'next/link';
 import { Heart, Trash2, ShoppingCart, ArrowLeft } from 'lucide-react';
 import { useFavorites } from '../../components/favoritesContext';
 import { useCart } from '../../hooks/useCart';
+import { flyToCart } from '../../utils/flyToCart';
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
 
-export default function FavoritesPage() {
-  const { items, removeItem } = useFavorites();
+function FavoriteCard({ p, onRemove }: { p: ReturnType<typeof useFavorites>['items'][0]; onRemove: (id: number) => void }) {
   const { addToCart, adding } = useCart();
+  const imgRef = useRef<HTMLImageElement>(null);
 
-  const handleAddToCart = async (p: (typeof items)[0]) => {
+  const handleAddToCart = async () => {
+    if (imgRef.current && p.thumbnail) {
+      flyToCart(p.thumbnail, imgRef.current.getBoundingClientRect());
+    }
     await addToCart({
       productId: String(p.id),
       tenSanPham: p.ten,
@@ -22,6 +27,55 @@ export default function FavoritesPage() {
       variant: '',
     });
   };
+
+  const displayPrice = p.giaSale ?? p.gia;
+  return (
+    <div className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col">
+      <Link href={`/sanpham/${p.slug}`} className="block relative">
+        <img
+          ref={imgRef}
+          src={p.thumbnail || 'https://placehold.co/300x300?text=No+Image'}
+          alt={p.ten}
+          className="w-full aspect-square object-contain p-3 hover:scale-105 transition-transform duration-300"
+          loading="lazy"
+        />
+        {p.giamGia > 0 && (
+          <span className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+            -{p.giamGia}%
+          </span>
+        )}
+      </Link>
+      <div className="px-3 pb-3 flex flex-col flex-1 gap-2">
+        <Link href={`/sanpham/${p.slug}`}>
+          <p className="text-xs font-semibold text-gray-800 line-clamp-2 leading-snug hover:text-red-500 transition-colors">{p.ten}</p>
+        </Link>
+        <div>
+          <p className="text-red-600 font-bold text-[15px]">{fmt(displayPrice)}</p>
+          {p.giamGia > 0 && <p className="text-gray-400 text-xs line-through">{fmt(p.gia)}</p>}
+        </div>
+        <div className="flex gap-2 mt-auto">
+          <button
+            onClick={handleAddToCart}
+            disabled={adding}
+            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-red-500 hover:bg-red-600 text-white text-[11px] font-semibold transition-colors disabled:opacity-60"
+          >
+            <ShoppingCart className="w-3.5 h-3.5" />
+            Thêm vào giỏ
+          </button>
+          <button
+            onClick={() => onRemove(p.id)}
+            className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition-colors flex-shrink-0"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function FavoritesPage() {
+  const { items, removeItem } = useFavorites();
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
@@ -63,65 +117,9 @@ export default function FavoritesPage() {
         {/* Product grid */}
         {items.length > 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            {items.map((p) => {
-              const displayPrice = p.giaSale ?? p.gia;
-              return (
-                <div
-                  key={p.id}
-                  className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col"
-                >
-                  {/* Image */}
-                  <Link href={`/sanpham/${p.slug}`} className="block relative">
-                    <img
-                      src={p.thumbnail || 'https://placehold.co/300x300?text=No+Image'}
-                      alt={p.ten}
-                      className="w-full aspect-square object-contain p-3 hover:scale-105 transition-transform duration-300"
-                      loading="lazy"
-                    />
-                    {p.giamGia > 0 && (
-                      <span className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                        -{p.giamGia}%
-                      </span>
-                    )}
-                  </Link>
-
-                  {/* Info */}
-                  <div className="px-3 pb-3 flex flex-col flex-1 gap-2">
-                    <Link href={`/sanpham/${p.slug}`}>
-                      <p className="text-xs font-semibold text-gray-800 line-clamp-2 leading-snug hover:text-red-500 transition-colors">
-                        {p.ten}
-                      </p>
-                    </Link>
-
-                    <div>
-                      <p className="text-red-600 font-bold text-[15px]">{fmt(displayPrice)}</p>
-                      {p.giamGia > 0 && (
-                        <p className="text-gray-400 text-xs line-through">{fmt(p.gia)}</p>
-                      )}
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex gap-2 mt-auto">
-                      <button
-                        onClick={() => handleAddToCart(p)}
-                        disabled={adding}
-                        className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-red-500 hover:bg-red-600 text-white text-[11px] font-semibold transition-colors disabled:opacity-60"
-                      >
-                        <ShoppingCart className="w-3.5 h-3.5" />
-                        Thêm vào giỏ
-                      </button>
-                      <button
-                        onClick={() => removeItem(p.id)}
-                        className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition-colors flex-shrink-0"
-                        title="Xóa khỏi yêu thích"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+            {items.map((p) => (
+              <FavoriteCard key={p.id} p={p} onRemove={removeItem} />
+            ))}
           </div>
         )}
       </div>

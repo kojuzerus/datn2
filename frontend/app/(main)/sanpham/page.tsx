@@ -792,7 +792,7 @@ function ProductsContent() {
 
       {/* Load more */}
       {!loading && products.length < pagination.total && (
-        <div className="flex justify-center mt-8">
+        <div className="flex justify-center mt-8 mb-12">
           <button
             onClick={handleLoadMore}
             disabled={loadingMore}

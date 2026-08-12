@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Clock, MapPin, XCircle, Check, Star } from 'lucide-react';
 import CancelOrderModal from '../../components/CancelOrderModal';
+import { toastError } from '../../utils/toast';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -132,10 +133,10 @@ export default function OrderDetailPage() {
       if (data.success) {
         setOrder(prev => prev ? { ...prev, trangThai: 'da_huy' } : prev);
       } else {
-        alert(data.message || 'Không thể hủy đơn hàng');
+        toastError(data.message || 'Không thể hủy đơn hàng');
       }
     } catch {
-      alert('Lỗi kết nối, vui lòng thử lại');
+      toastError('Lỗi kết nối, vui lòng thử lại');
     } finally {
       setCancelling(false);
       setShowCancelModal(false);

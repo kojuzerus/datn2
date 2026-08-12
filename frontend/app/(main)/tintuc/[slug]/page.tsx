@@ -8,6 +8,7 @@ import {
   Heart, MessageSquare, Send, Loader2, CornerDownRight, Trash2, ShieldCheck,
 } from "lucide-react";
 import { requireLogin } from "../../../lib/authPrompt";
+import { toastError } from "../../../utils/toast";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -149,7 +150,7 @@ export default function TinTucChiTietPage() {
         setComments((prev) => [json.data, ...prev]);
         setCommentInput("");
       } else {
-        alert(json.message || "Không gửi được bình luận");
+        toastError(json.message || "Không gửi được bình luận");
       }
     } finally {
       setSending(false);
@@ -174,7 +175,7 @@ export default function TinTucChiTietPage() {
         setReplyingId(null);
         setReplyInput("");
       } else {
-        alert(json.message || "Không gửi được trả lời");
+        toastError(json.message || "Không gửi được trả lời");
       }
     } finally {
       setReplySending(false);

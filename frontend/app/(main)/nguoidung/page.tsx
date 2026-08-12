@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import SearchableSelect, { SelectOption } from '../../components/SearchableSelect';
 import { useFavorites } from '../../components/favoritesContext';
+import { toastError, toastWarning } from '../../utils/toast';
 import CancelOrderModal from '../../components/CancelOrderModal';
 
 const API_URL  = process.env.NEXT_PUBLIC_API_URL  || 'http://localhost:5000';
@@ -161,7 +162,7 @@ export default function NguoiDungPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) {
-      alert('Ảnh quá lớn, vui lòng chọn ảnh dưới 2MB');
+      toastWarning('Ảnh quá lớn, vui lòng chọn ảnh dưới 2MB');
       return;
     }
     const reader = new FileReader();
@@ -229,10 +230,10 @@ export default function NguoiDungPage() {
       if (d.success) {
         setOrders(prev => prev.map(o => o._id === confirmCancelId ? { ...o, trangThai: 'da_huy' } : o));
       } else {
-        alert(d.message || 'Không thể hủy đơn hàng');
+        toastError(d.message || 'Không thể hủy đơn hàng');
       }
     } catch {
-      alert('Lỗi kết nối, vui lòng thử lại');
+      toastError('Lỗi kết nối, vui lòng thử lại');
     } finally {
       setCancellingOrderId(null);
       setConfirmCancelId(null);

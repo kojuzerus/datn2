@@ -11,9 +11,11 @@ import {
   PackageCheck,
 } from "lucide-react";
 import { useCart } from "../../../hooks/useCart";
+import { flyToCart } from "../../../utils/flyToCart";
 import { useComparison } from "../../../components/comparisonContext";
 import { useFavorites, type FavoriteProduct } from "../../../components/favoritesContext";
 import { requireLogin, isLoggedIn } from "../../../lib/authPrompt";
+import { toastError } from "../../../utils/toast";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -285,12 +287,18 @@ export default function ProductDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedVariant?.variant_id]);
 
+  const mainImgRef = useRef<HTMLImageElement>(null);
+
   const handleAddToCart = async () => {
     if (!product || !inStock) return;
+    const imgSrc = selectedVariant?.image || product.thumbnail || "";
+    if (mainImgRef.current && imgSrc) {
+      flyToCart(imgSrc, mainImgRef.current.getBoundingClientRect());
+    }
     const success = await addToCart({
       productId: String(product.id),
       tenSanPham: product.ten,
-      hinhAnh: selectedVariant?.image || product.thumbnail,
+      hinhAnh: imgSrc,
       gia: displayPrice,
       soLuong: Math.max(1, qty),
       variant: selectedVariant?.color || "",
@@ -314,6 +322,7 @@ export default function ProductDetailPage() {
       variant: selectedVariant?.color || '',
     };
     sessionStorage.setItem('smarthub_buynow_item', JSON.stringify(item));
+    localStorage.removeItem('smarthub_checkout_ids');
     router.push('/thanhtoan');
   };
 
@@ -454,6 +463,7 @@ export default function ProductDetailPage() {
               </span>
             )}
             <img
+              ref={mainImgRef}
               src={mainImageSrc || "https://placehold.co/600x600?text=No+Image"}
               alt={product.ten}
               className="w-full h-full object-contain p-6 transition-transform duration-300 group-hover:scale-[1.04]"
@@ -1193,7 +1203,7 @@ function ReviewsSection({ productId }: { productId: number }) {
         setHasReviewed(true);
         fetchReviews();
       } else {
-        alert(json.message || "Không gửi được đánh giá");
+        toastError(json.message || "Không gửi được đánh giá");
       }
     } finally {
       setSubmitting(false);

@@ -5,13 +5,15 @@ import Link from "next/link";
 import {
   ChevronLeft, ChevronRight, Star, ArrowRight,
   ShieldCheck, Truck, RefreshCw, Headphones,
-  Smartphone, Heart, Wallet, CreditCard,
+  Smartphone, Heart, Wallet, CreditCard, Zap,
 } from "lucide-react";
 import { useFavorites, type FavoriteProduct } from "../components/favoritesContext";
 import { specChips } from "../lib/specChips";
 import { ARTICLES } from "./tin-tuc/data";
 import HeroBanner from "../components/HeroBanner";
 import Rabbit3D from "../components/Rabbit3D";
+import { useCart } from "../hooks/useCart";
+import { flyToCart } from "../utils/flyToCart";
 
 // ─── API CONFIG ───────────────────────────────────────────────────────────────
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -484,6 +486,23 @@ function FlashSaleProductCard({ p }: { p: ProductFeatured }) {
   const soldPct    = Math.max((soldSlots / totalSlots) * 100, 8);
   const { isFavorite, toggleItem } = useFavorites();
   const liked = isFavorite(p.id);
+  const { addToCart, adding } = useCart();
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  const handleAddToCart = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (imgRef.current) {
+      flyToCart(p.thumbnail || "", imgRef.current.getBoundingClientRect());
+    }
+    await addToCart({
+      productId: String(p.id),
+      tenSanPham: p.ten,
+      hinhAnh: p.thumbnail,
+      gia: displayPrice,
+      soLuong: 1,
+    });
+  };
 
   const handleToggleFavorite = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -517,6 +536,7 @@ function FlashSaleProductCard({ p }: { p: ProductFeatured }) {
             </span>
           )}
           <img
+            ref={imgRef}
             src={p.thumbnail || "https://placehold.co/300x300?text=No+Image"}
             alt={p.ten}
             className="h-full w-full object-contain"
@@ -547,8 +567,12 @@ function FlashSaleProductCard({ p }: { p: ProductFeatured }) {
 
           {/* Bottom: Mua ngay + yêu thích */}
           <div className="flex items-center gap-2 mt-auto">
-            <button className="flex-1 py-1.5 rounded-full border border-red-500 text-red-600 text-[12px] font-bold hover:bg-red-500 hover:text-white transition-colors">
-              Mua ngay
+            <button
+              onClick={handleAddToCart}
+              disabled={adding}
+              className="flex-1 py-1.5 rounded-full border border-red-500 text-red-600 text-[12px] font-bold hover:bg-red-500 hover:text-white transition-colors disabled:opacity-60"
+            >
+              {adding ? "Đang thêm..." : "Mua ngay"}
             </button>
             <button
               onClick={handleToggleFavorite}
@@ -1033,103 +1057,96 @@ export default function HomePage() {
       </section>
 
       {/* ── FLASH SALE ────────────────────────────────────────────────── */}
-      {/* pt-14 để dành chỗ cho tai thỏ nhô lên */}
-      <section className="max-w-screen-xl mx-auto px-6 mt-6 pt-14 relative">
+      <section className="max-w-screen-xl mx-auto px-6 mt-6 relative">
 
-        {/* Con thỏ đặt ngoài khung — tai nhô lên trên */}
-        <div className="hidden md:flex items-end gap-2 absolute left-1/2 -translate-x-1/2 top-0 z-30">
-          <div style={{ animation: "rabbit-jump 2.4s ease-in-out infinite" }}>
-            <Rabbit3D size={96} />
-          </div>
-          <div
-            className="-rotate-6 bg-yellow-300 text-red-700 font-black leading-tight px-3 py-1.5 rounded-xl mb-10"
-            style={{ fontSize: "0.8rem", boxShadow: "0 4px 14px rgba(0,0,0,0.22)" }}
-          >
-            DEAL SỤT<br />BAY GIÁ
-          </div>
-        </div>
+        <div className="rounded-2xl overflow-hidden" style={{ boxShadow: "0 6px 24px rgba(185,28,28,0.25), 0 2px 6px rgba(0,0,0,0.08)" }}>
 
-        {/* Khung chính — KHÔNG overflow-hidden để tai thỏ nhô ra */}
-        <div className="rounded-2xl" style={{ boxShadow: "0 8px 32px rgba(220,38,38,0.22), 0 2px 8px rgba(0,0,0,0.1)" }}>
+          {/* ── Header đỏ — 1 bar duy nhất ── */}
+          <div className="fs-bg-animated px-5 py-0 flex items-stretch min-h-[64px]">
 
-          {/* ── Header đỏ ── */}
-          <div
-            className="relative px-6 pt-5 pb-16 rounded-t-2xl"
-            style={{ background: "linear-gradient(90deg, #b91c1c 0%, #dc2626 50%, #b91c1c 100%)" }}
-          >
-            <div className="flex items-center justify-between">
-              {/* Trái: FLASH SALE */}
-              <div className="flex items-center gap-2.5 shrink-0">
-                <span
-                  className="text-white font-black uppercase tracking-wider"
-                  style={{ fontSize: "clamp(1.3rem, 2vw, 1.7rem)", textShadow: "0 2px 8px rgba(0,0,0,0.3)" }}
-                >
-                  Flash Sale
-                </span>
+            {/* Trái: icon + title */}
+            <div className="flex items-center gap-3 pr-5 border-r border-white/20">
+              <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-white/15">
+                <Zap className="w-5 h-5 text-yellow-300 fill-yellow-300" />
               </div>
-
-              {/* Phải: đếm ngược */}
-              <div className="flex items-center gap-2.5 shrink-0">
-                <span className="hidden sm:block text-white/70 text-[11px] font-bold uppercase tracking-widest text-right leading-tight">
-                  Kết thúc<br />sau
-                </span>
-                <div className="flex items-center gap-1">
-                  {[pad(saleTimeLeft.h), pad(saleTimeLeft.m), pad(saleTimeLeft.s)].map((val, i) => (
-                    <div key={i} className="flex items-center gap-1">
-                      <div
-                        className="font-mono font-black text-white flex items-center justify-center rounded-lg"
-                        style={{
-                          fontSize: "clamp(1.1rem, 1.8vw, 1.4rem)",
-                          width: "2.6rem", height: "2.6rem",
-                          background: "linear-gradient(180deg,#1a1a2e 0%,#111827 100%)",
-                          boxShadow: "0 3px 10px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08)",
-                        }}
-                      >
-                        {val}
-                      </div>
-                      {i < 2 && <span className="text-white/70 font-bold text-lg leading-none">:</span>}
-                    </div>
-                  ))}
-                </div>
+              <div>
+                <p className="text-white font-black uppercase tracking-wide leading-none" style={{ fontSize: "1.25rem" }}>
+                  Flash Sale
+                </p>
+                <p className="text-yellow-300 text-[10px] font-bold tracking-widest uppercase mt-0.5 opacity-90">Giá sốc mỗi ngày</p>
               </div>
             </div>
-          </div>
 
-          {/* ── Panel trắng — top cong nhô lên ── */}
-          <div
-            className="bg-white relative z-10 rounded-b-2xl"
-            style={{ borderRadius: "28px 28px 16px 16px", marginTop: "-28px" }}
-          >
-            {/* Tab ngày */}
+            {/* Giữa: tabs ngày — flex-1, scroll ẩn */}
             <div
-              className="flex items-center justify-center gap-2 px-5 pt-4 pb-3 border-b border-gray-100 overflow-x-auto"
+              className="flex items-center gap-2 flex-1 px-4 overflow-x-auto"
               style={{ scrollbarWidth: "none" }}
             >
-              <button className="flex-shrink-0 w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-50 transition">
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-
               {Array.from({ length: 4 }).map((_, i) => {
                 const d = new Date();
                 d.setDate(d.getDate() + i);
-                const f2 = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
-                return i === 0 ? (
-                  <div key={i} className="px-5 py-2 rounded-xl border-2 border-red-500 bg-red-50 text-center flex-shrink-0 shadow-sm shadow-red-100">
-                    <p className="text-red-600 text-[13px] font-black uppercase leading-tight">Hôm nay</p>
-                    <p className="text-gray-500 text-[10px] font-medium">Kết thúc: <strong className="text-gray-700">23:59</strong></p>
-                  </div>
-                ) : (
-                  <div key={i} className="px-5 py-2 rounded-xl border border-gray-200 text-center flex-shrink-0">
-                    <p className="text-gray-700 text-[13px] font-bold tabular-nums leading-tight">{f2}</p>
-                    <p className="text-red-500 text-[10px] font-bold uppercase tracking-wide">Sắp mở</p>
-                  </div>
+                const dayStr = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+                const isToday = i === 0;
+                return (
+                  <button
+                    key={i}
+                    className="flex-shrink-0 flex flex-col items-center justify-center px-4 py-1.5 rounded-xl transition-all"
+                    style={isToday
+                      ? { background: "rgba(255,255,255,0.22)", border: "1.5px solid rgba(255,255,255,0.5)" }
+                      : { background: "rgba(255,255,255,0.07)", border: "1.5px solid rgba(255,255,255,0.12)" }}
+                  >
+                    <span className="text-white font-black text-[12px] leading-tight">
+                      {isToday ? "Hôm nay" : dayStr}
+                    </span>
+                    <span className={`text-[9px] font-semibold uppercase leading-tight ${isToday ? "text-yellow-200" : "text-white/50"}`}>
+                      {isToday ? "23:59" : "Sắp mở"}
+                    </span>
+                  </button>
                 );
               })}
-
-              <button className="flex-shrink-0 w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-50 transition">
-                <ChevronRight className="w-4 h-4" />
-              </button>
             </div>
+
+            {/* Phải: countdown + link */}
+            <div className="flex items-center gap-4 pl-5 border-l border-white/20 shrink-0">
+              {/* Countdown */}
+              <div className="flex items-center gap-1.5">
+                {[
+                  { v: pad(saleTimeLeft.h), l: "Giờ"  },
+                  { v: pad(saleTimeLeft.m), l: "Phút" },
+                  { v: pad(saleTimeLeft.s), l: "Giây" },
+                ].map((item, i) => (
+                  <div key={i} className="flex items-center gap-1.5">
+                    <div className="flex flex-col items-center">
+                      <div
+                        className="font-mono font-black text-white flex items-center justify-center rounded-lg tabular-nums"
+                        style={{
+                          fontSize: "1.15rem",
+                          width: "2.2rem", height: "2.2rem",
+                          background: "rgba(0,0,0,0.45)",
+                          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.1), 0 2px 6px rgba(0,0,0,0.3)",
+                        }}
+                      >
+                        {item.v}
+                      </div>
+                      <span className="text-white/50 text-[8.5px] font-semibold mt-0.5 tracking-wide">{item.l}</span>
+                    </div>
+                    {i < 2 && <span className="text-white/60 font-black text-base leading-none mb-3">:</span>}
+                  </div>
+                ))}
+              </div>
+              {/* CTA */}
+              <Link
+                href="/sanpham?giam-gia=1"
+                className="hidden md:flex items-center gap-1 text-yellow-300 hover:text-yellow-200 text-[12.5px] font-bold whitespace-nowrap transition-colors"
+              >
+                Xem tất cả
+                <ChevronRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+          </div>
+
+          {/* ── Panel trắng ── */}
+          <div className="bg-white relative z-10 rounded-b-2xl">
 
             {/* Product carousel */}
             <div className="px-5 py-4 relative">

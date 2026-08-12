@@ -9,6 +9,7 @@ import {
   Plus, Loader2, CheckCircle2, Lock, Tag, X,
 } from 'lucide-react';
 import SearchableSelect, { SelectOption } from '../components/SearchableSelect';
+import { toastError, toastWarning } from '../utils/toast';
 
 const API_URL      = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 const GEO_BASE_URL = 'https://provinces.open-api.vn/api';
@@ -206,7 +207,7 @@ export default function ThanhToanPage() {
   const handleSaveNewAddr = async () => {
     const { receiverName, phone, provinceName, districtName, wardName, detailAddress } = newAddr;
     if (!receiverName || !phone || !provinceName || !districtName || !wardName || !detailAddress)
-      return alert('Vui lòng điền đầy đủ thông tin địa chỉ');
+      return toastWarning('Vui lòng điền đầy đủ thông tin địa chỉ');
 
     setSavingAddr(true);
     const res  = await fetch(`${API_URL}/api/addresses`, {
@@ -229,7 +230,7 @@ export default function ThanhToanPage() {
       setDistricts([]);
       setWards([]);
     } else {
-      alert(data.message || 'Lỗi khi lưu địa chỉ');
+      toastError(data.message || 'Lỗi khi lưu địa chỉ');
     }
   };
 
@@ -265,8 +266,8 @@ export default function ThanhToanPage() {
   };
 
   const handlePlaceOrder = async () => {
-    if (!selectedAddr) return alert('Vui lòng chọn địa chỉ giao hàng');
-    if (items.length === 0) return alert('Không có sản phẩm nào');
+    if (!selectedAddr) return toastWarning('Vui lòng chọn địa chỉ giao hàng');
+    if (items.length === 0) return toastWarning('Không có sản phẩm nào');
 
     const addr = addresses.find(a => a._id === selectedAddr);
     if (!addr) return;
@@ -306,13 +307,13 @@ export default function ThanhToanPage() {
         if (payData.success && payData.url) {
           window.location.href = payData.url;
         } else {
-          alert(payData.message || 'Lỗi tạo URL VNPAY');
+          toastError(payData.message || 'Lỗi tạo URL VNPAY');
         }
       } else {
         router.push(`/dat-hang-thanh-cong?orderId=${data.order._id}`);
       }
     } else {
-      alert(data.message || 'Đặt hàng thất bại');
+      toastError(data.message || 'Đặt hàng thất bại');
     }
   };
 

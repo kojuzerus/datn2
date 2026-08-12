@@ -8,6 +8,7 @@ import {
   Package, ShieldCheck, RotateCcw, BadgeCheck, Zap,
 } from 'lucide-react';
 import { requireLogin } from '../lib/authPrompt';
+import { toastWarning } from '../utils/toast';
 import {
   getGuestCart, updateGuestCartItem, removeGuestCartItem, clearGuestCart,
 } from '../lib/guestCart';
@@ -156,13 +157,14 @@ export default function GioHangPage() {
   const tongThanhToan = tongTien + phiGH;
 
   const handleCheckout = () => {
-    if (selected.size === 0) return alert('Vui lòng chọn ít nhất một sản phẩm');
+    if (selected.size === 0) return toastWarning('Vui lòng chọn ít nhất một sản phẩm');
     // Chỉ bắt đăng nhập khi khách bấm thanh toán
     if (!token) {
       requireLogin('Vui lòng đăng nhập để tiến hành thanh toán.');
       return;
     }
-    // Lưu danh sách ID được chọn để trang thanh toán đọc
+    // Xóa buy-now cũ (nếu có) để trang thanh toán đọc giỏ hàng
+    sessionStorage.removeItem('smarthub_buynow_item');
     localStorage.setItem('smarthub_checkout_ids', JSON.stringify([...selected]));
     router.push('/thanhtoan');
   };
