@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { ChevronUp } from 'lucide-react';
 
 export default function ScrollToTop() {
+  const pathname = usePathname();
   const [visible, setVisible]           = useState(false);
   const [panelOpen, setPanelOpen]       = useState(false);
 
@@ -19,7 +21,7 @@ export default function ScrollToTop() {
     return () => window.removeEventListener('compare-panel', handler);
   }, []);
 
-  if (!visible || panelOpen) return null;
+  if (!visible || panelOpen || pathname?.startsWith('/admin')) return null;
 
   return (
     <button
