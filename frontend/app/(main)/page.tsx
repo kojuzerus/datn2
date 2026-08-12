@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   ChevronLeft, ChevronRight, Star, ArrowRight,
   ShieldCheck, Truck, RefreshCw, Headphones,
-  Smartphone, Heart, Wallet, CreditCard, Zap,
+  Heart, Zap,
 } from "lucide-react";
 import { useFavorites, type FavoriteProduct } from "../components/favoritesContext";
 import { specChips } from "../lib/specChips";
@@ -52,97 +52,62 @@ interface ProductBestSelling {
 
 // ─── STATIC DATA (banner, categories, bài viết không cần API) ────────────────
 
-const eduPromos = [
+const youtubeReviews = [
   {
-    title: "Copilot+ PC ưu đãi",
-    tag: "Windows 11",
-    highlight: "Chỉ từ 15.99 triệu",
-    sub: "Trợ giá lên đến 4 triệu",
-    img: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=600&q=80&fit=crop",
-    titleColor: "#ffffff",
-    subColor: "#bfdbfe",
-    tagClass: "bg-white/15 text-cyan-300",
-    href: "/sanpham?danh-muc=laptop",
+    videoId: "YNZW6L13IYs",
+    title: "Samsung Galaxy S26 Ultra Review: Siêu phẩm Android đỉnh nhất 2026!",
+    channel: "MobileTechReview",
+    channelAvatar: "https://yt3.googleusercontent.com/zQ_Xo3V4VSqpUR3h8rqxOs2hKnMH9wiO55Bwp8IVg3rHzFE0zKbclHtBU3e8RcNsKvM_J34z=s200-c-k-c0x00ffffff-no-rj",
+    duration: "13:42",
+    product: {
+      ten: "Samsung Galaxy S26 Ultra 5G",
+      gia: 29000000,
+      giaSale: 26000000,
+      slug: "samsung-galaxy-s26-ultra-5g-205",
+      thumbnail: "https://cdn2.cellphones.com.vn/insecure/rs:fill:300:300/q:100/plain/https://cellphones.com.vn/media/catalog/product/s/a/samsung-galaxy-s26-ultra-1.jpg",
+    },
   },
   {
-    title: "Toàn bộ Laptop",
-    tag: "Ưu đãi học sinh - sinh viên",
-    highlight: "Giảm thêm 5%",
-    sub: "Tối đa đến 1 triệu",
-    img: "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&q=80&fit=crop",
-    titleColor: "#ffffff",
-    subColor: "#d1d5db",
-    tagClass: "bg-white/15 text-amber-300",
-    href: "/sanpham?danh-muc=laptop",
+    videoId: "V0krlJi-d_A",
+    title: "Apple iPhone 17 Pro Review: Chip A19 Pro, Camera 48MP – Đáng nâng cấp?",
+    channel: "MobileTechReview",
+    channelAvatar: "https://yt3.googleusercontent.com/zQ_Xo3V4VSqpUR3h8rqxOs2hKnMH9wiO55Bwp8IVg3rHzFE0zKbclHtBU3e8RcNsKvM_J34z=s200-c-k-c0x00ffffff-no-rj",
+    duration: "16:08",
+    product: {
+      ten: "iPhone 17 Pro 1TB",
+      gia: 25000000,
+      giaSale: 22000000,
+      slug: "iphone-17-pro-1tb-206",
+      thumbnail: "https://cdn2.cellphones.com.vn/insecure/rs:fill:358:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/i/p/iphone_17_pro_512gb_1.jpg",
+    },
   },
   {
-    title: "S-Financing",
-    tag: "Dành riêng cho S-Student",
-    highlight: "Trả góp 0%",
-    sub: "Duyệt dễ mua nhanh",
-    img: "https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=600&q=80&fit=crop",
-    titleColor: "#ffffff",
-    subColor: "#ccfbf1",
-    tagClass: "bg-white/15 text-white",
-    href: "/sanpham",
+    videoId: "EOYJGSTxtd4",
+    title: "Review MacBook Air M3: Đáng mua không? Hay nên mua M2?",
+    channel: "Duy Luân Dễ Thương",
+    channelAvatar: "https://yt3.googleusercontent.com/T6oTPNuvvjhcN3NejfeZJONHr-S_Mh0hxkPcHSZm-dRUPXji_pM8ynorKISuaq0u_jzyg2oJzao=s200-c-k-c0x00ffffff-no-rj",
+    duration: "18:24",
+    product: {
+      ten: "MacBook Air M3",
+      gia: 28990000,
+      giaSale: 27990000,
+      slug: "macbook-air-m3",
+      thumbnail: "https://cdn2.cellphones.com.vn/insecure/rs:fill:358:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/m/a/macbook-air-m3-13-inch-2024_1__5.png",
+    },
   },
   {
-    title: "S-Student & S-Teacher",
-    tag: "Say Hi!",
-    highlight: "Giảm thêm 10%",
-    sub: "Trả góp 0% phụ phí 0đ",
-    img: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&q=80&fit=crop",
-    titleColor: "#ffffff",
-    subColor: "#ffe4e6",
-    tagClass: "bg-white/15 text-white",
-    href: "/sanpham",
-  },
-];
-
-const paymentPromos = [
-  {
-    brand: "Home Credit",
-    icon: Wallet,
-    title: "Ưu đãi thanh toán Home Credit",
-    highlight: "Giảm 400K",
-    sub: "Cho đơn hàng từ 10 triệu",
-    img: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=600&q=80&fit=crop",
-    titleColor: "#ffffff",
-    subColor: "#fecaca",
-    href: "/sanpham",
-  },
-  {
-    brand: "ZaloPay",
-    icon: Smartphone,
-    title: "Ưu đãi thanh toán ZaloPay",
-    highlight: "Giảm 5%",
-    sub: "Tối đa 1 triệu, áp dụng đơn từ 10 triệu",
-    img: "https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=600&q=80&fit=crop",
-    titleColor: "#ffffff",
-    subColor: "#dbeafe",
-    href: "/sanpham",
-  },
-  {
-    brand: "SPayLater",
-    icon: Wallet,
-    title: "Ưu đãi thanh toán SPayLater",
-    highlight: "Giảm đến 500.000đ",
-    sub: "Áp dụng ShopeePay & SPayLater",
-    img: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=600&q=80&fit=crop",
-    titleColor: "#ffffff",
-    subColor: "#ffedd5",
-    href: "/sanpham",
-  },
-  {
-    brand: "Visa / Mastercard",
-    icon: CreditCard,
-    title: "Ưu đãi thanh toán thẻ",
-    highlight: "Giảm 500K - 1 triệu",
-    sub: "Cho sản phẩm từ 12 - 30 triệu",
-    img: "https://images.unsplash.com/photo-1605792657660-596af9009e82?w=600&q=80&fit=crop",
-    titleColor: "#ffffff",
-    subColor: "#cbd5e1",
-    href: "/sanpham",
+    videoId: "tuAhB8Hsu30",
+    title: "Sony WH-1000XM5 – 'Ông kẹ' trong làng tai nghe chống ồn hiện nay!",
+    channel: "CellphoneS Official",
+    channelAvatar: "https://yt3.googleusercontent.com/rK8cTvkOXk2t-f1xlBTsyx4VtHjrKWdBPKHaMTUdxTuQBY3oZ8Gok-H2NZPwp3aJAYO_cRLO=s200-c-k-c0x00ffffff-no-rj",
+    duration: "11:53",
+    product: {
+      ten: "Sony WH-1000XM5",
+      gia: 8990000,
+      giaSale: 8490000,
+      slug: "sony-wh-1000xm5",
+      thumbnail: "https://cdn2.cellphones.com.vn/insecure/rs:fill:358:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/s/o/sony-wh-1000xm6-11.jpg",
+    },
   },
 ];
 
@@ -1319,77 +1284,133 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* ── ƯU ĐÃI GIÁO DỤC & THANH TOÁN ─────────────────────────────── */}
+      {/* ── REVIEW SẢN PHẨM ──────────────────────────────────────────── */}
       <section className="max-w-screen-xl mx-auto px-6 mt-12">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Ưu đãi giáo dục */}
-          <div className="bg-white border border-gray-100 rounded-sm p-6">
-            <h2 className="text-center text-base font-bold text-gray-800 uppercase tracking-wide mb-5">Ưu đãi giáo dục</h2>
-            <div className="grid grid-cols-2 gap-3">
-              {eduPromos.map((promo) => (
-                <Link
-                  key={promo.title}
-                  href={promo.href}
-                  className="group relative overflow-hidden rounded-xl p-4 flex flex-col justify-between min-h-[150px] transition-transform duration-300 hover:-translate-y-0.5"
-                >
-                  <img
-                    src={promo.img}
-                    alt={promo.title}
-                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 bg-slate-700"
-                    loading="lazy"
-                    onError={(e) => { e.currentTarget.style.display = "none"; }}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/10" />
-                  <div className="relative z-10">
-                    <span className={`inline-block text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${promo.tagClass}`}>
-                      {promo.tag}
-                    </span>
-                    <h3 className="mt-2 text-sm font-bold leading-snug" style={{ color: promo.titleColor }}>
-                      {promo.title}
-                    </h3>
-                  </div>
-                  <div className="relative z-10">
-                    <p className="text-lg font-extrabold" style={{ color: promo.titleColor }}>{promo.highlight}</p>
-                    <p className="text-[11px] mt-0.5" style={{ color: promo.subColor }}>{promo.sub}</p>
-                  </div>
-                </Link>
-              ))}
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div
+              className="flex items-center justify-center w-8 h-[22px] rounded"
+              style={{ background: "#FF0000" }}
+            >
+              <svg viewBox="0 0 24 24" className="w-4 h-3.5 fill-white">
+                <path d="M8 5v14l11-7z" />
+              </svg>
             </div>
+            <h2 className="text-[17px] font-black text-gray-900 uppercase tracking-tight">
+              Review Sản Phẩm
+            </h2>
           </div>
+          <a
+            href="https://www.youtube.com/@CellphoneS"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-0.5 text-[13px] font-semibold text-red-600 hover:text-red-700 transition-colors"
+          >
+            Xem YouTube <ChevronRight className="w-3.5 h-3.5" />
+          </a>
+        </div>
 
-          {/* Ưu đãi thanh toán */}
-          <div className="bg-white border border-gray-100 rounded-sm p-6">
-            <h2 className="text-center text-base font-bold text-gray-800 uppercase tracking-wide mb-5">Ưu đãi thanh toán</h2>
-            <div className="grid grid-cols-2 gap-3">
-              {paymentPromos.map((promo) => (
-                <Link
-                  key={promo.title}
-                  href={promo.href}
-                  className="group relative overflow-hidden rounded-xl p-4 flex flex-col justify-between min-h-[150px] transition-transform duration-300 hover:-translate-y-0.5"
-                >
+        {/* Video grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {youtubeReviews.map((v) => (
+            <div key={v.videoId} className="flex flex-col gap-3">
+              {/* Thumbnail + play */}
+              <a
+                href={`https://www.youtube.com/watch?v=${v.videoId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block group relative rounded-2xl overflow-hidden bg-gray-900"
+                style={{ aspectRatio: "16/9" }}
+              >
+                <img
+                  src={`https://img.youtube.com/vi/${v.videoId}/hqdefault.jpg`}
+                  alt={v.title}
+                  className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-all duration-300 group-hover:scale-105"
+                  loading="lazy"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src =
+                      "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=480&q=70&fit=crop";
+                  }}
+                />
+                {/* Gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+                {/* Play button */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div
+                    className="w-14 h-14 rounded-full flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform duration-200"
+                    style={{ background: "rgba(255,0,0,0.92)" }}
+                  >
+                    <svg viewBox="0 0 24 24" className="w-6 h-6 fill-white ml-1">
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                  </div>
+                </div>
+                {/* Duration badge */}
+                <span className="absolute bottom-2 right-2.5 bg-black/80 text-white text-[11px] font-bold px-2 py-[3px] rounded-md">
+                  {v.duration}
+                </span>
+              </a>
+
+              {/* Channel avatar + title */}
+              <div className="flex gap-2.5">
+                <img
+                  src={v.channelAvatar}
+                  alt={v.channel}
+                  className="w-8 h-8 rounded-full flex-shrink-0 mt-0.5 shadow-sm object-cover"
+                  referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    const el = e.currentTarget;
+                    el.style.display = "none";
+                    const parent = el.parentElement;
+                    if (parent) {
+                      const div = document.createElement("div");
+                      div.className = "w-8 h-8 rounded-full flex-shrink-0 mt-0.5 bg-red-600 flex items-center justify-center";
+                      div.innerHTML = `<span class="text-white font-black text-[12px]">${v.channel[0]}</span>`;
+                      parent.insertBefore(div, el.nextSibling);
+                    }
+                  }}
+                />
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-[13px] font-semibold text-gray-900 line-clamp-2 leading-snug">
+                    {v.title}
+                  </h4>
+                  <p className="text-[11px] text-gray-400 mt-0.5 font-medium">{v.channel}</p>
+                </div>
+              </div>
+
+              {/* Linked product card */}
+              <Link
+                href={`/sanpham/${v.product.slug}`}
+                className="group/prod flex items-center gap-3 p-2.5 rounded-xl border border-gray-100 bg-gray-50 hover:bg-red-50 hover:border-red-100 transition-all duration-200"
+              >
+                <div className="w-12 h-12 rounded-xl overflow-hidden bg-white flex-shrink-0 shadow-sm border border-gray-100 flex items-center justify-center">
                   <img
-                    src={promo.img}
-                    alt={promo.brand}
-                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 bg-slate-700"
+                    src={v.product.thumbnail}
+                    alt={v.product.ten}
+                    className="w-full h-full object-cover"
                     loading="lazy"
-                    onError={(e) => { e.currentTarget.style.display = "none"; }}
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/10" />
-                  <div className="relative z-10 flex items-center gap-1.5">
-                    <promo.icon className="w-4 h-4" style={{ color: promo.titleColor }} />
-                    <span className="text-[11px] font-bold uppercase tracking-wide" style={{ color: promo.titleColor }}>
-                      {promo.brand}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11.5px] font-semibold text-gray-800 line-clamp-2 leading-snug group-hover/prod:text-red-700 transition-colors">
+                    {v.product.ten}
+                  </p>
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    <span className="text-[13px] font-bold text-red-500">
+                      {fmt(v.product.giaSale ?? v.product.gia)}
                     </span>
+                    {v.product.giaSale && (
+                      <span className="text-[11px] text-gray-400 line-through">
+                        {fmt(v.product.gia)}
+                      </span>
+                    )}
                   </div>
-                  <div className="relative z-10">
-                    <p className="text-sm font-semibold leading-snug" style={{ color: promo.titleColor }}>{promo.title}</p>
-                    <p className="text-lg font-extrabold mt-1" style={{ color: promo.titleColor }}>{promo.highlight}</p>
-                    <p className="text-[11px] mt-0.5" style={{ color: promo.subColor }}>{promo.sub}</p>
-                  </div>
-                </Link>
-              ))}
+                </div>
+                <ChevronRight className="w-4 h-4 text-gray-300 group-hover/prod:text-red-400 flex-shrink-0 transition-colors" />
+              </Link>
             </div>
-          </div>
+          ))}
         </div>
       </section>
 
