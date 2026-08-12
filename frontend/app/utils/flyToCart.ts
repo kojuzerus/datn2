@@ -1,6 +1,7 @@
 export function flyToCart(imgSrc: string, fromRect: DOMRect) {
-  const cartEl = document.getElementById("cart-icon");
+  const cartEl = document.getElementById("cart-icon") as HTMLElement | null;
   if (!cartEl) return;
+  const cartElSafe = cartEl as HTMLElement;
 
   const toRect   = cartEl.getBoundingClientRect();
   const startX   = fromRect.left + fromRect.width  / 2;
@@ -76,7 +77,7 @@ export function flyToCart(imgSrc: string, fromRect: DOMRect) {
     } else {
       el.remove();
       // Bounce cart icon khi ảnh chạm đích
-      cartEl.animate(
+      cartElSafe.animate(
         [
           { transform: "scale(1)" },
           { transform: "scale(1.35)" },
