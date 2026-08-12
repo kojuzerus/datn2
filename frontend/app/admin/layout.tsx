@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Plus_Jakarta_Sans } from "next/font/google";
+import Logo from "../components/Logo";
 import {
   LayoutDashboard,
   Package,
@@ -188,15 +189,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside className="w-[228px] shrink-0 bg-white border-r border-gray-100 flex flex-col h-screen fixed left-0 top-0 z-50 overflow-y-auto shadow-[1px_0_0_0_#F3F4F6]">
 
         {/* Logo */}
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-[15px] shrink-0"
-               style={{ background: "linear-gradient(135deg,#D32F2F,#B71C1C)" }}>
-            S
-          </div>
-          <div>
-            <div className="text-[15px] font-bold text-gray-900 leading-tight tracking-tight">SmartHub</div>
-            <div className="text-[9.5px] text-gray-400 tracking-[1.5px] uppercase mt-0.5">Admin Panel</div>
-          </div>
+        <div className="flex flex-col px-4 py-3 border-b border-gray-100 shrink-0">
+          <Logo compact={false} />
+          <span className="text-[9px] text-gray-400 tracking-[1.8px] uppercase mt-0.5 pl-1">Admin Panel</span>
         </div>
 
         {/* Nav */}
