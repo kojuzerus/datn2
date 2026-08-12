@@ -62,7 +62,6 @@ const SLIDES = [
 const SIDEBAR_CATS = [
   { label: "Điện thoại", Icon: Smartphone, href: "/sanpham?danh-muc=dien-thoai" },
   { label: "Laptop",     Icon: Laptop,     href: "/sanpham?danh-muc=laptop" },
-  { label: "Điện máy",   Icon: Tv2,        href: "/sanpham?danh-muc=dien-may" },
   { label: "Phụ Kiện",   Icon: Headphones, href: "/sanpham?danh-muc=phu-kien" },
 ];
 
