@@ -21,7 +21,8 @@ const adminSearchRoutes = require("./routes/adminSearch");
 const promotionRoutes  = require("./routes/promotion");
 const newsRoutes       = require("./routes/news");
 const reviewRoutes     = require("./routes/review");
-const chatRoutes       = require("./routes/chat");
+const chatRoutes          = require("./routes/chat");
+const siteSettingRoutes   = require("./routes/siteSetting");
 
 const app  = express();
 const PORT = process.env.PORT || 5000;
@@ -60,6 +61,7 @@ app.use("/api/promotions",   promotionRoutes);
 app.use("/api/news",         newsRoutes);
 app.use("/api/reviews",      reviewRoutes);
 app.use("/api/chat",         chatRoutes);
+app.use("/api/settings",     siteSettingRoutes);
 
 app.get("/api/health", (_, res) =>
   res.json({ status: "ok", time: new Date().toISOString() })
