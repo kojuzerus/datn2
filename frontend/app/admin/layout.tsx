@@ -42,41 +42,95 @@ const NAV_GROUPS: { section: string; items: NavItem[] }[] = [
   {
     section: "Tổng quan",
     items: [
-      { href: "/admin", label: "Dashboard", Icon: LayoutDashboard, badge: null },
+      {
+        href: "/admin",
+        label: "Dashboard",
+        Icon: LayoutDashboard,
+        badge: null,
+      },
     ],
   },
   {
     section: "Danh mục",
     items: [
-      { href: "/admin/products",   label: "Quản lý sản phẩm",   Icon: Package,      badge: null },
-      { href: "/admin/orders",     label: "Quản lý đơn hàng",   Icon: ShoppingCart, badge: null },
-      { href: "/admin/users",      label: "Quản lý khách hàng", Icon: Users,        badge: null },
-      { href: "/admin/categories", label: "Danh mục",           Icon: FolderOpen,   badge: null },
-      { href: "/admin/promotions", label: "Mã giảm giá",        Icon: Tag,          badge: null },
-      { href: "/admin/news",       label: "Tin tức",            Icon: Newspaper,    badge: null },
-      { href: "/admin/reviews",    label: "Đánh giá",           Icon: Star,         badge: null },
-      { href: "/admin/reports",    label: "Báo cáo thống kê",   Icon: BarChart2,    badge: null },
+      {
+        href: "/admin/products",
+        label: "Quản lý sản phẩm",
+        Icon: Package,
+        badge: null,
+      },
+      {
+        href: "/admin/orders",
+        label: "Quản lý đơn hàng",
+        Icon: ShoppingCart,
+        badge: null,
+      },
+      {
+        href: "/admin/users",
+        label: "Quản lý khách hàng",
+        Icon: Users,
+        badge: null,
+      },
+      {
+        href: "/admin/categories",
+        label: "Danh mục",
+        Icon: FolderOpen,
+        badge: null,
+      },
+      {
+        href: "/admin/promotions",
+        label: "Mã giảm giá",
+        Icon: Tag,
+        badge: null,
+      },
+      { href: "/admin/news", label: "Tin tức", Icon: Newspaper, badge: null },
+      { href: "/admin/reviews", label: "Đánh giá", Icon: Star, badge: null },
+      {
+        href: "/admin/questions",
+        label: "Hỏi đáp",
+        Icon: FolderOpen,
+        badge: null,
+      },
+      {
+        href: "/admin/vouchers",
+        label: "Vòng quay may mắn",
+        Icon: Tag,
+        badge: null,
+      },
+      {
+        href: "/admin/reports",
+        label: "Báo cáo thống kê",
+        Icon: BarChart2,
+        badge: null,
+      },
     ],
   },
   {
     section: "Cấu hình",
     items: [
-      { href: "/admin/settings",   label: "Cài đặt",            Icon: Settings,     badge: null },
+      {
+        href: "/admin/settings",
+        label: "Cài đặt",
+        Icon: Settings,
+        badge: null,
+      },
     ],
   },
 ];
 
 const PAGE_LABELS: Record<string, string> = {
-  "/admin":            "Dashboard",
-  "/admin/products":   "Quản lý sản phẩm",
-  "/admin/orders":     "Quản lý đơn hàng",
-  "/admin/users":      "Quản lý khách hàng",
+  "/admin": "Dashboard",
+  "/admin/products": "Quản lý sản phẩm",
+  "/admin/orders": "Quản lý đơn hàng",
+  "/admin/users": "Quản lý khách hàng",
   "/admin/categories": "Danh mục",
   "/admin/promotions": "Mã giảm giá",
-  "/admin/news":       "Tin tức",
-  "/admin/reviews":    "Đánh giá",
-  "/admin/reports":    "Báo cáo thống kê",
-  "/admin/settings":   "Cài đặt",
+  "/admin/vouchers": "Vòng quay may mắn",
+  "/admin/news": "Tin tức",
+  "/admin/reviews": "Đánh giá",
+  "/admin/questions": "Hỏi đáp",
+  "/admin/reports": "Báo cáo thống kê",
+  "/admin/settings": "Cài đặt",
 };
 
 function getPageLabel(pathname: string): string {
@@ -87,9 +141,13 @@ function getPageLabel(pathname: string): string {
   return match ? PAGE_LABELS[match] : "Admin";
 }
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const pathname  = usePathname();
-  const router    = useRouter();
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const pathname = usePathname();
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [checked, setChecked] = useState(false);
   const [adminName, setAdminName] = useState("Admin");
@@ -97,30 +155,44 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   type SearchResults = {
     products: { product_name: string; slug: string; thumbnail: string }[];
-    orders:   { _id: string; receiverName: string; phone: string; trangThai: string; tongThanhToan: number }[];
-    users:    { _id: string; hoTen: string; email: string; soDienThoai: string }[];
+    orders: {
+      _id: string;
+      receiverName: string;
+      phone: string;
+      trangThai: string;
+      tongThanhToan: number;
+    }[];
+    users: { _id: string; hoTen: string; email: string; soDienThoai: string }[];
   };
-  const [searchResults, setSearchResults] = useState<SearchResults | null>(null);
-  const [searchOpen, setSearchOpen]   = useState(false);
+  const [searchResults, setSearchResults] = useState<SearchResults | null>(
+    null,
+  );
+  const [searchOpen, setSearchOpen] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchWrapRef = useRef<HTMLDivElement>(null);
   const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
-  const runSearch = useCallback(async (q: string) => {
-    const token = localStorage.getItem("smarthub_token");
-    if (!token) return;
-    setSearchLoading(true);
-    try {
-      const res = await fetch(`${API_BASE}/api/admin/search?q=${encodeURIComponent(q)}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const json = await res.json();
-      if (json.success) setSearchResults(json.data);
-    } finally {
-      setSearchLoading(false);
-    }
-  }, [API_BASE]);
+  const runSearch = useCallback(
+    async (q: string) => {
+      const token = localStorage.getItem("smarthub_token");
+      if (!token) return;
+      setSearchLoading(true);
+      try {
+        const res = await fetch(
+          `${API_BASE}/api/admin/search?q=${encodeURIComponent(q)}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
+        const json = await res.json();
+        if (json.success) setSearchResults(json.data);
+      } finally {
+        setSearchLoading(false);
+      }
+    },
+    [API_BASE],
+  );
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -131,16 +203,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
     setSearchOpen(true);
     debounceRef.current = setTimeout(() => runSearch(search.trim()), 350);
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
   }, [search, runSearch]);
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
-      if (searchWrapRef.current && !searchWrapRef.current.contains(e.target as Node)) {
+      if (
+        searchWrapRef.current &&
+        !searchWrapRef.current.contains(e.target as Node)
+      ) {
         setSearchOpen(false);
       }
     };
-    const handleEsc = (e: KeyboardEvent) => { if (e.key === "Escape") setSearchOpen(false); };
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSearchOpen(false);
+    };
     document.addEventListener("mousedown", handleClick);
     document.addEventListener("keydown", handleEsc);
     return () => {
@@ -149,7 +228,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     };
   }, []);
 
-  const clearSearch = () => { setSearch(""); setSearchResults(null); setSearchOpen(false); };
+  const clearSearch = () => {
+    setSearch("");
+    setSearchResults(null);
+    setSearchOpen(false);
+  };
 
   useEffect(() => {
     const token = localStorage.getItem("smarthub_token");
@@ -184,14 +267,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className={`flex min-h-screen bg-[#F5F6FA] ${plusJakarta.className}`}>
-
       {/* ═══ SIDEBAR ═══ */}
       <aside className="w-[228px] shrink-0 bg-white border-r border-gray-100 flex flex-col h-screen fixed left-0 top-0 z-50 overflow-y-auto shadow-[1px_0_0_0_#F3F4F6]">
-
         {/* Logo */}
         <div className="flex flex-col px-4 py-3 border-b border-gray-100 shrink-0">
           <Logo compact={false} />
-          <span className="text-[9px] text-gray-400 tracking-[1.8px] uppercase mt-0.5 pl-1">Admin Panel</span>
+          <span className="text-[9px] text-gray-400 tracking-[1.8px] uppercase mt-0.5 pl-1">
+            Admin Panel
+          </span>
         </div>
 
         {/* Nav */}
@@ -210,9 +293,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     href={href}
                     className={`
                       flex items-center gap-3 mx-2.5 px-3 py-[9px] rounded-xl text-[13px] no-underline transition-all duration-150 mb-0.5
-                      ${active
-                        ? "text-[#D32F2F] bg-[#FFF5F5] font-semibold"
-                        : "text-gray-500 hover:text-gray-800 hover:bg-gray-50 font-normal"}
+                      ${
+                        active
+                          ? "text-[#D32F2F] bg-[#FFF5F5] font-semibold"
+                          : "text-gray-500 hover:text-gray-800 hover:bg-gray-50 font-normal"
+                      }
                     `}
                   >
                     <Icon
@@ -235,13 +320,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* User footer */}
         <div className="flex items-center gap-2.5 px-4 py-3.5 border-t border-gray-100 shrink-0 bg-gray-50/60">
-          <div className="w-[34px] h-[34px] rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
-               style={{ background: "linear-gradient(135deg,#D32F2F,#B71C1C)" }}>
+          <div
+            className="w-[34px] h-[34px] rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
+            style={{ background: "linear-gradient(135deg,#D32F2F,#B71C1C)" }}
+          >
             AD
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-[13px] font-semibold text-gray-900 truncate">{adminName}</div>
-            <div className="text-[11px] text-gray-400 leading-tight">Quản trị viên</div>
+            <div className="text-[13px] font-semibold text-gray-900 truncate">
+              {adminName}
+            </div>
+            <div className="text-[11px] text-gray-400 leading-tight">
+              Quản trị viên
+            </div>
           </div>
           <button
             onClick={handleLogout}
@@ -255,10 +346,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* ═══ MAIN ═══ */}
       <div className="flex-1 ml-[228px] flex flex-col min-h-screen">
-
         {/* TOPBAR */}
         <header className="bg-white h-[58px] flex items-center px-6 gap-4 border-b border-gray-100 sticky top-0 z-40 shrink-0">
-
           {/* Breadcrumb */}
           <div className="flex items-center gap-1.5 text-[12.5px] text-gray-400 shrink-0">
             <Home size={13} className="text-gray-400" />
@@ -275,7 +364,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </Link>
 
           {/* Search */}
-          <div ref={searchWrapRef} className="relative flex-1 max-w-[440px] ml-2">
+          <div
+            ref={searchWrapRef}
+            className="relative flex-1 max-w-[440px] ml-2"
+          >
             <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-3.5 py-[7px] border border-gray-200 focus-within:border-[#D32F2F] focus-within:bg-white transition-all duration-200 focus-within:shadow-[0_0_0_3px_rgba(211,47,47,0.08)]">
               <Search size={14} className="text-gray-400 shrink-0" />
               <input
@@ -283,11 +375,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 placeholder="Tìm kiếm sản phẩm, đơn hàng, khách hàng..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                onFocus={() => { if (searchResults) setSearchOpen(true); }}
+                onFocus={() => {
+                  if (searchResults) setSearchOpen(true);
+                }}
                 className="border-none bg-transparent outline-none text-[13px] text-gray-900 w-full placeholder-gray-400"
               />
               {search && (
-                <button onClick={clearSearch} className="text-gray-400 hover:text-gray-600 transition-colors shrink-0">
+                <button
+                  onClick={clearSearch}
+                  className="text-gray-400 hover:text-gray-600 transition-colors shrink-0"
+                >
                   <X size={13} />
                 </button>
               )}
@@ -296,99 +393,159 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             {searchOpen && (
               <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden">
                 {searchLoading && !searchResults && (
-                  <div className="px-4 py-3 text-[12.5px] text-gray-400">Đang tìm kiếm...</div>
+                  <div className="px-4 py-3 text-[12.5px] text-gray-400">
+                    Đang tìm kiếm...
+                  </div>
                 )}
 
-                {searchResults && (() => {
-                  const total = searchResults.products.length + searchResults.orders.length + searchResults.users.length;
-                  if (total === 0) return (
-                    <div className="px-4 py-3 text-[12.5px] text-gray-400">Không tìm thấy kết quả nào</div>
-                  );
-                  return (
-                    <>
-                      {searchResults.products.length > 0 && (
-                        <div>
-                          <div className="px-4 pt-2.5 pb-1 text-[10px] font-semibold text-gray-400 tracking-[1.2px] uppercase">Sản phẩm</div>
-                          {searchResults.products.map((p) => (
-                            <button
-                              key={p.slug}
-                              onClick={() => { router.push(`/admin/products?search=${encodeURIComponent(p.product_name)}`); clearSearch(); }}
-                              className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors text-left"
-                            >
-                              {p.thumbnail
-                                ? <img src={p.thumbnail} alt="" className="w-7 h-7 rounded-lg object-cover shrink-0 border border-gray-100" />
-                                : <div className="w-7 h-7 rounded-lg bg-gray-100 shrink-0" />}
-                              <span className="text-[13px] text-gray-800 truncate">{p.product_name}</span>
-                              <span className="ml-auto text-[11px] text-gray-400 shrink-0">Sản phẩm</span>
-                            </button>
-                          ))}
+                {searchResults &&
+                  (() => {
+                    const total =
+                      searchResults.products.length +
+                      searchResults.orders.length +
+                      searchResults.users.length;
+                    if (total === 0)
+                      return (
+                        <div className="px-4 py-3 text-[12.5px] text-gray-400">
+                          Không tìm thấy kết quả nào
                         </div>
-                      )}
+                      );
+                    return (
+                      <>
+                        {searchResults.products.length > 0 && (
+                          <div>
+                            <div className="px-4 pt-2.5 pb-1 text-[10px] font-semibold text-gray-400 tracking-[1.2px] uppercase">
+                              Sản phẩm
+                            </div>
+                            {searchResults.products.map((p) => (
+                              <button
+                                key={p.slug}
+                                onClick={() => {
+                                  router.push(
+                                    `/admin/products?search=${encodeURIComponent(p.product_name)}`,
+                                  );
+                                  clearSearch();
+                                }}
+                                className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors text-left"
+                              >
+                                {p.thumbnail ? (
+                                  <img
+                                    src={p.thumbnail}
+                                    alt=""
+                                    className="w-7 h-7 rounded-lg object-cover shrink-0 border border-gray-100"
+                                  />
+                                ) : (
+                                  <div className="w-7 h-7 rounded-lg bg-gray-100 shrink-0" />
+                                )}
+                                <span className="text-[13px] text-gray-800 truncate">
+                                  {p.product_name}
+                                </span>
+                                <span className="ml-auto text-[11px] text-gray-400 shrink-0">
+                                  Sản phẩm
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
 
-                      {searchResults.orders.length > 0 && (
-                        <div>
-                          <div className="px-4 pt-2.5 pb-1 text-[10px] font-semibold text-gray-400 tracking-[1.2px] uppercase border-t border-gray-100">Đơn hàng</div>
-                          {searchResults.orders.map((o) => (
-                            <button
-                              key={o._id}
-                              onClick={() => { router.push(`/admin/orders?search=${encodeURIComponent(o.receiverName)}`); clearSearch(); }}
-                              className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors text-left"
-                            >
-                              <div className="w-7 h-7 rounded-lg bg-orange-50 flex items-center justify-center shrink-0">
-                                <ShoppingCart size={13} className="text-orange-500" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="text-[13px] text-gray-800 truncate">{o.receiverName}</div>
-                                <div className="text-[11px] text-gray-400">{o.phone}</div>
-                              </div>
-                              <span className="ml-auto text-[11px] text-gray-400 shrink-0">
-                                {(o.tongThanhToan || 0).toLocaleString("vi-VN")}đ
-                              </span>
-                            </button>
-                          ))}
+                        {searchResults.orders.length > 0 && (
+                          <div>
+                            <div className="px-4 pt-2.5 pb-1 text-[10px] font-semibold text-gray-400 tracking-[1.2px] uppercase border-t border-gray-100">
+                              Đơn hàng
+                            </div>
+                            {searchResults.orders.map((o) => (
+                              <button
+                                key={o._id}
+                                onClick={() => {
+                                  router.push(
+                                    `/admin/orders?search=${encodeURIComponent(o.receiverName)}`,
+                                  );
+                                  clearSearch();
+                                }}
+                                className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors text-left"
+                              >
+                                <div className="w-7 h-7 rounded-lg bg-orange-50 flex items-center justify-center shrink-0">
+                                  <ShoppingCart
+                                    size={13}
+                                    className="text-orange-500"
+                                  />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-[13px] text-gray-800 truncate">
+                                    {o.receiverName}
+                                  </div>
+                                  <div className="text-[11px] text-gray-400">
+                                    {o.phone}
+                                  </div>
+                                </div>
+                                <span className="ml-auto text-[11px] text-gray-400 shrink-0">
+                                  {(o.tongThanhToan || 0).toLocaleString(
+                                    "vi-VN",
+                                  )}
+                                  đ
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+
+                        {searchResults.users.length > 0 && (
+                          <div>
+                            <div className="px-4 pt-2.5 pb-1 text-[10px] font-semibold text-gray-400 tracking-[1.2px] uppercase border-t border-gray-100">
+                              Khách hàng
+                            </div>
+                            {searchResults.users.map((u) => (
+                              <button
+                                key={u._id}
+                                onClick={() => {
+                                  router.push(
+                                    `/admin/users?search=${encodeURIComponent(u.hoTen)}`,
+                                  );
+                                  clearSearch();
+                                }}
+                                className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors text-left"
+                              >
+                                <div className="w-7 h-7 rounded-full bg-blue-50 flex items-center justify-center shrink-0 text-[11px] font-bold text-blue-500">
+                                  {(u.hoTen || "?")[0].toUpperCase()}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-[13px] text-gray-800 truncate">
+                                    {u.hoTen}
+                                  </div>
+                                  <div className="text-[11px] text-gray-400 truncate">
+                                    {u.email || u.soDienThoai}
+                                  </div>
+                                </div>
+                                <span className="ml-auto text-[11px] text-gray-400 shrink-0">
+                                  Khách hàng
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="border-t border-gray-100 px-4 py-2">
+                          <button
+                            onClick={() => {
+                              router.push(
+                                `/admin/products?search=${encodeURIComponent(search)}`,
+                              );
+                              clearSearch();
+                            }}
+                            className="text-[12px] text-[#D32F2F] hover:underline"
+                          >
+                            Xem tất cả kết quả cho &quot;{search}&quot;
+                          </button>
                         </div>
-                      )}
-
-                      {searchResults.users.length > 0 && (
-                        <div>
-                          <div className="px-4 pt-2.5 pb-1 text-[10px] font-semibold text-gray-400 tracking-[1.2px] uppercase border-t border-gray-100">Khách hàng</div>
-                          {searchResults.users.map((u) => (
-                            <button
-                              key={u._id}
-                              onClick={() => { router.push(`/admin/users?search=${encodeURIComponent(u.hoTen)}`); clearSearch(); }}
-                              className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors text-left"
-                            >
-                              <div className="w-7 h-7 rounded-full bg-blue-50 flex items-center justify-center shrink-0 text-[11px] font-bold text-blue-500">
-                                {(u.hoTen || "?")[0].toUpperCase()}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="text-[13px] text-gray-800 truncate">{u.hoTen}</div>
-                                <div className="text-[11px] text-gray-400 truncate">{u.email || u.soDienThoai}</div>
-                              </div>
-                              <span className="ml-auto text-[11px] text-gray-400 shrink-0">Khách hàng</span>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-
-                      <div className="border-t border-gray-100 px-4 py-2">
-                        <button
-                          onClick={() => { router.push(`/admin/products?search=${encodeURIComponent(search)}`); clearSearch(); }}
-                          className="text-[12px] text-[#D32F2F] hover:underline"
-                        >
-                          Xem tất cả kết quả cho &quot;{search}&quot;
-                        </button>
-                      </div>
-                    </>
-                  );
-                })()}
+                      </>
+                    );
+                  })()}
               </div>
             )}
           </div>
 
           {/* Right actions */}
           <div className="flex items-center gap-2 ml-auto">
-
             {/* Divider */}
             <div className="w-px h-6 bg-gray-200 mx-1" />
 
@@ -396,13 +553,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <div className="flex items-center gap-2 cursor-pointer pl-1 pr-2.5 py-1.5 rounded-xl hover:bg-gray-50 transition-colors">
               <div
                 className="w-[30px] h-[30px] rounded-full text-white text-[11px] font-bold flex items-center justify-center"
-                style={{ background: "linear-gradient(135deg,#D32F2F,#B71C1C)" }}
+                style={{
+                  background: "linear-gradient(135deg,#D32F2F,#B71C1C)",
+                }}
               >
                 AD
               </div>
               <div>
-                <div className="text-[12.5px] font-semibold text-gray-900 leading-tight">{adminName}</div>
-                <div className="text-[10.5px] text-gray-400 leading-tight">Quản trị viên</div>
+                <div className="text-[12.5px] font-semibold text-gray-900 leading-tight">
+                  {adminName}
+                </div>
+                <div className="text-[10.5px] text-gray-400 leading-tight">
+                  Quản trị viên
+                </div>
               </div>
               <ChevronDown size={13} className="text-gray-400 ml-0.5" />
             </div>
@@ -410,9 +573,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </header>
 
         {/* Page content */}
-        <main className="flex-1 p-6 overflow-y-auto">
-          {children}
-        </main>
+        <main className="flex-1 p-6 overflow-y-auto">{children}</main>
       </div>
     </div>
   );

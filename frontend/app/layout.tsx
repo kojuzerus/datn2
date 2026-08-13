@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import './globals.css';
+import "./globals.css";
 import { Be_Vietnam_Pro } from "next/font/google";
 import { ThemeProvider } from "./components/ThemeContext";
 import ThemeToggle from "./components/ThemeToggle";
 import LoginPromptModal from "./components/LoginPromptModal";
 import ScrollToTop from "./components/ScrollToTop";
+import FloatingSpinWheel from "./components/FloatingSpinWheel";
 
 const beVietnamPro = Be_Vietnam_Pro({
   variable: "--font-be-vietnam",
@@ -35,6 +36,7 @@ export default function RootLayout({
           {children}
           <LoginPromptModal />
           <ScrollToTop />
+          <FloatingSpinWheel />
         </ThemeProvider>
       </body>
     </html>
