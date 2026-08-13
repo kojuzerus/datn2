@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft, MapPin, CreditCard, FileText, Package,
-  Truck, ShieldCheck, BadgeCheck, Banknote,
+  Truck, ShieldCheck, BadgeCheck,
   Plus, Loader2, CheckCircle2, Lock, Tag, X,
 } from 'lucide-react';
 import SearchableSelect, { SelectOption } from '../components/SearchableSelect';
@@ -74,17 +74,15 @@ const PAYMENT_METHODS = [
     id: 'cod',
     label: 'Thanh toán khi nhận hàng (COD)',
     desc: 'Trả tiền mặt khi nhận hàng',
-    Icon: Banknote,
-    color: 'text-green-500',
+    image: '/payment/cod.png',
     bg: 'bg-green-50',
   },
   {
     id: 'vnpay',
     label: 'Thanh toán VNPAY',
     desc: 'QR Code, thẻ tín dụng, tài khoản ngân hàng',
-    Icon: CreditCard,
-    color: 'text-yellow-500',
-    bg: 'bg-yellow-50',
+    image: '/payment/vnpay.png',
+    bg: 'bg-white',
   },
 ];
 
@@ -263,6 +261,10 @@ export default function ThanhToanPage() {
   const handleRemovePromo = () => {
     setAppliedPromo(null);
     setPromoError('');
+  };
+
+  const handleRemoveItem = (id: string) => {
+    setItems(prev => prev.filter(i => i._id !== id));
   };
 
   const handlePlaceOrder = async () => {
@@ -512,7 +514,7 @@ export default function ThanhToanPage() {
                 Phương thức thanh toán
               </h2>
               <div className="space-y-2">
-                {PAYMENT_METHODS.map(({ id, label, desc, Icon, color, bg }) => (
+                {PAYMENT_METHODS.map(({ id, label, desc, image, bg }) => (
                   <label
                     key={id}
                     className={`flex items-center gap-4 p-4 rounded-sm border-2 cursor-pointer transition ${
@@ -529,8 +531,8 @@ export default function ThanhToanPage() {
                       onChange={() => setPaymentMethod(id as 'cod' | 'vnpay')}
                       className="accent-blue-500"
                     />
-                    <div className={`w-10 h-10 ${bg} rounded-sm flex items-center justify-center shrink-0`}>
-                      <Icon className={`w-5 h-5 ${color}`} />
+                    <div className={`w-12 h-10 ${bg} rounded-sm flex items-center justify-center shrink-0 border border-gray-100`}>
+                      <img src={image} alt={label} className="w-10 h-8 object-contain" />
                     </div>
                     <div>
                       <p className="font-medium text-gray-800 text-sm">{label}</p>
@@ -582,7 +584,7 @@ export default function ThanhToanPage() {
               {/* Danh sách sản phẩm được chọn */}
               <div className="space-y-3 mb-5 max-h-60 overflow-y-auto pr-1">
                 {items.map(item => (
-                  <div key={item._id} className="flex gap-3 items-center">
+                  <div key={item._id} className="flex gap-3 items-center group">
                     <div className="w-12 h-12 rounded-md overflow-hidden bg-gray-100 shrink-0 flex items-center justify-center">
                       {item.hinhAnh
                         ? <img src={item.hinhAnh} alt={item.tenSanPham} className="w-full h-full object-cover" />
@@ -594,9 +596,18 @@ export default function ThanhToanPage() {
                       {item.variant && <p className="text-xs text-gray-400">{item.variant}</p>}
                       <p className="text-xs text-gray-400">x{item.soLuong}</p>
                     </div>
-                    <p className="text-sm font-bold text-red-500 shrink-0">
-                      {formatPrice(item.gia * item.soLuong)}
-                    </p>
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      <p className="text-sm font-bold text-red-500">
+                        {formatPrice(item.gia * item.soLuong)}
+                      </p>
+                      <button
+                        onClick={() => handleRemoveItem(item._id)}
+                        title="Xóa sản phẩm"
+                        className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-400 transition-all duration-150"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
