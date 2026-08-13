@@ -4,11 +4,25 @@ let transporter = null;
 
 if (process.env.EMAIL_USER && process.env.EMAIL_APP_PASSWORD) {
   transporter = nodemailer.createTransport({
-    service: "gmail",
+    // Dùng host/port tường minh (587 + STARTTLS) thay vì "service: gmail"
+    // (ngầm định cổng 465/TLS trực tiếp) — một số nền tảng cloud (kể cả Render)
+    // chặn/hạn chế cổng 465 khiến kết nối treo, trong khi 587 thường được cho
+    // phép rộng rãi hơn.
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false,
+    requireTLS: true,
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_APP_PASSWORD,
     },
+    // Không set timeout thì khi không kết nối được SMTP (mạng chặn, sai thông
+    // tin, DNS lỗi...), request có thể treo tới vài phút trước khi báo lỗi —
+    // khiến nút "Đang gửi..." ở FE bị đơ. Giới hạn lại còn vài giây để lỗi
+    // (nếu có) được báo nhanh và forgotPassword() vẫn trả lời người dùng kịp thời.
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 10_000,
   });
 } else {
   console.warn("Email chưa được cấu hình — set EMAIL_USER và EMAIL_APP_PASSWORD trong .env để bật gửi mail (quên mật khẩu, ...).");
