@@ -26,6 +26,7 @@
     "multer": "^1.4.5-lts.1",
     "nodemailer": "^9.0.5",
     "passport": "^0.7.0",
+    "passport-facebook": "^3.0.0",
     "passport-google-oauth20": "^2.0.0",
     "token": "^0.1.0",
     "web": "^0.0.2"

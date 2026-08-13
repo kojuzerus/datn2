@@ -38,6 +38,14 @@ router.get("/google/callback",
   (req, res) => res.redirect(makeRedirect(makeToken(req.user), req.user))
 );
 
+// ── Facebook OAuth ────────────────────────────────────────────────────────
+router.get("/facebook", passport.authenticate("facebook", { scope: ["email"] }));
+
+router.get("/facebook/callback",
+  passport.authenticate("facebook", { session: false, failureRedirect: `${FRONTEND_URL}/login?error=facebook_failed` }),
+  (req, res) => res.redirect(makeRedirect(makeToken(req.user), req.user))
+);
+
 // ── Zalo OAuth ────────────────────────────────────────────────────────────
 router.get("/zalo", (req, res) => {
   const codeChallenge = crypto.randomBytes(32).toString("base64url");
@@ -81,7 +89,10 @@ router.get("/zalo/callback", async (req, res) => {
     // Tìm hoặc tạo user
     let user = await User.findOne({ zaloId });
     if (!user) {
-      user = await User.create({ zaloId, hoTen, matKhau: "zalo_oauth" });
+      user = await User.create({ zaloId, hoTen, matKhau: "zalo_oauth", lastLoginProvider: "zalo" });
+    } else {
+      user.lastLoginProvider = "zalo";
+      await user.save();
     }
 
     res.redirect(makeRedirect(makeToken(user), user));

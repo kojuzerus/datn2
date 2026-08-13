@@ -8,7 +8,11 @@ const userSchema = new mongoose.Schema({
   matKhau:     { type: String, default: null },
   googleId:    { type: String, unique: true, sparse: true },
   zaloId:      { type: String, unique: true, sparse: true },
+  facebookId:  { type: String, unique: true, sparse: true },
   avatar:      { type: String, default: null },
+  // Cách đăng nhập gần nhất — chỉ để hiển thị UI ("Loại tài khoản"), không phải
+  // danh sách các phương thức đã liên kết (xem googleId/facebookId/zaloId).
+  lastLoginProvider: { type: String, enum: ["local", "google", "facebook", "zalo"], default: "local" },
   role:        { type: String, enum: ["user", "admin"], default: "user" },
   status:      { type: String, enum: ["active", "banned"], default: "active" },
 

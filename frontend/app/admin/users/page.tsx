@@ -22,7 +22,7 @@ interface CustomerRow {
   soDienThoai: string;
   role: "user" | "admin";
   status: "active" | "banned";
-  authType: "local" | "google" | "zalo";
+  authTypes: ("local" | "google" | "zalo" | "facebook")[];
   createdAt: string;
   orderCount: number;
   totalSpent: number;
@@ -343,7 +343,11 @@ export default function AdminUsersPage() {
                           </div>
                           <div className="min-w-0">
                             <div className="text-[13px] font-medium text-gray-900 truncate">{u.hoTen}</div>
-                            <div className="text-[11px] text-gray-400">{u.authType === "local" ? "Tài khoản thường" : u.authType === "google" ? "Google" : "Zalo"}</div>
+                            <div className="text-[11px] text-gray-400">
+                              {u.authTypes.includes("local")
+                                ? "Tài khoản thường"
+                                : u.authTypes.map(t => t === "google" ? "Google" : t === "facebook" ? "Facebook" : "Zalo").join(", ")}
+                            </div>
                           </div>
                         </div>
                       </td>

@@ -22,7 +22,8 @@ const GEO_API  = 'https://provinces.open-api.vn/api';
 
 interface UserInfo {
   _id: string; hoTen: string; soDienThoai?: string; email?: string;
-  ngaySinh?: string; role: string; googleId?: string; zaloId?: string; createdAt: string;
+  ngaySinh?: string; role: string; googleId?: string; zaloId?: string; facebookId?: string;
+  lastLoginProvider?: 'local' | 'google' | 'facebook' | 'zalo'; createdAt: string;
 }
 
 interface Address {
@@ -480,8 +481,12 @@ export default function NguoiDungPage() {
   }
   if (!user) return null;
 
-  const accountType = user.googleId ? 'Google' : user.zaloId ? 'Zalo' : 'Tài khoản thường';
-  const hasPassword = !user.googleId && !user.zaloId;
+  // "Loại tài khoản" hiển thị đúng cách m vừa đăng nhập (lastLoginProvider),
+  // không phải liệt kê hết các nơi đã từng liên kết — dù 1 tài khoản có thể
+  // liên kết nhiều nơi (Google + Facebook...), UI chỉ cần biết vừa dùng gì.
+  const providerLabel: Record<string, string> = { google: 'Google', facebook: 'Facebook', zalo: 'Zalo', local: 'Tài khoản thường' };
+  const accountType = providerLabel[user.lastLoginProvider || 'local'];
+  const hasPassword = !user.googleId && !user.zaloId && !user.facebookId;
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (

@@ -61,6 +61,9 @@ exports.login = async (req, res) => {
     if (user.status === "banned")
       return res.status(403).json({ message: "Tài khoản của bạn đã bị khóa" });
 
+    user.lastLoginProvider = "local";
+    await user.save();
+
     const token = jwt.sign({ id: user._id }, SECRET, { expiresIn: "7d" });
     res.json({ message: "Đăng nhập thành công", token, user: { id: user._id, hoTen: user.hoTen, soDienThoai: user.soDienThoai, email: user.email, role: user.role } });
   } catch (err) {

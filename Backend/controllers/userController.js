@@ -44,7 +44,10 @@ exports.getAllUsers = async (req, res) => {
         soDienThoai: u.soDienThoai || "",
         role:        u.role || "user",
         status:      u.status || "active",
-        authType:    u.googleId ? "google" : u.zaloId ? "zalo" : "local",
+        authTypes:   (() => {
+          const linked = [u.googleId && "google", u.facebookId && "facebook", u.zaloId && "zalo"].filter(Boolean);
+          return linked.length ? linked : ["local"];
+        })(),
         createdAt:   u.createdAt,
         orderCount:  stat?.orderCount || 0,
         totalSpent:  stat?.totalSpent || 0,
