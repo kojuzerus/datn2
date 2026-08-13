@@ -1,10 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import VoucherSpinWheel from "./VoucherSpinWheel";
 
 export default function FloatingSpinWheel() {
   const [isOpen, setIsOpen] = useState(false);
+  const pathname = usePathname();
+
+  // Chỉ hiển thị ở trang chủ
+  if (pathname !== "/") return null;
 
   return (
     <>

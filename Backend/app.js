@@ -20,7 +20,9 @@ const statsRoutes = require("./routes/stats");
 const userAdminRoutes = require("./routes/user");
 const adminSearchRoutes = require("./routes/adminSearch");
 const promotionRoutes = require("./routes/promotion");
-const voucherRoutes = require("./routes/vouchers");
+const publicVoucherRoutes = require("./routes/vouchers");
+const spinVoucherRoutes = require("./routes/voucherRoutes");
+const adminVoucherRoutes = require("./routes/adminVoucherRoutes");
 const newsRoutes = require("./routes/news");
 const reviewRoutes = require("./routes/review");
 const chatRoutes = require("./routes/chat");
@@ -51,6 +53,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
 app.use(passport.initialize());
 
+/* ─── Routes công khai ─── */
 app.use("/api/questions", questionRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/auth", authRoutes);
@@ -61,15 +64,19 @@ app.use("/api/ai", aiRoutes);
 app.use("/api/addresses", addressRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/vnpay", vnpayRoutes);
+app.use("/api/promotions", promotionRoutes);
+app.use("/api/vouchers", publicVoucherRoutes);
+app.use("/api/spin", spinVoucherRoutes);
+app.use("/api/news", newsRoutes);
+app.use("/api/reviews", reviewRoutes);
+app.use("/api/chat", chatRoutes);
+app.use("/api/settings", siteSettingRoutes);
+
+/* ─── Routes admin ─── */
 app.use("/api/admin/stats", statsRoutes);
 app.use("/api/admin/users", userAdminRoutes);
 app.use("/api/admin/search", adminSearchRoutes);
-app.use("/api/promotions", promotionRoutes);
-app.use("/api/news", newsRoutes);
-app.use("/api/reviews", reviewRoutes);
-app.use("/api/vouchers", voucherRoutes);
-app.use("/api/chat", chatRoutes);
-app.use("/api/settings", siteSettingRoutes);
+app.use("/api/admin/vouchers", adminVoucherRoutes);
 
 app.get("/api/health", (_, res) =>
   res.json({ status: "ok", time: new Date().toISOString() }),
@@ -84,5 +91,5 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ success: false, message: "Lỗi server" });
 });
 
-// ── Kết nối MongoDB rồi mới lắng nghe ─────────────────────────────────────
+// ── bin/www lo phần kết nối MongoDB và mở cổng ────────────────────────────
 module.exports = app;
