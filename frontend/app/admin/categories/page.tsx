@@ -2,8 +2,8 @@
 
 import { useEffect, useState, useCallback } from "react";
 import {
-  Plus, X, CheckCircle, XCircle, Edit2, Trash2, AlertTriangle,
-  FolderOpen, Tag, RefreshCw,
+  Plus, X, CheckCircle, XCircle, Edit2, AlertTriangle,
+  FolderOpen, Tag, RefreshCw, EyeOff, Eye,
 } from "lucide-react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -86,14 +86,14 @@ function ToastContainer({ toasts, onRemove }: { toasts: Toast[]; onRemove: (id: 
 }
 
 function ConfirmDialog({
-  title, message, onConfirm, onCancel,
-}: { title: string; message: string; onConfirm: () => void; onCancel: () => void }) {
+  title, message, confirmLabel = "Xoá", tone = "danger", onConfirm, onCancel,
+}: { title: string; message: string; confirmLabel?: string; tone?: "danger" | "neutral"; onConfirm: () => void; onCancel: () => void }) {
   return (
     <div className="fixed inset-0 bg-black/40 z-[200] flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl w-[380px] shadow-2xl border border-gray-100 overflow-hidden">
         <div className="p-6 text-center">
-          <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
-            <AlertTriangle size={22} className="text-red-600" />
+          <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 ${tone === "danger" ? "bg-red-50" : "bg-gray-100"}`}>
+            <AlertTriangle size={22} className={tone === "danger" ? "text-red-600" : "text-gray-500"} />
           </div>
           <h3 className="text-[15px] font-bold text-gray-900 mb-1.5">{title}</h3>
           <p className="text-[13px] text-gray-500 leading-relaxed">{message}</p>
@@ -102,8 +102,11 @@ function ConfirmDialog({
           <button onClick={onCancel} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-[13.5px] font-medium text-gray-600 bg-white hover:bg-gray-50 transition-colors cursor-pointer">
             Hủy
           </button>
-          <button onClick={onConfirm} className="flex-1 py-2.5 rounded-xl bg-red-600 text-white text-[13.5px] font-semibold hover:bg-red-700 transition-colors cursor-pointer">
-            Xoá
+          <button
+            onClick={onConfirm}
+            className={`flex-1 py-2.5 rounded-xl text-white text-[13.5px] font-semibold transition-colors cursor-pointer ${tone === "danger" ? "bg-red-600 hover:bg-red-700" : "bg-gray-900 hover:bg-gray-800"}`}
+          >
+            {confirmLabel}
           </button>
         </div>
       </div>
@@ -128,7 +131,7 @@ export default function AdminCategoriesPage() {
   const [brandForm, setBrandForm] = useState<BrandForm>(EMPTY_BRAND);
   const [brandSaving, setBrandSaving] = useState(false);
 
-  const [confirmState, setConfirmState] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void }>({
+  const [confirmState, setConfirmState] = useState<{ open: boolean; title: string; message: string; confirmLabel?: string; tone?: "danger" | "neutral"; onConfirm: () => void }>({
     open: false, title: "", message: "", onConfirm: () => {},
   });
 
@@ -192,17 +195,32 @@ export default function AdminCategoriesPage() {
     }
   };
 
-  const deleteCategory = (id: number, name: string) => {
+  const toggleCategoryVisibility = (c: CategoryRow) => {
+    const nextStatus: "active" | "inactive" = c.status === "active" ? "inactive" : "active";
+    const isHiding = nextStatus === "inactive";
     setConfirmState({
       open: true,
-      title: "Xoá danh mục",
-      message: `Bạn có chắc muốn xoá "${name}"? Các thương hiệu thuộc danh mục này sẽ bị gỡ liên kết.`,
+      title: isHiding ? "Ẩn danh mục" : "Hiện danh mục",
+      message: isHiding
+        ? `Ẩn "${c.category_name}" khỏi cửa hàng? Danh mục vẫn được giữ lại, bạn có thể hiện lại bất cứ lúc nào.`
+        : `Hiện lại "${c.category_name}" trên cửa hàng?`,
+      confirmLabel: isHiding ? "Ẩn" : "Hiện lại",
+      tone: "neutral",
       onConfirm: async () => {
         setConfirmState((s) => ({ ...s, open: false }));
         try {
-          const res = await fetch(`${API_BASE}/api/categories/${id}`, { method: "DELETE", headers: authHeaders() });
+          const res = await fetch(`${API_BASE}/api/categories/${c.category_id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", ...authHeaders() },
+            body: JSON.stringify({
+              category_name: c.category_name,
+              description: c.description,
+              image_url: c.image_url,
+              status: nextStatus,
+            }),
+          });
           const json = await res.json();
-          if (json.success) { fetchAll(); showToast("success", "Đã xoá danh mục thành công!"); }
+          if (json.success) { fetchAll(); showToast("success", isHiding ? "Đã ẩn danh mục!" : "Đã hiện lại danh mục!"); }
           else showToast("error", "Lỗi: " + json.message);
         } catch {
           showToast("error", "Lỗi kết nối máy chủ!");
@@ -250,17 +268,33 @@ export default function AdminCategoriesPage() {
     }
   };
 
-  const deleteBrand = (id: number, name: string) => {
+  const toggleBrandVisibility = (b: BrandRow) => {
+    const nextStatus: "active" | "inactive" = b.status === "active" ? "inactive" : "active";
+    const isHiding = nextStatus === "inactive";
     setConfirmState({
       open: true,
-      title: "Xoá thương hiệu",
-      message: `Bạn có chắc muốn xoá "${name}"? Hành động này không thể hoàn tác.`,
+      title: isHiding ? "Ẩn thương hiệu" : "Hiện thương hiệu",
+      message: isHiding
+        ? `Ẩn "${b.brand_name}" khỏi cửa hàng? Thương hiệu vẫn được giữ lại, bạn có thể hiện lại bất cứ lúc nào.`
+        : `Hiện lại "${b.brand_name}" trên cửa hàng?`,
+      confirmLabel: isHiding ? "Ẩn" : "Hiện lại",
+      tone: "neutral",
       onConfirm: async () => {
         setConfirmState((s) => ({ ...s, open: false }));
         try {
-          const res = await fetch(`${API_BASE}/api/brands/${id}`, { method: "DELETE", headers: authHeaders() });
+          const res = await fetch(`${API_BASE}/api/brands/${b.brand_id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", ...authHeaders() },
+            body: JSON.stringify({
+              brand_name: b.brand_name,
+              logo: b.logo,
+              description: b.description,
+              category_ids: b.category_ids || [],
+              status: nextStatus,
+            }),
+          });
           const json = await res.json();
-          if (json.success) { fetchAll(); showToast("success", "Đã xoá thương hiệu thành công!"); }
+          if (json.success) { fetchAll(); showToast("success", isHiding ? "Đã ẩn thương hiệu!" : "Đã hiện lại thương hiệu!"); }
           else showToast("error", "Lỗi: " + json.message);
         } catch {
           showToast("error", "Lỗi kết nối máy chủ!");
@@ -278,6 +312,8 @@ export default function AdminCategoriesPage() {
         <ConfirmDialog
           title={confirmState.title}
           message={confirmState.message}
+          confirmLabel={confirmState.confirmLabel}
+          tone={confirmState.tone}
           onConfirm={confirmState.onConfirm}
           onCancel={() => setConfirmState((s) => ({ ...s, open: false }))}
         />
@@ -372,8 +408,12 @@ export default function AdminCategoriesPage() {
                           <button onClick={() => openEditCategory(c)} title="Chỉnh sửa" className="w-8 h-8 border border-emerald-200 rounded-sm bg-emerald-50 hover:bg-emerald-100 cursor-pointer inline-flex items-center justify-center transition-colors">
                             <Edit2 size={14} className="text-emerald-700" />
                           </button>
-                          <button onClick={() => deleteCategory(c.category_id, c.category_name)} title="Xoá" className="w-8 h-8 border border-red-200 rounded-sm bg-red-50 hover:bg-red-100 cursor-pointer inline-flex items-center justify-center transition-colors">
-                            <Trash2 size={14} className="text-red-600" />
+                          <button
+                            onClick={() => toggleCategoryVisibility(c)}
+                            title={c.status === "active" ? "Ẩn danh mục" : "Hiện danh mục"}
+                            className={`w-8 h-8 border rounded-sm cursor-pointer inline-flex items-center justify-center transition-colors ${c.status === "active" ? "border-gray-200 bg-gray-50 hover:bg-gray-100" : "border-emerald-200 bg-emerald-50 hover:bg-emerald-100"}`}
+                          >
+                            {c.status === "active" ? <EyeOff size={14} className="text-gray-500" /> : <Eye size={14} className="text-emerald-700" />}
                           </button>
                         </div>
                       </td>
@@ -447,8 +487,12 @@ export default function AdminCategoriesPage() {
                           <button onClick={() => openEditBrand(b)} title="Chỉnh sửa" className="w-8 h-8 border border-emerald-200 rounded-sm bg-emerald-50 hover:bg-emerald-100 cursor-pointer inline-flex items-center justify-center transition-colors">
                             <Edit2 size={14} className="text-emerald-700" />
                           </button>
-                          <button onClick={() => deleteBrand(b.brand_id, b.brand_name)} title="Xoá" className="w-8 h-8 border border-red-200 rounded-sm bg-red-50 hover:bg-red-100 cursor-pointer inline-flex items-center justify-center transition-colors">
-                            <Trash2 size={14} className="text-red-600" />
+                          <button
+                            onClick={() => toggleBrandVisibility(b)}
+                            title={b.status === "active" ? "Ẩn thương hiệu" : "Hiện thương hiệu"}
+                            className={`w-8 h-8 border rounded-sm cursor-pointer inline-flex items-center justify-center transition-colors ${b.status === "active" ? "border-gray-200 bg-gray-50 hover:bg-gray-100" : "border-emerald-200 bg-emerald-50 hover:bg-emerald-100"}`}
+                          >
+                            {b.status === "active" ? <EyeOff size={14} className="text-gray-500" /> : <Eye size={14} className="text-emerald-700" />}
                           </button>
                         </div>
                       </td>
