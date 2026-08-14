@@ -1,18 +1,29 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
-  ArrowLeft, MapPin, CreditCard, FileText, Package,
-  Truck, ShieldCheck, BadgeCheck,
-  Plus, Loader2, CheckCircle2, Lock, Tag, X,
-} from 'lucide-react';
-import SearchableSelect, { SelectOption } from '../components/SearchableSelect';
-import { toastError, toastWarning } from '../utils/toast';
+  ArrowLeft,
+  MapPin,
+  CreditCard,
+  FileText,
+  Package,
+  Truck,
+  ShieldCheck,
+  BadgeCheck,
+  Plus,
+  Loader2,
+  CheckCircle2,
+  Lock,
+  Tag,
+  X,
+} from "lucide-react";
+import SearchableSelect, { SelectOption } from "../components/SearchableSelect";
+import { toastError, toastWarning } from "../utils/toast";
 
-const API_URL      = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-const GEO_BASE_URL = 'https://provinces.open-api.vn/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const GEO_BASE_URL = "https://provinces.open-api.vn/api";
 
 interface CartItem {
   _id: string;
@@ -48,17 +59,21 @@ interface AddrForm {
 }
 
 const EMPTY_FORM: AddrForm = {
-  receiverName: '', phone: '',
-  provinceCode: null, provinceName: '',
-  districtCode: null, districtName: '',
-  wardCode: null, wardName: '',
-  detailAddress: '',
+  receiverName: "",
+  phone: "",
+  provinceCode: null,
+  provinceName: "",
+  districtCode: null,
+  districtName: "",
+  wardCode: null,
+  wardName: "",
+  detailAddress: "",
 };
 
 interface AvailablePromo {
   code: string;
   description: string;
-  discount_type: 'percent' | 'fixed';
+  discount_type: "percent" | "fixed";
   discount_value: number;
   max_discount: number | null;
   min_order_value: number;
@@ -66,65 +81,77 @@ interface AvailablePromo {
 }
 
 function formatPrice(n: number) {
-  return n.toLocaleString('vi-VN') + '₫';
+  return n.toLocaleString("vi-VN") + "₫";
 }
 
 const PAYMENT_METHODS = [
   {
-    id: 'cod',
-    label: 'Thanh toán khi nhận hàng (COD)',
-    desc: 'Trả tiền mặt khi nhận hàng',
-    image: '/payment/cod.png',
-    bg: 'bg-green-50',
+    id: "cod",
+    label: "Thanh toán khi nhận hàng (COD)",
+    desc: "Trả tiền mặt khi nhận hàng",
+    image: "/payment/cod.png",
+    bg: "bg-green-50",
   },
   {
-    id: 'vnpay',
-    label: 'Thanh toán VNPAY',
-    desc: 'QR Code, thẻ tín dụng, tài khoản ngân hàng',
-    image: '/payment/vnpay.png',
-    bg: 'bg-white',
+    id: "vnpay",
+    label: "Thanh toán VNPAY",
+    desc: "QR Code, thẻ tín dụng, tài khoản ngân hàng",
+    image: "/payment/vnpay.png",
+    bg: "bg-white",
   },
 ];
 
 export default function ThanhToanPage() {
   const router = useRouter();
-  const [items, setItems]               = useState<CartItem[]>([]);   // chỉ item được chọn
-  const [addresses, setAddresses]       = useState<Address[]>([]);
-  const [selectedAddr, setSelectedAddr] = useState<string>('');
-  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'vnpay'>('cod');
-  const [ghiChu, setGhiChu]             = useState('');
-  const [loading, setLoading]           = useState(true);
-  const [placing, setPlacing]           = useState(false);
-  const [showNewAddr, setShowNewAddr]   = useState(false);
+  const [items, setItems] = useState<CartItem[]>([]); // chỉ item được chọn
+  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [selectedAddr, setSelectedAddr] = useState<string>("");
+  const [paymentMethod, setPaymentMethod] = useState<"cod" | "vnpay">("cod");
+  const [ghiChu, setGhiChu] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [placing, setPlacing] = useState(false);
+  const [showNewAddr, setShowNewAddr] = useState(false);
 
-  const [newAddr, setNewAddr]       = useState<AddrForm>(EMPTY_FORM);
+  const [newAddr, setNewAddr] = useState<AddrForm>(EMPTY_FORM);
   const [savingAddr, setSavingAddr] = useState(false);
 
   // Mã giảm giá
-  const [promoInput, setPromoInput]     = useState('');
-  const [appliedPromo, setAppliedPromo] = useState<{ code: string; description: string; discount: number } | null>(null);
-  const [promoError, setPromoError]     = useState('');
+  const [promoInput, setPromoInput] = useState("");
+  const [appliedPromo, setAppliedPromo] = useState<{
+    code: string;
+    description: string;
+    discount: number;
+  } | null>(null);
+  const [promoError, setPromoError] = useState("");
   const [applyingPromo, setApplyingPromo] = useState(false);
   const [availablePromos, setAvailablePromos] = useState<AvailablePromo[]>([]);
 
-  const [provinces, setProvinces]   = useState<SelectOption[]>([]);
-  const [districts, setDistricts]   = useState<SelectOption[]>([]);
-  const [wards, setWards]           = useState<SelectOption[]>([]);
+  const [provinces, setProvinces] = useState<SelectOption[]>([]);
+  const [districts, setDistricts] = useState<SelectOption[]>([]);
+  const [wards, setWards] = useState<SelectOption[]>([]);
   const [loadingDistricts, setLoadingDistricts] = useState(false);
-  const [loadingWards, setLoadingWards]         = useState(false);
+  const [loadingWards, setLoadingWards] = useState(false);
 
-  const token = typeof window !== 'undefined' ? localStorage.getItem('smarthub_token') : null;
+  const token =
+    typeof window !== "undefined"
+      ? localStorage.getItem("smarthub_token")
+      : null;
 
   useEffect(() => {
-    if (!token) { setLoading(false); return; }
-    Promise.all([fetchCart(), fetchAddresses()]).finally(() => setLoading(false));
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+    Promise.all([fetchCart(), fetchAddresses()]).finally(() =>
+      setLoading(false),
+    );
     fetchProvinces();
     fetchAvailablePromos();
   }, []);
 
   const fetchAvailablePromos = async () => {
     try {
-      const res  = await fetch(`${API_URL}/api/promotions/available`);
+      const res = await fetch(`${API_URL}/api/promotions/available`);
       const data = await res.json();
       if (data.success) setAvailablePromos(data.data);
     } catch {}
@@ -132,7 +159,7 @@ export default function ThanhToanPage() {
 
   const fetchCart = async () => {
     // Ưu tiên "Mua ngay": không dùng giỏ hàng
-    const buyNowRaw = sessionStorage.getItem('smarthub_buynow_item');
+    const buyNowRaw = sessionStorage.getItem("smarthub_buynow_item");
     if (buyNowRaw) {
       try {
         const buyNowItem: CartItem = JSON.parse(buyNowRaw);
@@ -141,16 +168,18 @@ export default function ThanhToanPage() {
       } catch {}
     }
 
-    const res  = await fetch(`${API_URL}/api/cart`, { headers: { Authorization: `Bearer ${token}` } });
+    const res = await fetch(`${API_URL}/api/cart`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
     const data = await res.json();
     if (data.success) {
       const cartItems: CartItem[] = data.cart.items;
 
       // Lọc theo item IDs được chọn từ trang giỏ hàng
-      const raw = localStorage.getItem('smarthub_checkout_ids');
+      const raw = localStorage.getItem("smarthub_checkout_ids");
       if (raw) {
         const ids: string[] = JSON.parse(raw);
-        const filtered = cartItems.filter(i => ids.includes(i._id));
+        const filtered = cartItems.filter((i) => ids.includes(i._id));
         setItems(filtered.length > 0 ? filtered : cartItems);
       } else {
         setItems(cartItems);
@@ -159,7 +188,9 @@ export default function ThanhToanPage() {
   };
 
   const fetchAddresses = async () => {
-    const res  = await fetch(`${API_URL}/api/addresses`, { headers: { Authorization: `Bearer ${token}` } });
+    const res = await fetch(`${API_URL}/api/addresses`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
     const data = await res.json();
     if (data.success) {
       setAddresses(data.data);
@@ -171,49 +202,98 @@ export default function ThanhToanPage() {
 
   const fetchProvinces = async () => {
     try {
-      const res  = await fetch(`${GEO_BASE_URL}/p/`);
+      const res = await fetch(`${GEO_BASE_URL}/p/`);
       const data = await res.json();
-      setProvinces(data.map((p: { code: number; name: string }) => ({ code: p.code, name: p.name })));
+      setProvinces(
+        data.map((p: { code: number; name: string }) => ({
+          code: p.code,
+          name: p.name,
+        })),
+      );
     } catch {}
   };
 
   const handleProvinceChange = async (code: number, name: string) => {
-    setNewAddr(p => ({ ...p, provinceCode: code, provinceName: name, districtCode: null, districtName: '', wardCode: null, wardName: '' }));
+    setNewAddr((p) => ({
+      ...p,
+      provinceCode: code,
+      provinceName: name,
+      districtCode: null,
+      districtName: "",
+      wardCode: null,
+      wardName: "",
+    }));
     setDistricts([]);
     setWards([]);
     setLoadingDistricts(true);
     try {
-      const res  = await fetch(`${GEO_BASE_URL}/p/${code}?depth=2`);
+      const res = await fetch(`${GEO_BASE_URL}/p/${code}?depth=2`);
       const data = await res.json();
-      setDistricts((data.districts || []).map((d: { code: number; name: string }) => ({ code: d.code, name: d.name })));
+      setDistricts(
+        (data.districts || []).map((d: { code: number; name: string }) => ({
+          code: d.code,
+          name: d.name,
+        })),
+      );
     } catch {}
     setLoadingDistricts(false);
   };
 
   const handleDistrictChange = async (code: number, name: string) => {
-    setNewAddr(p => ({ ...p, districtCode: code, districtName: name, wardCode: null, wardName: '' }));
+    setNewAddr((p) => ({
+      ...p,
+      districtCode: code,
+      districtName: name,
+      wardCode: null,
+      wardName: "",
+    }));
     setWards([]);
     setLoadingWards(true);
     try {
-      const res  = await fetch(`${GEO_BASE_URL}/d/${code}?depth=2`);
+      const res = await fetch(`${GEO_BASE_URL}/d/${code}?depth=2`);
       const data = await res.json();
-      setWards((data.wards || []).map((w: { code: number; name: string }) => ({ code: w.code, name: w.name })));
+      setWards(
+        (data.wards || []).map((w: { code: number; name: string }) => ({
+          code: w.code,
+          name: w.name,
+        })),
+      );
     } catch {}
     setLoadingWards(false);
   };
 
   const handleSaveNewAddr = async () => {
-    const { receiverName, phone, provinceName, districtName, wardName, detailAddress } = newAddr;
-    if (!receiverName || !phone || !provinceName || !districtName || !wardName || !detailAddress)
-      return toastWarning('Vui lòng điền đầy đủ thông tin địa chỉ');
+    const {
+      receiverName,
+      phone,
+      provinceName,
+      districtName,
+      wardName,
+      detailAddress,
+    } = newAddr;
+    if (
+      !receiverName ||
+      !phone ||
+      !provinceName ||
+      !districtName ||
+      !wardName ||
+      !detailAddress
+    )
+      return toastWarning("Vui lòng điền đầy đủ thông tin địa chỉ");
 
     setSavingAddr(true);
-    const res  = await fetch(`${API_URL}/api/addresses`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    const res = await fetch(`${API_URL}/api/addresses`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
       body: JSON.stringify({
-        receiverName, phone,
-        province: provinceName, district: districtName, ward: wardName,
+        receiverName,
+        phone,
+        province: provinceName,
+        district: districtName,
+        ward: wardName,
         detailAddress,
         isDefault: addresses.length === 0,
       }),
@@ -228,7 +308,7 @@ export default function ThanhToanPage() {
       setDistricts([]);
       setWards([]);
     } else {
-      toastError(data.message || 'Lỗi khi lưu địa chỉ');
+      toastError(data.message || "Lỗi khi lưu địa chỉ");
     }
   };
 
@@ -236,23 +316,30 @@ export default function ThanhToanPage() {
     const code = (codeOverride ?? promoInput).trim();
     if (!code) return;
     setApplyingPromo(true);
-    setPromoError('');
+    setPromoError("");
     try {
       const total = items.reduce((s, i) => s + i.gia * i.soLuong, 0);
       const res = await fetch(`${API_URL}/api/promotions/validate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ code, orderTotal: total }),
       });
       const data = await res.json();
       if (data.success) {
-        setAppliedPromo({ code: data.data.code, description: data.data.description, discount: data.data.discount });
-        setPromoInput('');
+        setAppliedPromo({
+          code: data.data.code,
+          description: data.data.description,
+          discount: data.data.discount,
+        });
+        setPromoInput("");
       } else {
-        setPromoError(data.message || 'Mã giảm giá không hợp lệ');
+        setPromoError(data.message || "Mã giảm giá không hợp lệ");
       }
     } catch {
-      setPromoError('Không thể kiểm tra mã, vui lòng thử lại');
+      setPromoError("Không thể kiểm tra mã, vui lòng thử lại");
     } finally {
       setApplyingPromo(false);
     }
@@ -260,34 +347,37 @@ export default function ThanhToanPage() {
 
   const handleRemovePromo = () => {
     setAppliedPromo(null);
-    setPromoError('');
+    setPromoError("");
   };
 
   const handleRemoveItem = (id: string) => {
-    setItems(prev => prev.filter(i => i._id !== id));
+    setItems((prev) => prev.filter((i) => i._id !== id));
   };
 
   const handlePlaceOrder = async () => {
-    if (!selectedAddr) return toastWarning('Vui lòng chọn địa chỉ giao hàng');
-    if (items.length === 0) return toastWarning('Không có sản phẩm nào');
+    if (!selectedAddr) return toastWarning("Vui lòng chọn địa chỉ giao hàng");
+    if (items.length === 0) return toastWarning("Không có sản phẩm nào");
 
-    const addr = addresses.find(a => a._id === selectedAddr);
+    const addr = addresses.find((a) => a._id === selectedAddr);
     if (!addr) return;
 
     setPlacing(true);
     const res = await fetch(`${API_URL}/api/orders`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
       body: JSON.stringify({
-        receiverName:  addr.receiverName,
-        phone:         addr.phone,
-        province:      addr.province,
-        district:      addr.district,
-        ward:          addr.ward,
+        receiverName: addr.receiverName,
+        phone: addr.phone,
+        province: addr.province,
+        district: addr.district,
+        ward: addr.ward,
         detailAddress: addr.detailAddress,
         paymentMethod,
         ghiChu,
-        itemIds: items.map(i => i._id),
+        itemIds: items.map((i) => i._id),
         promoCode: appliedPromo?.code || undefined,
       }),
     });
@@ -295,35 +385,36 @@ export default function ThanhToanPage() {
     setPlacing(false);
 
     if (data.success) {
-      localStorage.removeItem('smarthub_checkout_ids');
-      sessionStorage.removeItem('smarthub_buynow_item');
-      window.dispatchEvent(new Event('cart-updated'));
+      localStorage.removeItem("smarthub_checkout_ids");
+      sessionStorage.removeItem("smarthub_buynow_item");
+      window.dispatchEvent(new Event("cart-updated"));
       // Nếu VNPAY, lấy URL thanh toán và redirect
-      if (paymentMethod === 'vnpay') {
+      if (paymentMethod === "vnpay") {
         const payRes = await fetch(`${API_URL}/api/vnpay/create_payment`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
           body: JSON.stringify({ orderId: data.order._id }),
         });
         const payData = await payRes.json();
         if (payData.success && payData.url) {
           window.location.href = payData.url;
         } else {
-          toastError(payData.message || 'Lỗi tạo URL VNPAY');
+          toastError(payData.message || "Lỗi tạo URL VNPAY");
         }
       } else {
         router.push(`/dat-hang-thanh-cong?orderId=${data.order._id}`);
       }
     } else {
-      toastError(data.message || 'Đặt hàng thất bại');
+      toastError(data.message || "Đặt hàng thất bại");
     }
   };
 
-  
-
-  const tongTien      = items.reduce((s, i) => s + i.gia * i.soLuong, 0);
-  const phiGH         = tongTien >= 500000 ? 0 : 30000;
-  const giamGia       = appliedPromo ? Math.min(appliedPromo.discount, tongTien) : 0;
+  const tongTien = items.reduce((s, i) => s + i.gia * i.soLuong, 0);
+  const phiGH = tongTien >= 500000 ? 0 : 30000;
+  const giamGia = appliedPromo ? Math.min(appliedPromo.discount, tongTien) : 0;
   const tongThanhToan = Math.max(0, tongTien + phiGH - giamGia);
 
   if (!token && !loading) {
@@ -333,9 +424,16 @@ export default function ThanhToanPage() {
           <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-5">
             <Lock className="w-9 h-9 text-red-400" />
           </div>
-          <h2 className="text-xl font-bold text-gray-800 mb-2">Vui lòng đăng nhập</h2>
-          <p className="text-gray-500 text-sm mb-6">Bạn cần đăng nhập để thanh toán</p>
-          <Link href="/login" className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-sm font-semibold transition">
+          <h2 className="text-xl font-bold text-gray-800 mb-2">
+            Vui lòng đăng nhập
+          </h2>
+          <p className="text-gray-500 text-sm mb-6">
+            Bạn cần đăng nhập để thanh toán
+          </p>
+          <Link
+            href="/login"
+            className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-sm font-semibold transition"
+          >
             Đăng nhập ngay
           </Link>
         </div>
@@ -348,7 +446,10 @@ export default function ThanhToanPage() {
       {/* Header */}
       <div className="bg-white border-b border-gray-100 px-6 py-4">
         <div className="max-w-6xl mx-auto flex items-center gap-3">
-          <button onClick={() => router.back()} className="text-gray-400 hover:text-red-500 transition">
+          <button
+            onClick={() => router.back()}
+            className="text-gray-400 hover:text-red-500 transition"
+          >
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-xl font-bold text-gray-800 flex items-center gap-2">
@@ -364,24 +465,24 @@ export default function ThanhToanPage() {
         </div>
       ) : (
         <div className="max-w-6xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-
           {/* ── Cột trái ── */}
           <div className="lg:col-span-2 space-y-4">
-
             {/* 1. Địa chỉ giao hàng */}
             <section className="bg-white border border-gray-100 rounded-sm p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-bold text-gray-800 flex items-center gap-2">
-                  <span className="w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold">1</span>
+                  <span className="w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                    1
+                  </span>
                   <MapPin className="w-4 h-4 text-red-500" />
                   Địa chỉ giao hàng
                 </h2>
                 <button
-                  onClick={() => setShowNewAddr(v => !v)}
+                  onClick={() => setShowNewAddr((v) => !v)}
                   className="flex items-center gap-1.5 text-sm text-red-500 hover:text-red-600 font-medium transition"
                 >
                   <Plus className="w-4 h-4" />
-                  {showNewAddr ? 'Đóng' : 'Thêm địa chỉ'}
+                  {showNewAddr ? "Đóng" : "Thêm địa chỉ"}
                 </button>
               </div>
 
@@ -396,7 +497,12 @@ export default function ThanhToanPage() {
                   <input
                     placeholder="Họ và tên người nhận *"
                     value={newAddr.receiverName}
-                    onChange={e => setNewAddr(p => ({ ...p, receiverName: e.target.value }))}
+                    onChange={(e) =>
+                      setNewAddr((p) => ({
+                        ...p,
+                        receiverName: e.target.value,
+                      }))
+                    }
                     className="w-full border border-gray-200 rounded-sm px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 bg-white"
                   />
                   <input
@@ -405,7 +511,12 @@ export default function ThanhToanPage() {
                     maxLength={11}
                     placeholder="Số điện thoại *"
                     value={newAddr.phone}
-                    onChange={e => setNewAddr(p => ({ ...p, phone: e.target.value.replace(/\D/g, '') }))}
+                    onChange={(e) =>
+                      setNewAddr((p) => ({
+                        ...p,
+                        phone: e.target.value.replace(/\D/g, ""),
+                      }))
+                    }
                     className="w-full border border-gray-200 rounded-sm px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 bg-white"
                   />
                   <p className="text-xs text-gray-400 -mt-2">Chỉ nhập số</p>
@@ -426,7 +537,13 @@ export default function ThanhToanPage() {
                   <SearchableSelect
                     options={wards}
                     value={newAddr.wardName}
-                    onChange={(code, name) => setNewAddr(p => ({ ...p, wardCode: code, wardName: name }))}
+                    onChange={(code, name) =>
+                      setNewAddr((p) => ({
+                        ...p,
+                        wardCode: code,
+                        wardName: name,
+                      }))
+                    }
                     placeholder="Phường / Xã *"
                     disabled={!newAddr.districtName}
                     loading={loadingWards}
@@ -434,7 +551,12 @@ export default function ThanhToanPage() {
                   <input
                     placeholder="Địa chỉ chi tiết (số nhà, tên đường...) *"
                     value={newAddr.detailAddress}
-                    onChange={e => setNewAddr(p => ({ ...p, detailAddress: e.target.value }))}
+                    onChange={(e) =>
+                      setNewAddr((p) => ({
+                        ...p,
+                        detailAddress: e.target.value,
+                      }))
+                    }
                     className="w-full border border-gray-200 rounded-sm px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 bg-white"
                   />
 
@@ -444,13 +566,24 @@ export default function ThanhToanPage() {
                       disabled={savingAddr}
                       className="flex items-center gap-1.5 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-sm text-sm font-medium transition disabled:opacity-60"
                     >
-                      {savingAddr
-                        ? <><Loader2 className="w-4 h-4 animate-spin" /> Đang lưu...</>
-                        : <><CheckCircle2 className="w-4 h-4" /> Lưu địa chỉ</>
-                      }
+                      {savingAddr ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" /> Đang
+                          lưu...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="w-4 h-4" /> Lưu địa chỉ
+                        </>
+                      )}
                     </button>
                     <button
-                      onClick={() => { setShowNewAddr(false); setNewAddr(EMPTY_FORM); setDistricts([]); setWards([]); }}
+                      onClick={() => {
+                        setShowNewAddr(false);
+                        setNewAddr(EMPTY_FORM);
+                        setDistricts([]);
+                        setWards([]);
+                      }}
                       className="border border-gray-200 text-gray-600 px-4 py-2 rounded-sm text-sm font-medium hover:bg-gray-100 transition"
                     >
                       Hủy
@@ -463,17 +596,19 @@ export default function ThanhToanPage() {
               {addresses.length === 0 ? (
                 <div className="text-center py-6">
                   <MapPin className="w-10 h-10 text-gray-200 mx-auto mb-2" />
-                  <p className="text-sm text-gray-400">Bạn chưa có địa chỉ nào. Hãy thêm địa chỉ giao hàng.</p>
+                  <p className="text-sm text-gray-400">
+                    Bạn chưa có địa chỉ nào. Hãy thêm địa chỉ giao hàng.
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {addresses.map(addr => (
+                  {addresses.map((addr) => (
                     <label
                       key={addr._id}
                       className={`flex items-start gap-3 p-4 rounded-sm border-2 cursor-pointer transition ${
                         selectedAddr === addr._id
-                          ? 'border-blue-400 bg-blue-50'
-                          : 'border-gray-100 hover:border-gray-200'
+                          ? "border-blue-400 bg-blue-50"
+                          : "border-gray-100 hover:border-gray-200"
                       }`}
                     >
                       <input
@@ -484,12 +619,18 @@ export default function ThanhToanPage() {
                         onChange={() => setSelectedAddr(addr._id)}
                         className="mt-1 accent-blue-500"
                       />
-                      <MapPin className={`w-4 h-4 mt-0.5 shrink-0 ${selectedAddr === addr._id ? 'text-blue-500' : 'text-gray-300'}`} />
+                      <MapPin
+                        className={`w-4 h-4 mt-0.5 shrink-0 ${selectedAddr === addr._id ? "text-blue-500" : "text-gray-300"}`}
+                      />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold text-gray-800 text-sm">{addr.receiverName}</span>
+                          <span className="font-semibold text-gray-800 text-sm">
+                            {addr.receiverName}
+                          </span>
                           <span className="text-gray-300">|</span>
-                          <span className="text-gray-500 text-sm">{addr.phone}</span>
+                          <span className="text-gray-500 text-sm">
+                            {addr.phone}
+                          </span>
                           {addr.isDefault && (
                             <span className="text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded font-medium">
                               Mặc định
@@ -497,7 +638,8 @@ export default function ThanhToanPage() {
                           )}
                         </div>
                         <p className="text-sm text-gray-500 mt-1">
-                          {addr.detailAddress}, {addr.ward}, {addr.district}, {addr.province}
+                          {addr.detailAddress}, {addr.ward}, {addr.district},{" "}
+                          {addr.province}
                         </p>
                       </div>
                     </label>
@@ -509,7 +651,9 @@ export default function ThanhToanPage() {
             {/* 2. Phương thức thanh toán */}
             <section className="bg-white border border-gray-100 rounded-sm p-6">
               <h2 className="font-bold text-gray-800 flex items-center gap-2 mb-4">
-                <span className="w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold">2</span>
+                <span className="w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                  2
+                </span>
                 <CreditCard className="w-4 h-4 text-red-500" />
                 Phương thức thanh toán
               </h2>
@@ -519,8 +663,8 @@ export default function ThanhToanPage() {
                     key={id}
                     className={`flex items-center gap-4 p-4 rounded-sm border-2 cursor-pointer transition ${
                       paymentMethod === id
-                        ? 'border-blue-400 bg-blue-50'
-                        : 'border-gray-100 hover:border-gray-200'
+                        ? "border-blue-400 bg-blue-50"
+                        : "border-gray-100 hover:border-gray-200"
                     }`}
                   >
                     <input
@@ -528,29 +672,41 @@ export default function ThanhToanPage() {
                       name="payment"
                       value={id}
                       checked={paymentMethod === id}
-                      onChange={() => setPaymentMethod(id as 'cod' | 'vnpay')}
+                      onChange={() => setPaymentMethod(id as "cod" | "vnpay")}
                       className="accent-blue-500"
                     />
-                    <div className={`w-12 h-10 ${bg} rounded-sm flex items-center justify-center shrink-0 border border-gray-100`}>
-                      <img src={image} alt={label} className="w-10 h-8 object-contain" />
+                    <div
+                      className={`w-12 h-10 ${bg} rounded-sm flex items-center justify-center shrink-0 border border-gray-100`}
+                    >
+                      <img
+                        src={image}
+                        alt={label}
+                        className="w-10 h-8 object-contain"
+                      />
                     </div>
                     <div>
-                      <p className="font-medium text-gray-800 text-sm">{label}</p>
+                      <p className="font-medium text-gray-800 text-sm">
+                        {label}
+                      </p>
                       <p className="text-xs text-gray-400 mt-0.5">{desc}</p>
                     </div>
                   </label>
                 ))}
               </div>
 
-              {paymentMethod === 'vnpay' && (
+              {paymentMethod === "vnpay" && (
                 <div className="mt-3 p-4 bg-yellow-50 border border-yellow-100 rounded-sm">
                   <p className="font-semibold text-yellow-700 text-sm mb-2 flex items-center gap-1.5">
                     <CreditCard className="w-4 h-4" />
                     Thanh toán VNPAY
                   </p>
                   <div className="text-sm text-yellow-700 space-y-1">
-                    <p>Bạn sẽ được chuyển đến trang VNPAY để thanh toán an toàn.</p>
-                    <p className="text-xs text-yellow-600 mt-1">Hỗ trợ: QR Code, thẻ tín dụng/ghi nợ, tài khoản ngân hàng</p>
+                    <p>
+                      Bạn sẽ được chuyển đến trang VNPAY để thanh toán an toàn.
+                    </p>
+                    <p className="text-xs text-yellow-600 mt-1">
+                      Hỗ trợ: QR Code, thẻ tín dụng/ghi nợ, tài khoản ngân hàng
+                    </p>
                   </div>
                 </div>
               )}
@@ -559,7 +715,9 @@ export default function ThanhToanPage() {
             {/* 3. Ghi chú */}
             <section className="bg-white border border-gray-100 rounded-sm p-6">
               <h2 className="font-bold text-gray-800 flex items-center gap-2 mb-4">
-                <span className="w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold">3</span>
+                <span className="w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                  3
+                </span>
                 <FileText className="w-4 h-4 text-red-500" />
                 Ghi chú đơn hàng
               </h2>
@@ -567,8 +725,8 @@ export default function ThanhToanPage() {
                 rows={3}
                 placeholder="Ghi chú cho người giao hàng (không bắt buộc)..."
                 value={ghiChu}
-                onChange={e => setGhiChu(e.target.value)}
-                className="w-full border border-gray-200 rounded-sm px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-red-400"
+                onChange={(e) => setGhiChu(e.target.value)}
+                className="w-full border border-gray-200 rounded-sm px-4 py-3 text-sm text-black resize-none focus:outline-none focus:ring-2 focus:ring-red-400"
               />
             </section>
           </div>
@@ -583,17 +741,26 @@ export default function ThanhToanPage() {
 
               {/* Danh sách sản phẩm được chọn */}
               <div className="space-y-3 mb-5 max-h-60 overflow-y-auto pr-1">
-                {items.map(item => (
+                {items.map((item) => (
                   <div key={item._id} className="flex gap-3 items-center group">
                     <div className="w-12 h-12 rounded-md overflow-hidden bg-gray-100 shrink-0 flex items-center justify-center">
-                      {item.hinhAnh
-                        ? <img src={item.hinhAnh} alt={item.tenSanPham} className="w-full h-full object-cover" />
-                        : <Package className="w-5 h-5 text-gray-300" />
-                      }
+                      {item.hinhAnh ? (
+                        <img
+                          src={item.hinhAnh}
+                          alt={item.tenSanPham}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <Package className="w-5 h-5 text-gray-300" />
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-gray-700 line-clamp-2">{item.tenSanPham}</p>
-                      {item.variant && <p className="text-xs text-gray-400">{item.variant}</p>}
+                      <p className="text-xs font-medium text-gray-700 line-clamp-2">
+                        {item.tenSanPham}
+                      </p>
+                      {item.variant && (
+                        <p className="text-xs text-gray-400">{item.variant}</p>
+                      )}
                       <p className="text-xs text-gray-400">x{item.soLuong}</p>
                     </div>
                     <div className="flex flex-col items-end gap-1 shrink-0">
@@ -622,8 +789,12 @@ export default function ThanhToanPage() {
                   <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-sm px-3 py-2.5">
                     <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-green-700 font-mono">{appliedPromo.code}</p>
-                      <p className="text-xs text-green-600 truncate">Giảm {formatPrice(giamGia)}</p>
+                      <p className="text-sm font-bold text-green-700 font-mono">
+                        {appliedPromo.code}
+                      </p>
+                      <p className="text-xs text-green-600 truncate">
+                        Giảm {formatPrice(giamGia)}
+                      </p>
                     </div>
                     <button
                       onClick={handleRemovePromo}
@@ -639,59 +810,83 @@ export default function ThanhToanPage() {
                       <input
                         placeholder="Nhập mã giảm giá"
                         value={promoInput}
-                        onChange={e => { setPromoInput(e.target.value.toUpperCase()); setPromoError(''); }}
-                        onKeyDown={e => { if (e.key === 'Enter') handleApplyPromo(); }}
-                        className="flex-1 min-w-0 border border-gray-200 rounded-sm px-3 py-2.5 text-sm font-mono uppercase focus:outline-none focus:ring-2 focus:ring-red-400 placeholder:font-sans placeholder:normal-case"
+                        onChange={(e) => {
+                          setPromoInput(e.target.value.toUpperCase());
+                          setPromoError("");
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleApplyPromo();
+                        }}
+                        className="flex-1 min-w-0 border border-gray-200 rounded-sm px-3 py-2.5 text-sm font-mono uppercase text-black focus:outline-none focus:ring-2 focus:ring-red-400 placeholder:font-sans placeholder:normal-case"
                       />
                       <button
                         onClick={() => handleApplyPromo()}
                         disabled={applyingPromo || !promoInput.trim()}
                         className="bg-red-500 hover:bg-red-600 text-white px-4 py-2.5 rounded-sm text-sm font-medium transition disabled:bg-gray-200 disabled:text-gray-400 shrink-0"
                       >
-                        {applyingPromo ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Áp dụng'}
+                        {applyingPromo ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          "Áp dụng"
+                        )}
                       </button>
                     </div>
                     {promoError && (
-                      <p className="text-xs text-red-500 mt-1.5">{promoError}</p>
+                      <p className="text-xs text-red-500 mt-1.5">
+                        {promoError}
+                      </p>
                     )}
 
                     {/* Danh sách mã đang có */}
                     {availablePromos.length > 0 && (
                       <div className="mt-3 space-y-2">
-                        <p className="text-xs text-gray-400">Mã đang có hiệu lực, bấm để áp dụng:</p>
-                        {availablePromos.map(p => {
+                        <p className="text-xs text-gray-400">
+                          Mã đang có hiệu lực, bấm để áp dụng:
+                        </p>
+                        {availablePromos.map((p) => {
                           const eligible = tongTien >= p.min_order_value;
                           return (
                             <button
                               key={p.code}
-                              onClick={() => eligible && handleApplyPromo(p.code)}
+                              onClick={() =>
+                                eligible && handleApplyPromo(p.code)
+                              }
                               disabled={!eligible || applyingPromo}
                               className={`w-full text-left border border-dashed rounded-sm px-3 py-2.5 transition ${
                                 eligible
-                                  ? 'border-red-300 bg-red-50/50 hover:bg-red-50 hover:border-red-400 cursor-pointer'
-                                  : 'border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed'
+                                  ? "border-red-300 bg-red-50/50 hover:bg-red-50 hover:border-red-400 cursor-pointer"
+                                  : "border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed"
                               }`}
                             >
                               <div className="flex items-center justify-between gap-2">
-                                <span className={`text-sm font-bold font-mono ${eligible ? 'text-red-600' : 'text-gray-400'}`}>
+                                <span
+                                  className={`text-sm font-bold font-mono ${eligible ? "text-red-600" : "text-gray-400"}`}
+                                >
                                   {p.code}
                                 </span>
-                                <span className={`text-xs font-semibold shrink-0 ${eligible ? 'text-red-500' : 'text-gray-400'}`}>
-                                  {p.discount_type === 'percent'
-                                    ? `-${p.discount_value}%${p.max_discount ? ` (tối đa ${formatPrice(p.max_discount)})` : ''}`
+                                <span
+                                  className={`text-xs font-semibold shrink-0 ${eligible ? "text-red-500" : "text-gray-400"}`}
+                                >
+                                  {p.discount_type === "percent"
+                                    ? `-${p.discount_value}%${p.max_discount ? ` (tối đa ${formatPrice(p.max_discount)})` : ""}`
                                     : `-${formatPrice(p.discount_value)}`}
                                 </span>
                               </div>
                               {p.description && (
-                                <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{p.description}</p>
+                                <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">
+                                  {p.description}
+                                </p>
                               )}
                               <p className="text-[11px] text-gray-400 mt-0.5">
                                 {p.min_order_value > 0
                                   ? eligible
                                     ? `Đơn từ ${formatPrice(p.min_order_value)}`
                                     : `Cần mua thêm ${formatPrice(p.min_order_value - tongTien)} để dùng mã này`
-                                  : 'Không yêu cầu đơn tối thiểu'}
-                                {' · HSD '}{new Date(p.end_date).toLocaleDateString('vi-VN')}
+                                  : "Không yêu cầu đơn tối thiểu"}
+                                {" · HSD "}
+                                {new Date(p.end_date).toLocaleDateString(
+                                  "vi-VN",
+                                )}
                               </p>
                             </button>
                           );
@@ -713,8 +908,10 @@ export default function ThanhToanPage() {
                     <Truck className="w-3.5 h-3.5 text-gray-400" />
                     Phí giao hàng
                   </span>
-                  <span className={phiGH === 0 ? 'text-green-500 font-medium' : ''}>
-                    {phiGH === 0 ? 'Miễn phí' : formatPrice(phiGH)}
+                  <span
+                    className={phiGH === 0 ? "text-green-500 font-medium" : ""}
+                  >
+                    {phiGH === 0 ? "Miễn phí" : formatPrice(phiGH)}
                   </span>
                 </div>
                 {giamGia > 0 && (
@@ -723,12 +920,16 @@ export default function ThanhToanPage() {
                       <Tag className="w-3.5 h-3.5" />
                       Giảm giá ({appliedPromo?.code})
                     </span>
-                    <span className="text-green-600 font-medium">-{formatPrice(giamGia)}</span>
+                    <span className="text-green-600 font-medium">
+                      -{formatPrice(giamGia)}
+                    </span>
                   </div>
                 )}
                 <div className="flex justify-between font-bold text-gray-800 text-base pt-3 border-t border-gray-100">
                   <span>Tổng cộng</span>
-                  <span className="text-red-500 text-lg">{formatPrice(tongThanhToan)}</span>
+                  <span className="text-red-500 text-lg">
+                    {formatPrice(tongThanhToan)}
+                  </span>
                 </div>
               </div>
 
@@ -736,28 +937,54 @@ export default function ThanhToanPage() {
                 onClick={handlePlaceOrder}
                 disabled={placing || items.length === 0 || !selectedAddr}
                 className={`w-full font-bold py-3.5 rounded-sm transition flex items-center justify-center gap-2 ${
-                  paymentMethod === 'vnpay'
-                    ? 'bg-yellow-500 hover:bg-yellow-600 text-white'
-                    : 'bg-red-500 hover:bg-red-600 text-white'
+                  paymentMethod === "vnpay"
+                    ? "bg-yellow-500 hover:bg-yellow-600 text-white"
+                    : "bg-red-500 hover:bg-red-600 text-white"
                 } disabled:bg-gray-200 disabled:text-gray-400`}
               >
-                {placing
-                  ? <><Loader2 className="w-5 h-5 animate-spin" /> Đang xử lý...</>
-                  : paymentMethod === 'vnpay'
-                    ? <><CreditCard className="w-4 h-4" /> Thanh toán VNPAY</>
-                    : <><CreditCard className="w-4 h-4" /> Đặt hàng ngay</>
-                }
+                {placing ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" /> Đang xử lý...
+                  </>
+                ) : paymentMethod === "vnpay" ? (
+                  <>
+                    <CreditCard className="w-4 h-4" /> Thanh toán VNPAY
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="w-4 h-4" /> Đặt hàng ngay
+                  </>
+                )}
               </button>
 
               {/* Trust badges */}
               <div className="mt-5 pt-4 border-t border-gray-100 grid grid-cols-2 gap-2">
                 {[
-                  { Icon: ShieldCheck, text: 'Bảo mật SSL',      color: 'text-green-500'  },
-                  { Icon: BadgeCheck,  text: 'Hàng chính hãng',  color: 'text-purple-500' },
-                  { Icon: Truck,       text: 'Giao hàng nhanh',  color: 'text-blue-500'   },
-                  { Icon: CreditCard,  text: 'Thanh toán an toàn', color: 'text-yellow-500'},
+                  {
+                    Icon: ShieldCheck,
+                    text: "Bảo mật SSL",
+                    color: "text-green-500",
+                  },
+                  {
+                    Icon: BadgeCheck,
+                    text: "Hàng chính hãng",
+                    color: "text-purple-500",
+                  },
+                  {
+                    Icon: Truck,
+                    text: "Giao hàng nhanh",
+                    color: "text-blue-500",
+                  },
+                  {
+                    Icon: CreditCard,
+                    text: "Thanh toán an toàn",
+                    color: "text-yellow-500",
+                  },
                 ].map(({ Icon, text, color }, i) => (
-                  <div key={i} className="flex items-center gap-1.5 text-xs text-gray-500">
+                  <div
+                    key={i}
+                    className="flex items-center gap-1.5 text-xs text-gray-500"
+                  >
                     <Icon className={`w-3.5 h-3.5 shrink-0 ${color}`} />
                     <span>{text}</span>
                   </div>
@@ -767,8 +994,6 @@ export default function ThanhToanPage() {
           </div>
         </div>
       )}
-
-            
     </div>
   );
 }
