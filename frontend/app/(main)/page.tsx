@@ -2,18 +2,18 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ChevronLeft, ChevronRight, Star, ArrowRight,
   ShieldCheck, Truck, RefreshCw, Headphones,
-  Heart, Zap,
+  Heart, Zap, Clock,
 } from "lucide-react";
 import { useFavorites, type FavoriteProduct } from "../components/favoritesContext";
 import { specChips } from "../lib/specChips";
 import { ARTICLES } from "./tin-tuc/data";
 import HeroBanner from "../components/HeroBanner";
 import Rabbit3D from "../components/Rabbit3D";
-import { useCart } from "../hooks/useCart";
-import { flyToCart } from "../utils/flyToCart";
+import { isLoggedIn } from "../lib/authPrompt";
 
 // ─── API CONFIG ───────────────────────────────────────────────────────────────
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -33,6 +33,25 @@ interface ProductFeatured {
   luotDanhGia: number;
   badge: string;
   specification?: { label: string; value: string }[];
+}
+
+// Dữ liệu thật từ collection flash_sale (GET /api/flash-sales/active)
+interface FlashSaleActiveItem {
+  _id: string;
+  name: string;
+  sale_price: number;
+  quantity: number;
+  remaining_quantity: number;
+  start_time: string;
+  end_time: string;
+  variant: { _id: string; color: string; price: number; sku: string; stock_quantity: number } | null;
+  product: {
+    product_id: number;
+    product_name: string;
+    thumbnail: string;
+    slug: string;
+    specification?: { label: string; value: string }[];
+  } | null;
 }
 
 interface ProductBestSelling {
@@ -443,46 +462,74 @@ function FlashSaleSkeletonCard() {
 }
 
 // ─── FLASH SALE PRODUCT CARD ──────────────────────────────────────────────────
-function FlashSaleProductCard({ p }: { p: ProductFeatured }) {
-  const displayPrice = p.giaSale ?? p.gia;
-  const chips = specChips(p.specification);
-  const totalSlots = ((p.id * 13 + 7) % 40) + 10;
-  const soldSlots  = Math.floor(totalSlots * (((p.id * 7 + 3) % 60) + 10) / 100);
-  const soldPct    = Math.max((soldSlots / totalSlots) * 100, 8);
-  const { isFavorite, toggleItem } = useFavorites();
-  const liked = isFavorite(p.id);
-  const { addToCart, adding } = useCart();
-  const imgRef = useRef<HTMLImageElement>(null);
+// Nhận thẳng bản ghi flash_sale thật (từ /api/flash-sales/active hoặc /upcoming).
+// locked=true: đợt chưa tới giờ mở — cho xem giá/sản phẩm trước nhưng khoá nút mua.
+function FlashSaleProductCard({ f, locked = false }: { f: FlashSaleActiveItem; locked?: boolean }) {
+  const product = f.product;
+  const variant = f.variant;
+  if (!product) return null;
 
-  const handleAddToCart = async (e: React.MouseEvent) => {
+  const originalPrice = variant?.price ?? f.sale_price;
+  const discountPct   = originalPrice > f.sale_price
+    ? Math.round((1 - f.sale_price / originalPrice) * 100)
+    : 0;
+  const chips = specChips(product.specification);
+
+  const soldSlots  = f.quantity - f.remaining_quantity;
+  const totalSlots = f.quantity;
+  const soldOut    = f.remaining_quantity <= 0;
+  const soldPct    = totalSlots > 0 ? Math.max((soldSlots / totalSlots) * 100, soldSlots > 0 ? 4 : 0) : 0;
+
+  const startLabel = (() => {
+    const d = new Date(f.start_time);
+    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")} ${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+  })();
+
+  // id số dùng cho giỏ hàng/yêu thích khớp với product_id ở các nơi khác trong app
+  const id = product.product_id;
+
+  const { isFavorite, toggleItem } = useFavorites();
+  const liked = isFavorite(id);
+  const router = useRouter();
+
+  // "Mua ngay" bỏ qua giỏ hàng, đi thẳng tới trang thanh toán — khớp hành vi
+  // nút "Mua ngay" ở trang chi tiết sản phẩm (sanpham/[slug]).
+  const handleBuyNow = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (imgRef.current) {
-      flyToCart(p.thumbnail || "", imgRef.current.getBoundingClientRect());
+    if (locked || soldOut) return;
+    if (!isLoggedIn()) {
+      router.push("/login");
+      return;
     }
-    await addToCart({
-      productId: String(p.id),
-      tenSanPham: p.ten,
-      hinhAnh: p.thumbnail,
-      gia: displayPrice,
+    const item = {
+      _id: `buynow_${id}`,
+      productId: String(id),
+      tenSanPham: product.product_name,
+      hinhAnh: product.thumbnail,
+      gia: f.sale_price,
       soLuong: 1,
-    });
+      variant: variant?.color || "",
+    };
+    sessionStorage.setItem("smarthub_buynow_item", JSON.stringify(item));
+    localStorage.removeItem("smarthub_checkout_ids");
+    router.push("/thanhtoan");
   };
 
   const handleToggleFavorite = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     const fav: FavoriteProduct = {
-      id: p.id, ten: p.ten, slug: p.slug, thumbnail: p.thumbnail,
-      gia: p.gia, giaSale: p.giaSale, giamGia: p.giamGia,
-      danhGia: p.danhGia, thuongHieu: p.thuongHieu, categoryName: "",
+      id, ten: product.product_name, slug: product.slug, thumbnail: product.thumbnail,
+      gia: originalPrice, giaSale: f.sale_price, giamGia: discountPct,
+      danhGia: 0, thuongHieu: "", categoryName: "",
     };
     toggleItem(fav);
   };
 
   return (
-    <Link href={`/sanpham/${p.slug}`} className="block flex-shrink-0 w-[195px]">
-      <div className="bg-white rounded-xl border border-gray-100 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 overflow-hidden flex flex-col h-full">
+    <Link href={`/sanpham/${product.slug}`} className="block flex-shrink-0 w-[195px]">
+      <div className={`bg-white rounded-xl border border-gray-100 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 overflow-hidden flex flex-col h-full ${(soldOut || locked) ? "opacity-70" : ""}`}>
 
         {/* Spec chips */}
         <div className="flex gap-1 px-3 pt-3 min-h-[24px] flex-wrap">
@@ -495,15 +542,23 @@ function FlashSaleProductCard({ p }: { p: ProductFeatured }) {
 
         {/* Image */}
         <div className="relative h-[148px] flex items-center justify-center px-3 py-2">
-          {p.giamGia > 0 && (
+          {discountPct > 0 && (
             <span className="absolute top-2 left-4 z-10 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
-              -{p.giamGia}%
+              -{discountPct}%
+            </span>
+          )}
+          {locked ? (
+            <span className="absolute top-2 right-4 z-10 bg-gray-800 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+              Sắp mở
+            </span>
+          ) : soldOut && (
+            <span className="absolute top-2 right-4 z-10 bg-gray-800 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+              Hết hàng
             </span>
           )}
           <img
-            ref={imgRef}
-            src={p.thumbnail || "https://placehold.co/300x300?text=No+Image"}
-            alt={p.ten}
+            src={product.thumbnail || "https://placehold.co/300x300?text=No+Image"}
+            alt={product.product_name}
             className="h-full w-full object-contain"
             loading="lazy"
           />
@@ -513,31 +568,40 @@ function FlashSaleProductCard({ p }: { p: ProductFeatured }) {
         <div className="px-3 pb-3 flex flex-col gap-2 flex-1">
           {/* Price row */}
           <div>
-            <p className="text-red-600 font-bold text-[15px] leading-tight">{fmt(displayPrice)}</p>
-            {p.giamGia > 0 && (
-              <p className="text-gray-400 text-[11px] line-through">{fmt(p.gia)}</p>
+            <p className="text-red-600 font-bold text-[15px] leading-tight">{fmt(f.sale_price)}</p>
+            {discountPct > 0 && (
+              <p className="text-gray-400 text-[11px] line-through">{fmt(originalPrice)}</p>
             )}
           </div>
 
           {/* Name */}
-          <p className="text-[12px] font-semibold text-gray-800 line-clamp-2 leading-snug flex-1">{p.ten}</p>
+          <p className="text-[12px] font-semibold text-gray-800 line-clamp-2 leading-snug flex-1">
+            {product.product_name}{variant?.color ? ` - ${variant.color}` : ""}
+          </p>
 
-          {/* Progress bar */}
-          <div>
-            <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-              <div className="h-full bg-red-500 rounded-full transition-all" style={{ width: `${soldPct}%` }} />
+          {/* Progress bar (đợt đang chạy) hoặc giờ mở bán (đợt sắp tới) */}
+          {locked ? (
+            <div className="flex items-center gap-1.5 text-[10px] text-gray-500 bg-gray-50 rounded-md px-2 py-1.5">
+              <Clock size={11} className="shrink-0" />
+              Mở bán lúc {startLabel}
             </div>
-            <p className="text-[10px] text-gray-400 mt-0.5">Đã bán {soldSlots}/{totalSlots} suất</p>
-          </div>
+          ) : (
+            <div>
+              <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-full bg-red-500 rounded-full transition-all" style={{ width: `${soldPct}%` }} />
+              </div>
+              <p className="text-[10px] text-gray-400 mt-0.5">Đã bán {soldSlots}/{totalSlots} suất</p>
+            </div>
+          )}
 
           {/* Bottom: Mua ngay + yêu thích */}
           <div className="flex items-center gap-2 mt-auto">
             <button
-              onClick={handleAddToCart}
-              disabled={adding}
-              className="flex-1 py-1.5 rounded-full border border-red-500 text-red-600 text-[12px] font-bold hover:bg-red-500 hover:text-white transition-colors disabled:opacity-60"
+              onClick={handleBuyNow}
+              disabled={locked || soldOut}
+              className="flex-1 py-1.5 rounded-full border border-red-500 text-red-600 text-[12px] font-bold hover:bg-red-500 hover:text-white transition-colors disabled:opacity-60 disabled:hover:bg-transparent disabled:hover:text-red-600"
             >
-              {adding ? "Đang thêm..." : "Mua ngay"}
+              {locked ? "Sắp mở bán" : soldOut ? "Hết hàng" : "Mua ngay"}
             </button>
             <button
               onClick={handleToggleFavorite}
@@ -692,10 +756,13 @@ export default function HomePage() {
   const [errorCats,   setErrorCats]   = useState("");
 
   // Flash Sale state
-  const [saleProducts,  setSaleProducts]  = useState<ProductFeatured[]>([]);
-  const [btsProducts,   setBtsProducts]   = useState<ProductFeatured[]>([]);
-  const [loadingBts,    setLoadingBts]    = useState(true);
-  const [loadingSale,   setLoadingSale]   = useState(true);
+  const [saleProducts,   setSaleProducts]   = useState<FlashSaleActiveItem[]>([]);
+  const [upcomingSale,   setUpcomingSale]   = useState<FlashSaleActiveItem[]>([]);
+  const [loadingUpcoming, setLoadingUpcoming] = useState(true);
+  const [selectedDay,    setSelectedDay]    = useState(0); // 0 = hôm nay, 1..3 = các ngày sắp tới
+  const [btsProducts,    setBtsProducts]    = useState<ProductFeatured[]>([]);
+  const [loadingBts,     setLoadingBts]     = useState(true);
+  const [loadingSale,    setLoadingSale]    = useState(true);
   const [saleTimeLeft,  setSaleTimeLeft]  = useState({ h: 0, m: 0, s: 0 });
   const saleScrollRef = useRef<HTMLDivElement>(null);
 
@@ -741,14 +808,24 @@ export default function HomePage() {
       .finally(() => setLoadingBest(false));
   }, []);
 
-  // ── Fetch sản phẩm Flash Sale ────────────────────────────────────────────
+  // ── Fetch các đợt Flash Sale đang thật sự diễn ra ────────────────────────
   useEffect(() => {
     setLoadingSale(true);
-    fetch(`${BASE_URL}/api/products?discount_only=1&limit=10&sort=newest`)
+    fetch(`${BASE_URL}/api/flash-sales/active`)
       .then((r) => r.json())
       .then((json) => { if (json.success) setSaleProducts(json.data); })
       .catch(() => {})
       .finally(() => setLoadingSale(false));
+  }, []);
+
+  // ── Fetch các đợt Flash Sale sắp mở (cho tab xem trước 3 ngày tới) ───────
+  useEffect(() => {
+    setLoadingUpcoming(true);
+    fetch(`${BASE_URL}/api/flash-sales/upcoming?days=4`)
+      .then((r) => r.json())
+      .then((json) => { if (json.success) setUpcomingSale(json.data); })
+      .catch(() => {})
+      .finally(() => setLoadingUpcoming(false));
   }, []);
 
   // ── Fetch deal Back To School (hàng giảm giá bán chạy) ──────────────────
@@ -761,13 +838,18 @@ export default function HomePage() {
       .finally(() => setLoadingBts(false));
   }, []);
 
-  // ── Countdown Flash Sale ─────────────────────────────────────────────────
+  // ── Countdown Flash Sale — đếm tới thời điểm kết thúc gần nhất trong các đợt đang chạy ──
   useEffect(() => {
     const tick = () => {
+      if (saleProducts.length === 0) {
+        setSaleTimeLeft({ h: 0, m: 0, s: 0 });
+        return;
+      }
       const now = new Date();
-      const end = new Date();
-      end.setHours(23, 59, 59, 999);
-      const diff = Math.max(0, end.getTime() - now.getTime());
+      const nearestEnd = saleProducts
+        .map((f) => new Date(f.end_time).getTime())
+        .reduce((min, t) => (t < min ? t : min), Infinity);
+      const diff = Math.max(0, nearestEnd - now.getTime());
       setSaleTimeLeft({
         h: Math.floor(diff / 3600000),
         m: Math.floor((diff % 3600000) / 60000),
@@ -777,9 +859,28 @@ export default function HomePage() {
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, []);
+  }, [saleProducts]);
 
   const pad = (n: number) => String(n).padStart(2, "0");
+
+  // ── Flash Sale: 4 tab ngày (Hôm nay + 3 ngày tới) — mỗi tab gắn đúng sản phẩm
+  // dự kiến mở bán ngày đó, lấy từ /api/flash-sales/active (hôm nay) và /upcoming (các ngày sau) ──
+  const flashSaleDays = Array.from({ length: 4 }).map((_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() + i);
+    const items = i === 0
+      ? saleProducts
+      : upcomingSale.filter((f) => {
+          const s = new Date(f.start_time);
+          return s.getFullYear() === d.getFullYear() && s.getMonth() === d.getMonth() && s.getDate() === d.getDate();
+        });
+    return {
+      dayStr: `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`,
+      items,
+    };
+  });
+  const activeDayItems    = flashSaleDays[selectedDay]?.items ?? [];
+  const activeDayLoading  = selectedDay === 0 ? loadingSale : loadingUpcoming;
 
   // ── Banner carousel ─────────────────────────────────────────────────────
   const goTo = (idx: number) => {
@@ -1153,23 +1254,22 @@ export default function HomePage() {
               className="flex items-center gap-2 flex-1 px-4 overflow-x-auto"
               style={{ scrollbarWidth: "none" }}
             >
-              {Array.from({ length: 4 }).map((_, i) => {
-                const d = new Date();
-                d.setDate(d.getDate() + i);
-                const dayStr = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+              {flashSaleDays.map((day, i) => {
+                const isSelected = selectedDay === i;
                 const isToday = i === 0;
                 return (
                   <button
                     key={i}
-                    className="flex-shrink-0 flex flex-col items-center justify-center px-4 py-1.5 rounded-xl transition-all"
-                    style={isToday
+                    onClick={() => setSelectedDay(i)}
+                    className="flex-shrink-0 flex flex-col items-center justify-center px-4 py-1.5 rounded-xl transition-all cursor-pointer"
+                    style={isSelected
                       ? { background: "rgba(255,255,255,0.22)", border: "1.5px solid rgba(255,255,255,0.5)" }
                       : { background: "rgba(255,255,255,0.07)", border: "1.5px solid rgba(255,255,255,0.12)" }}
                   >
                     <span className="text-white font-black text-[12px] leading-tight">
-                      {isToday ? "Hôm nay" : dayStr}
+                      {isToday ? "Hôm nay" : day.dayStr}
                     </span>
-                    <span className={`text-[9px] font-semibold uppercase leading-tight ${isToday ? "text-yellow-200" : "text-white/50"}`}>
+                    <span className={`text-[9px] font-semibold uppercase leading-tight ${isSelected ? "text-yellow-200" : "text-white/50"}`}>
                       {isToday ? "23:59" : "Sắp mở"}
                     </span>
                   </button>
@@ -1233,11 +1333,19 @@ export default function HomePage() {
                 className="flex gap-3 overflow-x-auto pb-1"
                 style={{ scrollbarWidth: "none", msOverflowStyle: "none" as React.CSSProperties["msOverflowStyle"] }}
               >
-                {loadingSale
+                {activeDayLoading
                   ? Array.from({ length: 6 }).map((_, i) => <FlashSaleSkeletonCard key={i} />)
-                  : saleProducts.length > 0
-                    ? saleProducts.map((pp) => <FlashSaleProductCard key={pp.id} p={pp} />)
-                    : <div className="w-full py-10 text-center"><p className="text-gray-400 text-sm">Hiện chưa có sản phẩm Flash Sale</p></div>
+                  : activeDayItems.length > 0
+                    ? activeDayItems.map((pp) => (
+                        <FlashSaleProductCard key={pp._id} f={pp} locked={selectedDay !== 0} />
+                      ))
+                    : (
+                      <div className="w-full py-10 text-center">
+                        <p className="text-gray-400 text-sm">
+                          {selectedDay === 0 ? "Hiện chưa có sản phẩm Flash Sale" : "Chưa có chương trình Flash Sale cho ngày này"}
+                        </p>
+                      </div>
+                    )
                 }
               </div>
 
