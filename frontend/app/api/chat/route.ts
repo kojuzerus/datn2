@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
+// Vercel giới hạn mặc định 10s cho serverless function (gói Hobby) — model AI
+// free đôi khi mất 5-15s để trả lời nên bị ngắt giữa chừng và luôn rơi về
+// template. Khai báo rõ thời lượng tối đa cho phép (Hobby cho phép tới 60s).
+export const maxDuration = 60;
+
 const BACKEND = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 // ── Intent extraction ─────────────────────────────────────────────────────────
@@ -181,6 +186,12 @@ KHI TƯ VẤN SẢN PHẨM:
 - Nếu khách chưa rõ nhu cầu → hỏi thêm (ngân sách, dùng để làm gì, hãng ưu thích)
 - Nếu không có sản phẩm phù hợp → thành thật, gợi ý hướng tìm kiếm khác
 - Đặt hàng, thanh toán, đổi trả cụ thể → hướng đến nhân viên hỗ trợ
+
+ĐỊNH DẠNG TRẢ LỜI (bắt buộc — khung chat rất nhỏ, không hiển thị markdown):
+- Chỉ dùng văn bản thuần, xuống dòng thường và emoji để nhấn mạnh
+- TUYỆT ĐỐI KHÔNG dùng: bảng biểu (|), tiêu đề (#, ##), chữ đậm (**), gạch đầu dòng markdown (-, *) ở đầu dòng
+- Nếu cần liệt kê, dùng số thứ tự "1.", "2."... hoặc emoji, viết liền mạch từng dòng
+- Tối đa khoảng 80-100 từ mỗi câu trả lời, đi thẳng vào trọng tâm
 ${productCtx}`;
 }
 
@@ -251,18 +262,23 @@ async function callOpenRouter(system: string, userMsg: string, history: any[]): 
   if (!key) return null;
   try {
     const controller = new AbortController();
-    const t = setTimeout(() => controller.abort(), 25_000);
+    const t = setTimeout(() => controller.abort(), 35_000);
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST", signal: controller.signal,
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "meta-llama/llama-3.3-70b-instruct:free",
+        // Model free hiện có trên OpenRouter đa phần là "reasoning model" (tự sinh
+        // chuỗi suy luận trước khi trả lời). Nếu không giới hạn reasoning, model có
+        // thể tiêu hết max_tokens vào phần suy luận và trả về content rỗng. Giới
+        // hạn reasoning.max_tokens để luôn còn ngân sách cho câu trả lời thật.
+        model: "nvidia/nemotron-3-nano-30b-a3b:free",
+        reasoning: { max_tokens: 150 },
         messages: [
           { role: "system", content: system },
           ...history.slice(-10),
           { role: "user", content: userMsg },
         ],
-        temperature: 0.7, max_tokens: 600,
+        temperature: 0.7, max_tokens: 900,
       }),
     });
     clearTimeout(t);
@@ -324,6 +340,93 @@ function buildReply(msg: string, intent: Intent, products: any[]): string {
   return lines.join("\n");
 }
 
+// ── Dedupe lặp output (bug thường gặp ở model free nhỏ: sinh lại nguyên văn
+// câu trả lời 2 lần liền nhau) ──────────────────────────────────────────────
+function dedupeRepeatedReply(text: string): string {
+  const trimmed = text.trim();
+  // Thử mọi ranh giới đoạn (không chỉ gần giữa) — model có thể lặp nguyên khối
+  // ở bất kỳ vị trí nào, và độ dài 2 nửa không luôn bằng nhau tuyệt đối.
+  const parts = trimmed.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+  for (let i = 1; i < parts.length; i++) {
+    const first  = parts.slice(0, i).join("\n\n");
+    const second = parts.slice(i).join("\n\n");
+    if (first.length > 20 && second === first) return first;
+  }
+  return trimmed;
+}
+
+// ── Validator: một số model free hay rò rỉ nguyên văn chuỗi suy luận (chain-of-
+// thought) tiếng Anh thẳng vào content thay vì tách riêng — hoặc vẫn lọt markdown
+// dù đã cấm trong system prompt. Phát hiện và loại bỏ để không hiển thị rác cho
+// khách, thà rơi về template còn hơn hiển thị output hỏng.
+function isUsableReply(text: string): boolean {
+  const t = text.trim();
+  if (t.length < 2) return false;
+
+  // Rò rỉ chain-of-thought có thể nằm ở BẤT KỲ đâu trong văn bản (đầu, giữa,
+  // hoặc bao trọn câu trả lời thật) — quét toàn văn tìm các cụm "meta" điển
+  // hình của suy luận tiếng Anh thay vì chỉ kiểm tra đầu câu.
+  const reasoningMarkers = [
+    /\bwe need\b/i, /\bwe should\b/i, /\bwe (can|must|could)\b/i,
+    /\blet('|’)s\b/i, /\blet me\b/i, /\bi need to\b/i, /\bi should\b/i,
+    /\bthe user\b/i, /\bbased on (actual|the)\b/i, /\binstruction says\b/i,
+    /\bword count\b/i, /\bcount words\b/i, /\bmust stay within\b/i,
+    /\bdraft:/i, /\bcraft\b/i, /\bfabricat/i, /\bsafest is\b/i,
+    /\bwithin 80-100\b/i, /\bplain text\b/i, /\bno markdown\b/i,
+    /\bensure\b/i, /\bfinal answer\b/i, /\bit('|’)s okay\b/i,
+    /\bshort lines\b/i, /\bconcise answer\b/i, /\bmake sure\b/i,
+    /\bkeep it\b/i, /^\s*ok,/i, /\betc\.?\s*$/im,
+  ];
+  const leakHits = reasoningMarkers.reduce((n, re) => n + (re.test(t) ? 1 : 0), 0);
+  if (leakHits >= 1) return false;
+
+  // Rò rỉ kiểu tự đánh số đếm từ để kiểm tra giới hạn độ dài, VD:
+  // "Chào(1) bạn!(2) 😊(3)..." — dấu hiệu model đang lộ bước đếm từ nội bộ.
+  const wordCountAnnotations = (t.match(/\S\(\d{1,3}\)/g) || []).length;
+  if (wordCountAnnotations >= 4) return false;
+
+  // Markdown bị cấm nhưng vẫn lọt (bảng, tiêu đề, in đậm)
+  if (/^#{1,6}\s|\|.*\|.*\|/m.test(t) || /\*\*[^*]+\*\*/.test(t)) return false;
+
+  // Câu trả lời cho khách tiếng Việt mà toàn tiếng Anh (dấu hiệu rò rỉ reasoning)
+  // → đếm tỉ lệ ký tự có dấu tiếng Việt so với độ dài, nếu quá thấp trên văn bản
+  // đủ dài thì nghi ngờ là rác.
+  const vietnameseChars = (t.match(/[à-ỹ]/gi) || []).length;
+  if (t.length > 120 && vietnameseChars === 0) return false;
+
+  return true;
+}
+
+// ── Bóc tách phần trả lời sạch khỏi output có lẫn rác đầu câu ─────────────────
+// Model free đôi khi in kèm ghi chú lập kế hoạch tiếng Anh trước câu trả lời
+// thật (VD: `. Ensure no markdown... Final answer: "Không có gì!..."`). Thay vì
+// vứt bỏ toàn bộ chỉ vì vài từ rác ở đầu, thử bóc tách phần nội dung sạch còn
+// dùng được: ưu tiên cụm trong ngoặc kép cuối cùng, sau đó thử cắt dần từng
+// đoạn/dòng đầu cho đến khi phần còn lại vượt qua kiểm tra.
+function extractCleanReply(raw: string): string | null {
+  const t = raw.trim();
+
+  const quotes = [...t.matchAll(/"([^"]{10,500})"/g)];
+  if (quotes.length) {
+    const candidate = quotes[quotes.length - 1][1].trim();
+    if (isUsableReply(candidate)) return candidate;
+  }
+
+  const paragraphs = t.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+  for (let i = 0; i < paragraphs.length; i++) {
+    const rest = paragraphs.slice(i).join("\n\n");
+    if (isUsableReply(rest)) return rest;
+  }
+
+  const lines = t.split("\n").map((l) => l.trim()).filter(Boolean);
+  for (let i = 0; i < lines.length; i++) {
+    const rest = lines.slice(i).join("\n");
+    if (isUsableReply(rest)) return rest;
+  }
+
+  return null;
+}
+
 // ── Handler ───────────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   try {
@@ -345,9 +448,11 @@ export async function POST(req: NextRequest) {
     const system = buildSystemPrompt(productCtx);
 
     // Thử lần lượt: Claude → Groq → OpenRouter → template
-    const aiReply = await callClaude(system, message, history)
-                 ?? await callGroq(system, message, history)
-                 ?? await callOpenRouter(system, message, history);
+    const aiReplyRaw = await callClaude(system, message, history)
+                     ?? await callGroq(system, message, history)
+                     ?? await callOpenRouter(system, message, history);
+    const aiReplyDeduped = aiReplyRaw ? dedupeRepeatedReply(aiReplyRaw) : null;
+    const aiReply = aiReplyDeduped ? extractCleanReply(aiReplyDeduped) : null;
 
     const reply = aiReply || buildReply(message, intent, products);
 

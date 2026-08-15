@@ -15,7 +15,8 @@
       "Bash(cat /tmp/backend.log | tail -30)",
       "Read(//tmp/**)",
       "Bash(pkill -f \"bin/www\")",
-      "Bash(powershell -Command \"Get-Process node -ErrorAction SilentlyContinue | Stop-Process -Force\")"
+      "Bash(powershell -Command \"Get-Process node -ErrorAction SilentlyContinue | Stop-Process -Force\")",
+      "Bash(node -c utils/mailer.js)"
     ]
   }
 }
