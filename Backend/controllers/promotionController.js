@@ -136,7 +136,7 @@ exports.validateCode = async (req, res) => {
         .json({ success: false, message: "Vui lòng nhập mã giảm giá" });
 
     const total = Number(orderTotal) || 0;
-    const userId = req.user?._id || req.user?.id || null;
+    const userId = req.userId || req.user?._id || req.user?.id || null;
 
     const result = await checkPromo(code, total, userId);
     if (!result.ok)
@@ -265,13 +265,11 @@ exports.create = async (req, res) => {
       status: req.body.status === "inactive" ? "inactive" : "active",
     });
 
-    res
-      .status(201)
-      .json({
-        success: true,
-        message: "Tạo mã giảm giá thành công",
-        data: promo,
-      });
+    res.status(201).json({
+      success: true,
+      message: "Tạo mã giảm giá thành công",
+      data: promo,
+    });
   } catch (err) {
     console.error("[promotions create]", err);
     res.status(500).json({ success: false, message: "Lỗi server" });

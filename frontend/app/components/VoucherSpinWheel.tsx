@@ -101,7 +101,7 @@ export default function VoucherSpinWheel({
 
   const fetchPrizes = useCallback(async () => {
     try {
-      const res = await fetch(`${API_URL}/api/vouchers/prizes`);
+      const res = await fetch(`${API_URL}/api/spin/prizes`);
       const data = await res.json();
       setPrizes(Array.isArray(data) ? data : []);
     } catch (err) {
@@ -122,7 +122,7 @@ export default function VoucherSpinWheel({
     setIsLoggedIn(true);
 
     try {
-      const res = await fetch(`${API_URL}/api/vouchers/spin-status`, {
+      const res = await fetch(`${API_URL}/api/spin/spin-status`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -139,6 +139,13 @@ export default function VoucherSpinWheel({
     if (open) {
       fetchPrizes();
       checkStatus();
+    } else {
+      // Reset các state khi modal đóng để tránh wheel quay tiếp lần sau
+      setSpinning(false);
+      setRotation(0);
+      setResult(null);
+      setShowResultModal(false);
+      setError("");
     }
   }, [open, fetchPrizes, checkStatus]);
 
@@ -157,7 +164,7 @@ export default function VoucherSpinWheel({
 
     setSpinning(true);
     try {
-      const res = await fetch(`${API_URL}/api/vouchers/spin`, {
+      const res = await fetch(`${API_URL}/api/spin/spin`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       });
