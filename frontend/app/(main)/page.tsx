@@ -865,15 +865,18 @@ export default function HomePage() {
 
   // ── Flash Sale: 4 tab ngày (Hôm nay + 3 ngày tới) — mỗi tab gắn đúng sản phẩm
   // dự kiến mở bán ngày đó, lấy từ /api/flash-sales/active (hôm nay) và /upcoming (các ngày sau) ──
+  // Nếu đúng ngày đó chưa có đợt nào lên lịch, vẫn hiện các đợt sắp mở gần nhất
+  // (thay vì để trống) để khách luôn thấy có sản phẩm sắp về — chỉ là chưa mua được.
   const flashSaleDays = Array.from({ length: 4 }).map((_, i) => {
     const d = new Date();
     d.setDate(d.getDate() + i);
-    const items = i === 0
+    const exactMatch = i === 0
       ? saleProducts
       : upcomingSale.filter((f) => {
           const s = new Date(f.start_time);
           return s.getFullYear() === d.getFullYear() && s.getMonth() === d.getMonth() && s.getDate() === d.getDate();
         });
+    const items = i > 0 && exactMatch.length === 0 ? upcomingSale : exactMatch;
     return {
       dayStr: `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`,
       items,
@@ -1342,7 +1345,7 @@ export default function HomePage() {
                     : (
                       <div className="w-full py-10 text-center">
                         <p className="text-gray-400 text-sm">
-                          {selectedDay === 0 ? "Hiện chưa có sản phẩm Flash Sale" : "Chưa có chương trình Flash Sale cho ngày này"}
+                          {selectedDay === 0 ? "Hiện chưa có sản phẩm Flash Sale" : "Chưa có chương trình Flash Sale nào sắp diễn ra"}
                         </p>
                       </div>
                     )
