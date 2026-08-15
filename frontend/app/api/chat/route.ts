@@ -259,7 +259,7 @@ async function callGroq(system: string, userMsg: string, history: any[]): Promis
 /** OpenRouter — fallback miễn phí */
 async function callOpenRouter(system: string, userMsg: string, history: any[]): Promise<string | null> {
   const key = process.env.OPENROUTER_API_KEY;
-  if (!key) return null;
+  if (!key) { console.error("[chat] OPENROUTER_API_KEY missing in this environment"); return null; }
   try {
     const controller = new AbortController();
     const t = setTimeout(() => controller.abort(), 35_000);
@@ -282,10 +282,19 @@ async function callOpenRouter(system: string, userMsg: string, history: any[]): 
       }),
     });
     clearTimeout(t);
-    if (!res.ok) return null;
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => "");
+      console.error("[chat] OpenRouter HTTP", res.status, errBody.slice(0, 500));
+      return null;
+    }
     const data = await res.json();
-    return data.choices?.[0]?.message?.content || null;
-  } catch { return null; }
+    const content = data.choices?.[0]?.message?.content;
+    if (!content) console.error("[chat] OpenRouter empty content", JSON.stringify(data).slice(0, 500));
+    return content || null;
+  } catch (e: any) {
+    console.error("[chat] OpenRouter fetch threw:", e?.name, e?.message);
+    return null;
+  }
 }
 
 // ── Template fallback ─────────────────────────────────────────────────────────
@@ -424,6 +433,7 @@ function extractCleanReply(raw: string): string | null {
     if (isUsableReply(rest)) return rest;
   }
 
+  console.error("[chat] extractCleanReply rejected entire AI output:", t.slice(0, 300));
   return null;
 }
 
