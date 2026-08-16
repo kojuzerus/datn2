@@ -1,16 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 
+// Vercel giới hạn mặc định 10s cho serverless function (gói Hobby) — model AI
+// free đôi khi mất 5-15s để trả lời nên bị ngắt giữa chừng và luôn rơi về
+// template. Khai báo rõ thời lượng tối đa cho phép (Hobby cho phép tới 60s).
+export const maxDuration = 60;
+
 const BACKEND = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 // ── Intent extraction ─────────────────────────────────────────────────────────
+// Ánh xạ đúng theo category_name THẬT trong DB (đã kiểm tra qua API — shop chỉ
+// có: Điện thoại, Laptop, Tai nghe, Bàn phím, Chuột, Loa, Phụ kiện/Sạc & Cáp).
+// Trước đây map nhầm "tablet/tivi" sang các category không tồn tại, và gộp
+// bàn phím/chuột/loa/tai nghe chung vào "Phụ kiện" khiến tìm "bàn phím" ra lẫn
+// cả tai nghe, sạc, ốp lưng... — giờ trỏ thẳng về category_name cụ thể.
 const CATEGORY_PATTERNS: [RegExp, string][] = [
   [/điện thoại|smartphone|phone|iphone|android/i,               "Điện thoại"],
   [/laptop|máy tính xách tay|notebook|macbook/i,                "Laptop"],
-  [/tablet|máy tính bảng|ipad/i,                               "Máy tính bảng"],
-  [/tai nghe|earphone|airpod|headphone|earbud|buds/i,          "Phụ kiện"],
-  [/tivi|smart tv|màn hình/i,                                  "Tivi"],
-  [/đồng hồ|watch|smartwatch/i,                                "Phụ kiện"],
-  [/phụ kiện|sạc|cáp|ốp lưng|bàn phím|chuột|loa|speaker|pin|hub/i, "Phụ kiện"],
+  [/tai nghe|earphone|airpod|headphone|earbud|buds/i,          "Tai nghe"],
+  [/bàn phím|keyboard|phím cơ|mechanical/i,                    "Bàn phím"],
+  [/chuột|mouse/i,                                             "Chuột"],
+  [/loa|speaker/i,                                             "Loa"],
+  [/sạc|cáp|ốp lưng|hub|pin dự phòng|charger|cable/i,          "Phụ kiện"],
 ];
 
 const BRANDS = [
@@ -46,6 +56,10 @@ function extractIntent(msg: string): Intent {
     [
       "tìm", "muốn", "mua", "xem", "cần", "gợi ý", "tư vấn", "giá", "rẻ", "đắt",
       "mới nhất", "bán chạy", "so sánh", "khuyến mãi", "sale", "giảm giá",
+      // Cách hỏi đời thường khách hay gõ, không theo mẫu câu chuẩn
+      "con nào", "cái nào", "máy nào", "mẫu nào", "đáng tiền", "có hàng",
+      "còn màu", "còn hàng", "thêm vào giỏ", "ổn không", "ngon không",
+      "mạnh không", "tốt không", "đáng mua",
       ...CATEGORY_PATTERNS.map(([re]) => re.source),
       ...BRANDS,
     ].join("|"),
@@ -68,29 +82,42 @@ function extractIntent(msg: string): Intent {
     "phụ kiện","sạc","cáp","loa","speaker","chuột","bàn phím",
   ]);
 
+  // Ưu tiên bắt tên hãng/dòng máy CỤ THỂ trước (VD: "iphone", "galaxy s24") vì
+  // đây là tín hiệu chính xác nhất. Nếu để pattern "tìm/mua/muốn..." chạy trước,
+  // nó sẽ nuốt luôn cả động từ + danh mục chung chung phía trước tên máy (VD:
+  // "mua điện thoại iphone" → capture "mua điện thoại iphone" thay vì "iphone"),
+  // khiến tìm kiếm theo cụm đó không khớp sản phẩm nào và rơi về danh mục rộng
+  // (ra luôn cả Samsung, OPPO... dù khách chỉ hỏi iPhone).
+  const m2 = msg.match(
+    /(?:iphone|samsung|xiaomi|oppo|laptop|macbook|galaxy|redmi|poco|vivobook|zenbook|ideapad|vivo|realme|nokia|sony|lg|dell|hp|lenovo|asus|acer|msi|huawei|jbl|anker|logitech|razer|airpod|tai nghe|earbud|buds|loa|speaker|bàn phím|chuột|sạc|ốp lưng|tablet|ipad|đồng hồ|watch)(?:\s+(?!giá|dưới|trên|từ|khoảng|với|tốt|rẻ|bền|triệu|tr\b)[\w]+){0,3}/i
+  );
   const kwMatch = msg.match(/(?:tìm|mua|xem|muốn|cần|gợi ý)\s+(.{2,50}?)(?:\s+(?:giá|dưới|từ|khoảng|với|tốt|rẻ|bền)|[?.!]|$)/i);
-  if (kwMatch) {
+  if (m2) {
+    intent.keyword = m2[0].trim();
+  } else if (kwMatch) {
     const raw = kwMatch[1].trim().toLowerCase();
     if (!GENERIC_WORDS.has(raw)) intent.keyword = kwMatch[1].trim();
-  } else {
-    const m2 = msg.match(
-      /(?:iphone|samsung|xiaomi|oppo|laptop|macbook|galaxy|redmi|poco|vivobook|zenbook|ideapad|vivo|realme|nokia|sony|lg|dell|hp|lenovo|asus|acer|msi|huawei|jbl|anker|logitech|razer|airpod|tai nghe|earbud|buds|loa|speaker|bàn phím|chuột|sạc|ốp lưng|tablet|ipad|đồng hồ|watch)(?:\s+(?!giá|dưới|trên|từ|khoảng|với|tốt|rẻ|bền|triệu|tr\b)[\w]+){0,3}/i
-    );
-    if (m2) intent.keyword = m2[0].trim();
-    else if (intent.brand) intent.keyword = intent.brand;
+  } else if (intent.brand) {
+    intent.keyword = intent.brand;
   }
 
+  // "củ" là tiếng lóng phổ biến của "triệu" (VD: "tầm 10 củ", "khoảng 15 củ")
   let m: RegExpMatchArray | null;
-  if      ((m = msg.match(/dưới\s*(\d+(?:[,.]\d+)?)\s*(?:triệu|tr|k|nghìn)/i)))
+  if      ((m = msg.match(/dưới\s*(\d+(?:[,.]\d+)?)\s*(?:triệu|tr|củ|k|nghìn)/i)))
     intent.price_max = parseFloat(m[1].replace(",",".")) * (/k|nghìn/i.test(m[0]) ? 1_000 : 1_000_000);
-  else if ((m = msg.match(/trên\s*(\d+(?:[,.]\d+)?)\s*(?:triệu|tr)/i)))
+  else if ((m = msg.match(/trên\s*(\d+(?:[,.]\d+)?)\s*(?:triệu|tr|củ)/i)))
     intent.price_min = parseFloat(m[1].replace(",",".")) * 1_000_000;
-  else if ((m = msg.match(/(?:từ\s*)?(\d+(?:[,.]\d+)?)\s*[-–đến]+\s*(\d+(?:[,.]\d+)?)\s*(?:triệu|tr)/i))) {
+  else if ((m = msg.match(/(?:từ\s*)?(\d+(?:[,.]\d+)?)\s*[-–đến]+\s*(\d+(?:[,.]\d+)?)\s*(?:triệu|tr|củ)/i))) {
     intent.price_min = parseFloat(m[1].replace(",",".")) * 1_000_000;
     intent.price_max = parseFloat(m[2].replace(",",".")) * 1_000_000;
-  } else if ((m = msg.match(/khoảng\s*(\d+(?:[,.]\d+)?)\s*(?:triệu|tr)/i))) {
+  } else if ((m = msg.match(/(?:khoảng|tầm)\s*(\d+(?:[,.]\d+)?)\s*(?:triệu|tr|củ)/i))) {
     const v = parseFloat(m[1].replace(",",".")) * 1_000_000;
     intent.price_min = v * 0.8; intent.price_max = v * 1.25;
+  } else if ((m = msg.match(/(\d+(?:[,.]\d+)?)\s*(?:triệu|tr|củ)\b/i))) {
+    // Số tiền đứng một mình, không có "dưới/trên/khoảng" phía trước (VD:
+    // "điện thoại 10 triệu chơi game") — hiểu là ngân sách tầm đó, co giãn nhẹ.
+    const v = parseFloat(m[1].replace(",",".")) * 1_000_000;
+    intent.price_min = v * 0.7; intent.price_max = v * 1.15;
   }
 
   if      (/rẻ nhất|giá rẻ|thấp nhất|tiết kiệm/i.test(lower)) intent.sort = "price_asc";
@@ -162,25 +189,67 @@ async function fetchProducts(intent: Intent) {
 
 // ── System prompt ─────────────────────────────────────────────────────────────
 function buildSystemPrompt(productCtx: string): string {
-  return `Bạn là Bunny 🐰 — trợ lý AI thông minh của SmartHub, cửa hàng điện tử công nghệ Việt Nam.
+  return `Bạn là Bunny 🐰 — nhân viên tư vấn công nghệ trẻ tuổi, am hiểu sản phẩm tại
+SmartHub (shop bán Điện thoại, Laptop, Bàn phím, Loa/thiết bị nghe nhạc, và phụ
+kiện: Chuột, Tai nghe, Sạc & Cáp). Bạn KHÔNG phải chatbot FAQ — bạn là một
+người bạn rành công nghệ đang trò chuyện trực tiếp với khách, không phải đọc
+kịch bản.
 
-TÍNH CÁCH:
-- Thân thiện, tự nhiên, trò chuyện như người thật — không cứng nhắc hay máy móc
-- Nhiệt tình tư vấn, hỏi lại để hiểu đúng nhu cầu khách
-- Dùng tiếng Việt tự nhiên, có thể dùng 1-2 emoji cho sinh động
+CÁCH NÓI CHUYỆN (bắt buộc):
+- Xưng "mình", gọi khách "bạn". Giọng trẻ trung, thoải mái như nhắn tin với bạn
+  bè, không trang trọng, không máy móc kiểu tổng đài
+- TUYỆT ĐỐI TRÁNH các câu sáo rỗng: "Xin chào, tôi có thể giúp gì cho bạn?",
+  "Vui lòng cung cấp thêm thông tin", "Dựa trên yêu cầu của bạn...", "Sản phẩm
+  này là một lựa chọn tốt". Nói chuyện tự nhiên như người thật, không như bot
+- Hỏi TỪNG BƯỚC MỘT, không dồn nhiều câu hỏi cùng lúc. Khách nói "muốn mua điện
+  thoại" → chỉ hỏi ngân sách trước. Khách trả lời ngân sách → mới hỏi tiếp 1
+  yếu tố quan trọng khác (dùng để làm gì, hãng nào...). Không bao giờ liệt kê
+  5-6 câu hỏi (RAM? bộ nhớ? camera? pin? màu?) trong 1 tin nhắn
+- Hiểu tiếng lóng/nói tắt đời thường: "10 củ" = 10 triệu, "con nào ngon",
+  "máy nào mạnh", "cái nào đáng tiền", "con này ổn không", "còn màu đen
+  không", "so con này với con kia", "có sale không" — đều là hỏi về sản phẩm,
+  xử lý bình thường như câu hỏi chuẩn
+- Có thể trò chuyện ngoài lề (chào hỏi, than vãn, hỏi linh tinh) một cách tự
+  nhiên, không biến mọi câu nói thành cơ hội quảng cáo. Nếu hợp lý thì mới nhẹ
+  nhàng gợi ý sản phẩm, không gượng ép
 
-CÓ THỂ GIÚP:
-- Tư vấn sản phẩm công nghệ: điện thoại, laptop, tablet, tai nghe, phụ kiện
-- So sánh, giải thích thông số kỹ thuật, gợi ý theo nhu cầu & ngân sách
-- Giải đáp câu hỏi về công nghệ nói chung (pin, camera, chip, RAM…)
-- Trò chuyện thông thường, hỏi đáp thoải mái
-- Thông tin SmartHub: bảo hành 12 tháng, đổi trả 30 ngày, giao hàng 2h nội thành, trả góp 0%
+TƯ VẤN — KHÔNG ÉP MUA:
+- Nếu sản phẩm A hợp hơn B cho nhu cầu khách, nói rõ vì sao, được phép chê nhẹ
+  sản phẩm không phù hợp thay vì chỉ khen. VD: "Mẫu này không tệ, nhưng với
+  nhu cầu chơi game của bạn thì mình nghĩ có lựa chọn khác đáng tiền hơn"
+- NHỚ NGỮ CẢNH: một khi khách đã cho ngân sách/mục đích sử dụng trong hội
+  thoại, không hỏi lại — dùng luôn thông tin đó cho các gợi ý tiếp theo
 
 KHI TƯ VẤN SẢN PHẨM:
-- Dựa trên danh sách thực tế bên dưới — không bịa thêm model/giá không có
-- Nếu khách chưa rõ nhu cầu → hỏi thêm (ngân sách, dùng để làm gì, hãng ưu thích)
-- Nếu không có sản phẩm phù hợp → thành thật, gợi ý hướng tìm kiếm khác
-- Đặt hàng, thanh toán, đổi trả cụ thể → hướng đến nhân viên hỗ trợ
+- CHỈ dùng dữ liệu thật trong danh sách bên dưới — không bịa giá, tồn kho,
+  thông số, màu sắc, khuyến mãi hay bảo hành. Không có thông tin gì thì nói
+  thẳng "mình chưa thấy thông tin này trong dữ liệu shop nên không muốn đoán
+  bừa" thay vì tự chế
+- QUAN TRỌNG: sản phẩm ở đây CHỈ có biến thể theo MÀU SẮC — không hề có các
+  mức dung lượng/GB/phiên bản khác nhau như 128GB/256GB. Nếu khách hỏi "bản
+  nào, dung lượng bao nhiêu" → trả lời thật là shop chỉ có 1 cấu hình cho mỗi
+  màu (xem giá trong danh sách), rồi hỏi khách thích màu nào — TUYỆT ĐỐI
+  KHÔNG được tự bịa ra các mức GB và giá khác nhau
+- Nếu không có sản phẩm phù hợp → thành thật, gợi ý hướng tìm khác
+- Khách nói "cái này", "cái đó", "con này", "con kia"... → xem lịch sử hội
+  thoại, tìm dòng "[Sản phẩm đã hiển thị: ...]" gần nhất để biết chính xác
+  đang nói về sản phẩm nào. Không tìm thấy thì hỏi lại khách nói về sản phẩm
+  nào. Dòng "[Sản phẩm đã hiển thị: ...]" này CHỈ là ghi chú nội bộ để bạn
+  đọc — TUYỆT ĐỐI KHÔNG chép lại đoạn ngoặc vuông đó vào câu trả lời gửi cho
+  khách
+- Đặt hàng, thanh toán: xác nhận lại tên sản phẩm khách chọn rồi hướng dẫn bấm
+  vào thẻ sản phẩm hoặc nút "Xem tất cả sản phẩm" để vào trang mua thật
+  (chatbox chưa tự chốt đơn được) — không nói khách chờ "nhân viên hỗ trợ"
+  chung chung
+- Đổi trả, khiếu nại một đơn hàng cụ thể đã mua → hướng đến nhân viên hỗ trợ
+
+ĐỊNH DẠNG TRẢ LỜI (bắt buộc — khung chat rất nhỏ, không hiển thị markdown):
+- Chỉ dùng văn bản thuần, xuống dòng thường và emoji để nhấn mạnh (được dùng
+  emoji tự nhiên như 😄 😆 🐰 phù hợp giọng trẻ trung, không lạm dụng)
+- TUYỆT ĐỐI KHÔNG dùng: bảng biểu (|), tiêu đề (#, ##), chữ đậm (**), gạch đầu dòng markdown (-, *) ở đầu dòng
+- Nếu cần liệt kê, dùng số thứ tự "1.", "2."... hoặc emoji, viết liền mạch từng dòng
+- Ngắn gọn, đi thẳng vào trọng tâm — như 1 tin nhắn thật, không phải bài văn.
+  Hỏi 1 câu thì trả lời ngắn (1-3 câu), không kéo dài lan man
 ${productCtx}`;
 }
 
@@ -248,28 +317,42 @@ async function callGroq(system: string, userMsg: string, history: any[]): Promis
 /** OpenRouter — fallback miễn phí */
 async function callOpenRouter(system: string, userMsg: string, history: any[]): Promise<string | null> {
   const key = process.env.OPENROUTER_API_KEY;
-  if (!key) return null;
+  if (!key) { console.error("[chat] OPENROUTER_API_KEY missing in this environment"); return null; }
   try {
     const controller = new AbortController();
-    const t = setTimeout(() => controller.abort(), 25_000);
+    const t = setTimeout(() => controller.abort(), 35_000);
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST", signal: controller.signal,
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "meta-llama/llama-3.3-70b-instruct:free",
+        // Model free hiện có trên OpenRouter đa phần là "reasoning model" (tự sinh
+        // chuỗi suy luận trước khi trả lời). Nếu không giới hạn reasoning, model có
+        // thể tiêu hết max_tokens vào phần suy luận và trả về content rỗng. Giới
+        // hạn reasoning.max_tokens để luôn còn ngân sách cho câu trả lời thật.
+        model: "nvidia/nemotron-3-nano-30b-a3b:free",
+        reasoning: { max_tokens: 150 },
         messages: [
           { role: "system", content: system },
           ...history.slice(-10),
           { role: "user", content: userMsg },
         ],
-        temperature: 0.7, max_tokens: 600,
+        temperature: 0.7, max_tokens: 900,
       }),
     });
     clearTimeout(t);
-    if (!res.ok) return null;
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => "");
+      console.error("[chat] OpenRouter HTTP", res.status, errBody.slice(0, 500));
+      return null;
+    }
     const data = await res.json();
-    return data.choices?.[0]?.message?.content || null;
-  } catch { return null; }
+    const content = data.choices?.[0]?.message?.content;
+    if (!content) console.error("[chat] OpenRouter empty content", JSON.stringify(data).slice(0, 500));
+    return content || null;
+  } catch (e: any) {
+    console.error("[chat] OpenRouter fetch threw:", e?.name, e?.message);
+    return null;
+  }
 }
 
 // ── Template fallback ─────────────────────────────────────────────────────────
@@ -324,6 +407,135 @@ function buildReply(msg: string, intent: Intent, products: any[]): string {
   return lines.join("\n");
 }
 
+// ── Dedupe lặp output (bug thường gặp ở model free nhỏ: sinh lại nguyên văn
+// câu trả lời 2 lần liền nhau) ──────────────────────────────────────────────
+function dedupeRepeatedReply(text: string): string {
+  const trimmed = text.trim();
+  // Thử mọi ranh giới đoạn (không chỉ gần giữa) — model có thể lặp nguyên khối
+  // ở bất kỳ vị trí nào, và độ dài 2 nửa không luôn bằng nhau tuyệt đối.
+  const parts = trimmed.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+  for (let i = 1; i < parts.length; i++) {
+    const first  = parts.slice(0, i).join("\n\n");
+    const second = parts.slice(i).join("\n\n");
+    if (first.length > 20 && second === first) return first;
+  }
+  return trimmed;
+}
+
+// ── Validator: một số model free hay rò rỉ nguyên văn chuỗi suy luận (chain-of-
+// thought) tiếng Anh thẳng vào content thay vì tách riêng — hoặc vẫn lọt markdown
+// dù đã cấm trong system prompt. Phát hiện và loại bỏ để không hiển thị rác cho
+// khách, thà rơi về template còn hơn hiển thị output hỏng.
+function isUsableReply(text: string): boolean {
+  const t = text.trim();
+  if (t.length < 2) return false;
+
+  // Rò rỉ chain-of-thought có thể nằm ở BẤT KỲ đâu trong văn bản (đầu, giữa,
+  // hoặc bao trọn câu trả lời thật) — quét toàn văn tìm các cụm "meta" điển
+  // hình của suy luận tiếng Anh thay vì chỉ kiểm tra đầu câu.
+  const reasoningMarkers = [
+    /\bwe need\b/i, /\bwe should\b/i, /\bwe (can|must|could)\b/i,
+    /\blet('|’)s\b/i, /\blet me\b/i, /\bi need to\b/i, /\bi should\b/i,
+    /\bthe user\b/i, /\bbased on (actual|the)\b/i, /\binstruction says\b/i,
+    /\bword count\b/i, /\bcount words\b/i, /\bmust stay within\b/i,
+    /\bdraft:/i, /\bcraft\b/i, /\bfabricat/i, /\bsafest is\b/i,
+    /\bwithin 80-100\b/i, /\bplain text\b/i, /\bno markdown\b/i,
+    /\bensure\b/i, /\bfinal answer\b/i, /\bit('|’)s okay\b/i,
+    /\bshort lines\b/i, /\bconcise answer\b/i, /\bmake sure\b/i,
+    /\bkeep it\b/i, /^\s*ok,/i, /\betc\.?\s*$/im,
+  ];
+  const leakHits = reasoningMarkers.reduce((n, re) => n + (re.test(t) ? 1 : 0), 0);
+  if (leakHits >= 1) return false;
+
+  // Rò rỉ kiểu tự đánh số đếm từ để kiểm tra giới hạn độ dài, VD:
+  // "Chào(1) bạn!(2) 😊(3)..." hoặc chỉ "cái(9) này" — dấu hiệu model đang lộ
+  // bước đếm từ nội bộ. Mẫu "chữ(số)" gần như không bao giờ xuất hiện trong văn
+  // bản tiếng Việt tự nhiên nên chỉ cần gặp 1 lần là đủ để nghi ngờ và chặn.
+  if (/\S\(\d{1,3}\)/.test(t)) return false;
+
+  // Markdown bị cấm nhưng vẫn lọt (bảng, tiêu đề, in đậm)
+  if (/^#{1,6}\s|\|.*\|.*\|/m.test(t) || /\*\*[^*]+\*\*/.test(t)) return false;
+
+  // Câu trả lời cho khách tiếng Việt mà toàn tiếng Anh (dấu hiệu rò rỉ reasoning)
+  // → đếm tỉ lệ ký tự có dấu tiếng Việt so với độ dài, nếu quá thấp trên văn bản
+  // đủ dài thì nghi ngờ là rác.
+  const vietnameseChars = (t.match(/[à-ỹ]/gi) || []).length;
+  if (t.length > 120 && vietnameseChars === 0) return false;
+
+  return true;
+}
+
+// ── Bóc tách phần trả lời sạch khỏi output có lẫn rác đầu câu ─────────────────
+// Model free đôi khi in kèm ghi chú lập kế hoạch tiếng Anh trước câu trả lời
+// thật (VD: `. Ensure no markdown... Final answer: "Không có gì!..."`). Thay vì
+// vứt bỏ toàn bộ chỉ vì vài từ rác ở đầu, thử bóc tách phần nội dung sạch còn
+// dùng được: ưu tiên cụm trong ngoặc kép cuối cùng, sau đó thử cắt dần từng
+// đoạn/dòng đầu cho đến khi phần còn lại vượt qua kiểm tra.
+function extractCleanReply(raw: string): string | null {
+  const t = raw.trim();
+
+  const quotes = [...t.matchAll(/"([^"]{10,500})"/g)];
+  if (quotes.length) {
+    const candidate = quotes[quotes.length - 1][1].trim();
+    if (isUsableReply(candidate)) return candidate;
+  }
+
+  const paragraphs = t.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+  for (let i = 0; i < paragraphs.length; i++) {
+    const rest = paragraphs.slice(i).join("\n\n");
+    if (isUsableReply(rest)) return rest;
+  }
+
+  const lines = t.split("\n").map((l) => l.trim()).filter(Boolean);
+  for (let i = 0; i < lines.length; i++) {
+    const rest = lines.slice(i).join("\n");
+    if (isUsableReply(rest)) return rest;
+  }
+
+  console.error("[chat] extractCleanReply rejected entire AI output:", t.slice(0, 300));
+  return null;
+}
+
+// ── Đối chiếu câu hỏi ngắn với sản phẩm vừa hiển thị trong lịch sử ────────────
+// Khách hay gõ tắt kiểu tham chiếu ("15 plus", "cái đó", "mẫu i14") thay vì lặp
+// lại đầy đủ tên sản phẩm — các pattern trigger/brand/category cố định sẽ
+// không bắt được câu này. Nếu có danh sách "[Sản phẩm đã hiển thị: ...]" (do
+// frontend nhúng vào lịch sử) và câu hỏi hiện tại khớp với 1 trong số đó, dùng
+// luôn tên sản phẩm đó làm từ khóa tìm kiếm thay vì trả lời chung chung.
+// Từ đệm/lấp đầy tiếng Việt thường đi kèm câu gõ tắt ("ip 14 đi", "iphone 14
+// nhé") — không mang ý nghĩa để đối chiếu tên sản phẩm, phải loại bỏ trước khi
+// so khớp, nếu không một từ đệm duy nhất cũng khiến toàn bộ phép so khớp
+// "mọi từ phải khớp" thất bại oan.
+const FILLER_WORDS = new Set([
+  "di", "nhe", "nha", "a", "ne", "luon", "do", "nay", "vay", "thoi",
+  "oi", "ban", "minh", "cho", "toi", "voi", "duoc", "khong",
+]);
+
+function resolveKeywordFromHistory(message: string, history: any[]): string | null {
+  const norm = (s: string) =>
+    s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d");
+
+  let shownNames: string[] = [];
+  for (let i = history.length - 1; i >= 0; i--) {
+    const content: string = history[i]?.content || "";
+    const m = content.match(/\[Sản phẩm đã hiển thị: ([^\]]+)\]/);
+    if (m) {
+      shownNames = [...m[1].matchAll(/([^,]+?)\s*\([^)]*\)/g)].map((x) => x[1].trim());
+      break;
+    }
+  }
+  if (!shownNames.length) return null;
+
+  const msgTokens = norm(message).split(/\s+/).filter((t) => t && !FILLER_WORDS.has(t));
+  if (!msgTokens.length) return null;
+
+  for (const name of shownNames) {
+    const nameNorm = norm(name);
+    if (msgTokens.every((tok) => nameNorm.includes(tok))) return name;
+  }
+  return null;
+}
+
 // ── Handler ───────────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   try {
@@ -333,21 +545,59 @@ export async function POST(req: NextRequest) {
 
     if (!message) return NextResponse.json({ success: false, message: "Thiếu nội dung" }, { status: 400 });
 
-    const intent   = extractIntent(message);
-    const products = intent.is_product_query ? await fetchProducts(intent) : [];
+    const intent = extractIntent(message);
 
+    // Câu hỏi không khớp trigger nào NHƯNG khớp tên sản phẩm vừa hiển thị →
+    // vẫn coi là truy vấn sản phẩm, tìm đúng sản phẩm đó thay vì bỏ qua.
+    if (!intent.is_product_query) {
+      const resolved = resolveKeywordFromHistory(message, history);
+      if (resolved) { intent.is_product_query = true; intent.keyword = resolved; }
+    }
+
+    let products = intent.is_product_query ? await fetchProducts(intent) : [];
+
+    // Từ khóa gốc không ra kết quả nào — thử lại bằng tên sản phẩm đã hiển thị
+    // trước đó (trường hợp trigger có khớp nhưng từ khóa trích ra bị lệch).
+    if (intent.is_product_query && products.length === 0) {
+      const resolved = resolveKeywordFromHistory(message, history);
+      if (resolved && resolved.toLowerCase() !== (intent.keyword || "").toLowerCase()) {
+        intent.keyword = resolved;
+        products = await fetchProducts(intent);
+      }
+    }
+
+    // QUAN TRỌNG: shop chỉ phân biệt biến thể theo MÀU SẮC (color) — không có
+    // khái niệm dung lượng/GB. Trước đây chỉ gửi 1 giá gộp/sản phẩm cho AI, nên
+    // khi khách hỏi "bản nào, dung lượng nào" AI không có dữ liệu thật để dựa
+    // vào và tự bịa ra các mức GB + giá không tồn tại. Giờ liệt kê rõ từng biến
+    // thể màu + giá + tồn kho thật để AI luôn có dữ liệu cụ thể để trả lời.
     const productCtx = products.length
-      ? `\nSẢN PHẨM HIỆN CÓ (dùng để tư vấn):\n` + products.map((p, i) =>
-          `${i+1}. ${p.ten} (${p.thuongHieu}) | Giá: ${fmt(p.giaSale ?? p.gia)}${p.giamGia ? ` | Giảm: ${p.giamGia}%` : ""} | Đánh giá: ★${p.danhGia}/5`
-        ).join("\n")
+      ? `\nSẢN PHẨM HIỆN CÓ (dùng để tư vấn — đây là TOÀN BỘ dữ liệu thật, sản
+phẩm chỉ có biến thể theo MÀU SẮC, KHÔNG có các mức dung lượng/GB khác nhau):\n` +
+        products.map((p, i) => {
+          const variantLines = Array.isArray(p.variants) && p.variants.length
+            ? p.variants.map((v: any) =>
+                `   - Màu ${v.color || "?"}: ${fmt(v.sale_price ?? v.price)}${v.sale_price && v.sale_price !== v.price ? ` (giá gốc ${fmt(v.price)})` : ""} | ${v.stock_quantity > 0 ? `còn ${v.stock_quantity}` : "hết hàng"}`
+              ).join("\n")
+            : `   - Giá: ${fmt(p.giaSale ?? p.gia)}`;
+          return `${i + 1}. ${p.ten} (${p.thuongHieu}) | Đánh giá: ★${p.danhGia}/5\n${variantLines}`;
+        }).join("\n")
       : intent.is_product_query ? "\n[Không có sản phẩm phù hợp trong kho]" : "";
 
     const system = buildSystemPrompt(productCtx);
 
     // Thử lần lượt: Claude → Groq → OpenRouter → template
-    const aiReply = await callClaude(system, message, history)
-                 ?? await callGroq(system, message, history)
-                 ?? await callOpenRouter(system, message, history);
+    const aiReplyRaw = await callClaude(system, message, history)
+                     ?? await callGroq(system, message, history)
+                     ?? await callOpenRouter(system, message, history);
+    // An toàn 2 lớp: dù đã dặn trong system prompt, model đôi khi vẫn chép
+    // nguyên văn ghi chú nội bộ "[Sản phẩm đã hiển thị: ...]" vào câu trả lời
+    // — cắt bỏ trước khi hiển thị cho khách.
+    const aiReplyStripped = aiReplyRaw
+      ? aiReplyRaw.replace(/\[Sản phẩm đã hiển thị:[^\]]*\]/g, "").trim()
+      : aiReplyRaw;
+    const aiReplyDeduped = aiReplyStripped ? dedupeRepeatedReply(aiReplyStripped) : null;
+    const aiReply = aiReplyDeduped ? extractCleanReply(aiReplyDeduped) : null;
 
     const reply = aiReply || buildReply(message, intent, products);
 
