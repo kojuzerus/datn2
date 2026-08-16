@@ -9,6 +9,8 @@ import {
   Trash2,
   Edit3,
   ExternalLink,
+  ArrowDownWideNarrow,
+  ArrowUpNarrowWide,
 } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -39,6 +41,9 @@ export default function AdminQuestionsPage() {
   const [activeTab, setActiveTab] = useState<"all" | "pending" | "replied">(
     "all",
   );
+
+  // Thứ tự sắp xếp: "oldest" = cũ nhất trước (mặc định), "newest" = mới nhất trước
+  const [sortOrder, setSortOrder] = useState<"oldest" | "newest">("oldest");
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState<string>("");
@@ -115,12 +120,18 @@ export default function AdminQuestionsPage() {
     return !!(q.reply && q.reply.replyText && q.reply.replyText.trim() !== "");
   };
 
-  const filteredQuestions = questions.filter((q) => {
-    const isReplied = checkIsReplied(q);
-    if (activeTab === "pending") return !isReplied;
-    if (activeTab === "replied") return isReplied;
-    return true;
-  });
+  const filteredQuestions = questions
+    .filter((q) => {
+      const isReplied = checkIsReplied(q);
+      if (activeTab === "pending") return !isReplied;
+      if (activeTab === "replied") return isReplied;
+      return true;
+    })
+    .sort((a, b) => {
+      const timeA = new Date(a.createdAt).getTime() || 0;
+      const timeB = new Date(b.createdAt).getTime() || 0;
+      return sortOrder === "oldest" ? timeA - timeB : timeB - timeA;
+    });
 
   const countPending = questions.filter((q) => !checkIsReplied(q)).length;
   const countReplied = questions.filter((q) => checkIsReplied(q)).length;
@@ -166,7 +177,6 @@ export default function AdminQuestionsPage() {
 
       if (!res.ok) throw new Error("Gửi câu trả lời thất bại");
 
-      alert("Xử lý phản hồi thành công!");
       fetchAllQuestions(); // Tải lại để đồng bộ state mới nhất từ database
       setEditingId(null);
       setEditText("");
@@ -186,7 +196,7 @@ export default function AdminQuestionsPage() {
       </div>
 
       {/* THANH BỘ LỌC TABS */}
-      <div className="flex gap-2 border-b border-gray-100 pb-3 mb-6">
+      <div className="flex flex-wrap items-center gap-2 border-b border-gray-100 pb-3 mb-6">
         <button
           onClick={() => setActiveTab("all")}
           className={`px-4 py-2 text-sm rounded-xl cursor-pointer font-medium transition-all ${
@@ -216,6 +226,22 @@ export default function AdminQuestionsPage() {
           }`}
         >
           Đã trả lời ({countReplied})
+        </button>
+
+        {/* NÚT LỌC THỨ TỰ THỜI GIAN */}
+        <button
+          onClick={() =>
+            setSortOrder((prev) => (prev === "oldest" ? "newest" : "oldest"))
+          }
+          title="Đổi thứ tự sắp xếp theo thời gian"
+          className="ml-auto inline-flex items-center gap-1.5 px-4 py-2 text-sm rounded-xl cursor-pointer font-medium text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 hover:text-red-600 transition-all"
+        >
+          {sortOrder === "oldest" ? (
+            <ArrowUpNarrowWide size={15} />
+          ) : (
+            <ArrowDownWideNarrow size={15} />
+          )}
+          {sortOrder === "oldest" ? "Cũ nhất trước" : "Mới nhất trước"}
         </button>
       </div>
 
