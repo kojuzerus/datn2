@@ -17,6 +17,7 @@ import {
   BarChart2,
   Settings,
   Search,
+  Zap,
   ChevronDown,
   LogOut,
   Home,
@@ -83,6 +84,12 @@ const NAV_GROUPS: { section: string; items: NavItem[] }[] = [
         Icon: Tag,
         badge: null,
       },
+      {
+        href: "/admin/flash-sale",
+        label: "Flash Sale",
+        Icon: Zap,
+        badge: null,
+      },
       { href: "/admin/news", label: "Tin tức", Icon: Newspaper, badge: null },
       { href: "/admin/reviews", label: "Đánh giá", Icon: Star, badge: null },
       {
@@ -125,6 +132,7 @@ const PAGE_LABELS: Record<string, string> = {
   "/admin/users": "Quản lý khách hàng",
   "/admin/categories": "Danh mục",
   "/admin/promotions": "Mã giảm giá",
+  "/admin/flash-sale": "Flash Sale",
   "/admin/vouchers": "Vòng quay may mắn",
   "/admin/news": "Tin tức",
   "/admin/reviews": "Đánh giá",
