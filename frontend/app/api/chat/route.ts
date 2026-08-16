@@ -225,11 +225,18 @@ KHI TƯ VẤN SẢN PHẨM:
   thông số, màu sắc, khuyến mãi hay bảo hành. Không có thông tin gì thì nói
   thẳng "mình chưa thấy thông tin này trong dữ liệu shop nên không muốn đoán
   bừa" thay vì tự chế
+- QUAN TRỌNG: sản phẩm ở đây CHỈ có biến thể theo MÀU SẮC — không hề có các
+  mức dung lượng/GB/phiên bản khác nhau như 128GB/256GB. Nếu khách hỏi "bản
+  nào, dung lượng bao nhiêu" → trả lời thật là shop chỉ có 1 cấu hình cho mỗi
+  màu (xem giá trong danh sách), rồi hỏi khách thích màu nào — TUYỆT ĐỐI
+  KHÔNG được tự bịa ra các mức GB và giá khác nhau
 - Nếu không có sản phẩm phù hợp → thành thật, gợi ý hướng tìm khác
 - Khách nói "cái này", "cái đó", "con này", "con kia"... → xem lịch sử hội
   thoại, tìm dòng "[Sản phẩm đã hiển thị: ...]" gần nhất để biết chính xác
   đang nói về sản phẩm nào. Không tìm thấy thì hỏi lại khách nói về sản phẩm
-  nào
+  nào. Dòng "[Sản phẩm đã hiển thị: ...]" này CHỈ là ghi chú nội bộ để bạn
+  đọc — TUYỆT ĐỐI KHÔNG chép lại đoạn ngoặc vuông đó vào câu trả lời gửi cho
+  khách
 - Đặt hàng, thanh toán: xác nhận lại tên sản phẩm khách chọn rồi hướng dẫn bấm
   vào thẻ sản phẩm hoặc nút "Xem tất cả sản phẩm" để vào trang mua thật
   (chatbox chưa tự chốt đơn được) — không nói khách chờ "nhân viên hỗ trợ"
@@ -495,6 +502,15 @@ function extractCleanReply(raw: string): string | null {
 // không bắt được câu này. Nếu có danh sách "[Sản phẩm đã hiển thị: ...]" (do
 // frontend nhúng vào lịch sử) và câu hỏi hiện tại khớp với 1 trong số đó, dùng
 // luôn tên sản phẩm đó làm từ khóa tìm kiếm thay vì trả lời chung chung.
+// Từ đệm/lấp đầy tiếng Việt thường đi kèm câu gõ tắt ("ip 14 đi", "iphone 14
+// nhé") — không mang ý nghĩa để đối chiếu tên sản phẩm, phải loại bỏ trước khi
+// so khớp, nếu không một từ đệm duy nhất cũng khiến toàn bộ phép so khớp
+// "mọi từ phải khớp" thất bại oan.
+const FILLER_WORDS = new Set([
+  "di", "nhe", "nha", "a", "ne", "luon", "do", "nay", "vay", "thoi",
+  "oi", "ban", "minh", "cho", "toi", "voi", "duoc", "khong",
+]);
+
 function resolveKeywordFromHistory(message: string, history: any[]): string | null {
   const norm = (s: string) =>
     s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d");
@@ -510,7 +526,7 @@ function resolveKeywordFromHistory(message: string, history: any[]): string | nu
   }
   if (!shownNames.length) return null;
 
-  const msgTokens = norm(message).split(/\s+/).filter(Boolean);
+  const msgTokens = norm(message).split(/\s+/).filter((t) => t && !FILLER_WORDS.has(t));
   if (!msgTokens.length) return null;
 
   for (const name of shownNames) {
@@ -550,10 +566,22 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // QUAN TRỌNG: shop chỉ phân biệt biến thể theo MÀU SẮC (color) — không có
+    // khái niệm dung lượng/GB. Trước đây chỉ gửi 1 giá gộp/sản phẩm cho AI, nên
+    // khi khách hỏi "bản nào, dung lượng nào" AI không có dữ liệu thật để dựa
+    // vào và tự bịa ra các mức GB + giá không tồn tại. Giờ liệt kê rõ từng biến
+    // thể màu + giá + tồn kho thật để AI luôn có dữ liệu cụ thể để trả lời.
     const productCtx = products.length
-      ? `\nSẢN PHẨM HIỆN CÓ (dùng để tư vấn):\n` + products.map((p, i) =>
-          `${i+1}. ${p.ten} (${p.thuongHieu}) | Giá: ${fmt(p.giaSale ?? p.gia)}${p.giamGia ? ` | Giảm: ${p.giamGia}%` : ""} | Đánh giá: ★${p.danhGia}/5`
-        ).join("\n")
+      ? `\nSẢN PHẨM HIỆN CÓ (dùng để tư vấn — đây là TOÀN BỘ dữ liệu thật, sản
+phẩm chỉ có biến thể theo MÀU SẮC, KHÔNG có các mức dung lượng/GB khác nhau):\n` +
+        products.map((p, i) => {
+          const variantLines = Array.isArray(p.variants) && p.variants.length
+            ? p.variants.map((v: any) =>
+                `   - Màu ${v.color || "?"}: ${fmt(v.sale_price ?? v.price)}${v.sale_price && v.sale_price !== v.price ? ` (giá gốc ${fmt(v.price)})` : ""} | ${v.stock_quantity > 0 ? `còn ${v.stock_quantity}` : "hết hàng"}`
+              ).join("\n")
+            : `   - Giá: ${fmt(p.giaSale ?? p.gia)}`;
+          return `${i + 1}. ${p.ten} (${p.thuongHieu}) | Đánh giá: ★${p.danhGia}/5\n${variantLines}`;
+        }).join("\n")
       : intent.is_product_query ? "\n[Không có sản phẩm phù hợp trong kho]" : "";
 
     const system = buildSystemPrompt(productCtx);
@@ -562,7 +590,13 @@ export async function POST(req: NextRequest) {
     const aiReplyRaw = await callClaude(system, message, history)
                      ?? await callGroq(system, message, history)
                      ?? await callOpenRouter(system, message, history);
-    const aiReplyDeduped = aiReplyRaw ? dedupeRepeatedReply(aiReplyRaw) : null;
+    // An toàn 2 lớp: dù đã dặn trong system prompt, model đôi khi vẫn chép
+    // nguyên văn ghi chú nội bộ "[Sản phẩm đã hiển thị: ...]" vào câu trả lời
+    // — cắt bỏ trước khi hiển thị cho khách.
+    const aiReplyStripped = aiReplyRaw
+      ? aiReplyRaw.replace(/\[Sản phẩm đã hiển thị:[^\]]*\]/g, "").trim()
+      : aiReplyRaw;
+    const aiReplyDeduped = aiReplyStripped ? dedupeRepeatedReply(aiReplyStripped) : null;
     const aiReply = aiReplyDeduped ? extractCleanReply(aiReplyDeduped) : null;
 
     const reply = aiReply || buildReply(message, intent, products);
