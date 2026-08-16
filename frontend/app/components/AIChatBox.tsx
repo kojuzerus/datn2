@@ -164,7 +164,19 @@ export default function AIChatBox() {
     setLoading(true);
 
     try {
-      const history = messages.slice(-10).map((m) => ({ role: m.role, content: m.content }));
+      // Nhét kèm tên + giá sản phẩm đã từng hiển thị vào lịch sử gửi lên backend
+      // (không đổi nội dung hiển thị trên UI) — để khi khách nói "mua cái này",
+      // "cái đó bao nhiêu tiền"... AI biết đang nói về sản phẩm nào thay vì đoán mò.
+      const history = messages.slice(-10).map((m) => {
+        if (m.role === "assistant" && m.products && m.products.length) {
+          const productList = m.products
+            .slice(0, 6)
+            .map((p) => `${p.ten} (${fmt(p.giaSale ?? p.gia)})`)
+            .join(", ");
+          return { role: m.role, content: `${m.content}\n[Sản phẩm đã hiển thị: ${productList}]` };
+        }
+        return { role: m.role, content: m.content };
+      });
 
       const res = await fetch(`/api/chat`, {
         method: "POST",

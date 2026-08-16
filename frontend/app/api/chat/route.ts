@@ -73,16 +73,23 @@ function extractIntent(msg: string): Intent {
     "phụ kiện","sạc","cáp","loa","speaker","chuột","bàn phím",
   ]);
 
+  // Ưu tiên bắt tên hãng/dòng máy CỤ THỂ trước (VD: "iphone", "galaxy s24") vì
+  // đây là tín hiệu chính xác nhất. Nếu để pattern "tìm/mua/muốn..." chạy trước,
+  // nó sẽ nuốt luôn cả động từ + danh mục chung chung phía trước tên máy (VD:
+  // "mua điện thoại iphone" → capture "mua điện thoại iphone" thay vì "iphone"),
+  // khiến tìm kiếm theo cụm đó không khớp sản phẩm nào và rơi về danh mục rộng
+  // (ra luôn cả Samsung, OPPO... dù khách chỉ hỏi iPhone).
+  const m2 = msg.match(
+    /(?:iphone|samsung|xiaomi|oppo|laptop|macbook|galaxy|redmi|poco|vivobook|zenbook|ideapad|vivo|realme|nokia|sony|lg|dell|hp|lenovo|asus|acer|msi|huawei|jbl|anker|logitech|razer|airpod|tai nghe|earbud|buds|loa|speaker|bàn phím|chuột|sạc|ốp lưng|tablet|ipad|đồng hồ|watch)(?:\s+(?!giá|dưới|trên|từ|khoảng|với|tốt|rẻ|bền|triệu|tr\b)[\w]+){0,3}/i
+  );
   const kwMatch = msg.match(/(?:tìm|mua|xem|muốn|cần|gợi ý)\s+(.{2,50}?)(?:\s+(?:giá|dưới|từ|khoảng|với|tốt|rẻ|bền)|[?.!]|$)/i);
-  if (kwMatch) {
+  if (m2) {
+    intent.keyword = m2[0].trim();
+  } else if (kwMatch) {
     const raw = kwMatch[1].trim().toLowerCase();
     if (!GENERIC_WORDS.has(raw)) intent.keyword = kwMatch[1].trim();
-  } else {
-    const m2 = msg.match(
-      /(?:iphone|samsung|xiaomi|oppo|laptop|macbook|galaxy|redmi|poco|vivobook|zenbook|ideapad|vivo|realme|nokia|sony|lg|dell|hp|lenovo|asus|acer|msi|huawei|jbl|anker|logitech|razer|airpod|tai nghe|earbud|buds|loa|speaker|bàn phím|chuột|sạc|ốp lưng|tablet|ipad|đồng hồ|watch)(?:\s+(?!giá|dưới|trên|từ|khoảng|với|tốt|rẻ|bền|triệu|tr\b)[\w]+){0,3}/i
-    );
-    if (m2) intent.keyword = m2[0].trim();
-    else if (intent.brand) intent.keyword = intent.brand;
+  } else if (intent.brand) {
+    intent.keyword = intent.brand;
   }
 
   let m: RegExpMatchArray | null;
@@ -185,7 +192,15 @@ KHI TƯ VẤN SẢN PHẨM:
 - Dựa trên danh sách thực tế bên dưới — không bịa thêm model/giá không có
 - Nếu khách chưa rõ nhu cầu → hỏi thêm (ngân sách, dùng để làm gì, hãng ưu thích)
 - Nếu không có sản phẩm phù hợp → thành thật, gợi ý hướng tìm kiếm khác
-- Đặt hàng, thanh toán, đổi trả cụ thể → hướng đến nhân viên hỗ trợ
+- Khách nói "cái này", "cái đó", "sản phẩm này", "mẫu đó"... → xem lại lịch sử
+  hội thoại, tìm dòng "[Sản phẩm đã hiển thị: ...]" gần nhất để biết chính xác
+  đang nói về sản phẩm nào, rồi trả lời theo đúng tên/giá đó. Nếu không tìm
+  thấy sản phẩm nào từng hiển thị, hỏi lại khách muốn nói đến sản phẩm nào
+- Đặt hàng, thanh toán: xác nhận lại tên sản phẩm khách chọn rồi hướng dẫn bấm
+  vào thẻ sản phẩm hoặc nút "Xem tất cả sản phẩm" để vào trang đặt hàng thật
+  (chatbox không tự chốt đơn được) — không nói khách chờ "nhân viên hỗ trợ"
+  một cách chung chung
+- Đổi trả, khiếu nại cụ thể một đơn hàng đã mua → hướng đến nhân viên hỗ trợ
 
 ĐỊNH DẠNG TRẢ LỜI (bắt buộc — khung chat rất nhỏ, không hiển thị markdown):
 - Chỉ dùng văn bản thuần, xuống dòng thường và emoji để nhấn mạnh
@@ -390,9 +405,10 @@ function isUsableReply(text: string): boolean {
   if (leakHits >= 1) return false;
 
   // Rò rỉ kiểu tự đánh số đếm từ để kiểm tra giới hạn độ dài, VD:
-  // "Chào(1) bạn!(2) 😊(3)..." — dấu hiệu model đang lộ bước đếm từ nội bộ.
-  const wordCountAnnotations = (t.match(/\S\(\d{1,3}\)/g) || []).length;
-  if (wordCountAnnotations >= 4) return false;
+  // "Chào(1) bạn!(2) 😊(3)..." hoặc chỉ "cái(9) này" — dấu hiệu model đang lộ
+  // bước đếm từ nội bộ. Mẫu "chữ(số)" gần như không bao giờ xuất hiện trong văn
+  // bản tiếng Việt tự nhiên nên chỉ cần gặp 1 lần là đủ để nghi ngờ và chặn.
+  if (/\S\(\d{1,3}\)/.test(t)) return false;
 
   // Markdown bị cấm nhưng vẫn lọt (bảng, tiêu đề, in đậm)
   if (/^#{1,6}\s|\|.*\|.*\|/m.test(t) || /\*\*[^*]+\*\*/.test(t)) return false;
