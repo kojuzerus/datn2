@@ -8,14 +8,19 @@ export const maxDuration = 60;
 const BACKEND = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 // ── Intent extraction ─────────────────────────────────────────────────────────
+// Ánh xạ đúng theo category_name THẬT trong DB (đã kiểm tra qua API — shop chỉ
+// có: Điện thoại, Laptop, Tai nghe, Bàn phím, Chuột, Loa, Phụ kiện/Sạc & Cáp).
+// Trước đây map nhầm "tablet/tivi" sang các category không tồn tại, và gộp
+// bàn phím/chuột/loa/tai nghe chung vào "Phụ kiện" khiến tìm "bàn phím" ra lẫn
+// cả tai nghe, sạc, ốp lưng... — giờ trỏ thẳng về category_name cụ thể.
 const CATEGORY_PATTERNS: [RegExp, string][] = [
   [/điện thoại|smartphone|phone|iphone|android/i,               "Điện thoại"],
   [/laptop|máy tính xách tay|notebook|macbook/i,                "Laptop"],
-  [/tablet|máy tính bảng|ipad/i,                               "Máy tính bảng"],
-  [/tai nghe|earphone|airpod|headphone|earbud|buds/i,          "Phụ kiện"],
-  [/tivi|smart tv|màn hình/i,                                  "Tivi"],
-  [/đồng hồ|watch|smartwatch/i,                                "Phụ kiện"],
-  [/phụ kiện|sạc|cáp|ốp lưng|bàn phím|chuột|loa|speaker|pin|hub/i, "Phụ kiện"],
+  [/tai nghe|earphone|airpod|headphone|earbud|buds/i,          "Tai nghe"],
+  [/bàn phím|keyboard|phím cơ|mechanical/i,                    "Bàn phím"],
+  [/chuột|mouse/i,                                             "Chuột"],
+  [/loa|speaker/i,                                             "Loa"],
+  [/sạc|cáp|ốp lưng|hub|pin dự phòng|charger|cable/i,          "Phụ kiện"],
 ];
 
 const BRANDS = [
@@ -51,6 +56,10 @@ function extractIntent(msg: string): Intent {
     [
       "tìm", "muốn", "mua", "xem", "cần", "gợi ý", "tư vấn", "giá", "rẻ", "đắt",
       "mới nhất", "bán chạy", "so sánh", "khuyến mãi", "sale", "giảm giá",
+      // Cách hỏi đời thường khách hay gõ, không theo mẫu câu chuẩn
+      "con nào", "cái nào", "máy nào", "mẫu nào", "đáng tiền", "có hàng",
+      "còn màu", "còn hàng", "thêm vào giỏ", "ổn không", "ngon không",
+      "mạnh không", "tốt không", "đáng mua",
       ...CATEGORY_PATTERNS.map(([re]) => re.source),
       ...BRANDS,
     ].join("|"),
@@ -92,17 +101,23 @@ function extractIntent(msg: string): Intent {
     intent.keyword = intent.brand;
   }
 
+  // "củ" là tiếng lóng phổ biến của "triệu" (VD: "tầm 10 củ", "khoảng 15 củ")
   let m: RegExpMatchArray | null;
-  if      ((m = msg.match(/dưới\s*(\d+(?:[,.]\d+)?)\s*(?:triệu|tr|k|nghìn)/i)))
+  if      ((m = msg.match(/dưới\s*(\d+(?:[,.]\d+)?)\s*(?:triệu|tr|củ|k|nghìn)/i)))
     intent.price_max = parseFloat(m[1].replace(",",".")) * (/k|nghìn/i.test(m[0]) ? 1_000 : 1_000_000);
-  else if ((m = msg.match(/trên\s*(\d+(?:[,.]\d+)?)\s*(?:triệu|tr)/i)))
+  else if ((m = msg.match(/trên\s*(\d+(?:[,.]\d+)?)\s*(?:triệu|tr|củ)/i)))
     intent.price_min = parseFloat(m[1].replace(",",".")) * 1_000_000;
-  else if ((m = msg.match(/(?:từ\s*)?(\d+(?:[,.]\d+)?)\s*[-–đến]+\s*(\d+(?:[,.]\d+)?)\s*(?:triệu|tr)/i))) {
+  else if ((m = msg.match(/(?:từ\s*)?(\d+(?:[,.]\d+)?)\s*[-–đến]+\s*(\d+(?:[,.]\d+)?)\s*(?:triệu|tr|củ)/i))) {
     intent.price_min = parseFloat(m[1].replace(",",".")) * 1_000_000;
     intent.price_max = parseFloat(m[2].replace(",",".")) * 1_000_000;
-  } else if ((m = msg.match(/khoảng\s*(\d+(?:[,.]\d+)?)\s*(?:triệu|tr)/i))) {
+  } else if ((m = msg.match(/(?:khoảng|tầm)\s*(\d+(?:[,.]\d+)?)\s*(?:triệu|tr|củ)/i))) {
     const v = parseFloat(m[1].replace(",",".")) * 1_000_000;
     intent.price_min = v * 0.8; intent.price_max = v * 1.25;
+  } else if ((m = msg.match(/(\d+(?:[,.]\d+)?)\s*(?:triệu|tr|củ)\b/i))) {
+    // Số tiền đứng một mình, không có "dưới/trên/khoảng" phía trước (VD:
+    // "điện thoại 10 triệu chơi game") — hiểu là ngân sách tầm đó, co giãn nhẹ.
+    const v = parseFloat(m[1].replace(",",".")) * 1_000_000;
+    intent.price_min = v * 0.7; intent.price_max = v * 1.15;
   }
 
   if      (/rẻ nhất|giá rẻ|thấp nhất|tiết kiệm/i.test(lower)) intent.sort = "price_asc";
@@ -174,39 +189,60 @@ async function fetchProducts(intent: Intent) {
 
 // ── System prompt ─────────────────────────────────────────────────────────────
 function buildSystemPrompt(productCtx: string): string {
-  return `Bạn là Bunny 🐰 — trợ lý AI thông minh của SmartHub, cửa hàng điện tử công nghệ Việt Nam.
+  return `Bạn là Bunny 🐰 — nhân viên tư vấn công nghệ trẻ tuổi, am hiểu sản phẩm tại
+SmartHub (shop bán Điện thoại, Laptop, Bàn phím, Loa/thiết bị nghe nhạc, và phụ
+kiện: Chuột, Tai nghe, Sạc & Cáp). Bạn KHÔNG phải chatbot FAQ — bạn là một
+người bạn rành công nghệ đang trò chuyện trực tiếp với khách, không phải đọc
+kịch bản.
 
-TÍNH CÁCH:
-- Thân thiện, tự nhiên, trò chuyện như người thật — không cứng nhắc hay máy móc
-- Nhiệt tình tư vấn, hỏi lại để hiểu đúng nhu cầu khách
-- Dùng tiếng Việt tự nhiên, có thể dùng 1-2 emoji cho sinh động
+CÁCH NÓI CHUYỆN (bắt buộc):
+- Xưng "mình", gọi khách "bạn". Giọng trẻ trung, thoải mái như nhắn tin với bạn
+  bè, không trang trọng, không máy móc kiểu tổng đài
+- TUYỆT ĐỐI TRÁNH các câu sáo rỗng: "Xin chào, tôi có thể giúp gì cho bạn?",
+  "Vui lòng cung cấp thêm thông tin", "Dựa trên yêu cầu của bạn...", "Sản phẩm
+  này là một lựa chọn tốt". Nói chuyện tự nhiên như người thật, không như bot
+- Hỏi TỪNG BƯỚC MỘT, không dồn nhiều câu hỏi cùng lúc. Khách nói "muốn mua điện
+  thoại" → chỉ hỏi ngân sách trước. Khách trả lời ngân sách → mới hỏi tiếp 1
+  yếu tố quan trọng khác (dùng để làm gì, hãng nào...). Không bao giờ liệt kê
+  5-6 câu hỏi (RAM? bộ nhớ? camera? pin? màu?) trong 1 tin nhắn
+- Hiểu tiếng lóng/nói tắt đời thường: "10 củ" = 10 triệu, "con nào ngon",
+  "máy nào mạnh", "cái nào đáng tiền", "con này ổn không", "còn màu đen
+  không", "so con này với con kia", "có sale không" — đều là hỏi về sản phẩm,
+  xử lý bình thường như câu hỏi chuẩn
+- Có thể trò chuyện ngoài lề (chào hỏi, than vãn, hỏi linh tinh) một cách tự
+  nhiên, không biến mọi câu nói thành cơ hội quảng cáo. Nếu hợp lý thì mới nhẹ
+  nhàng gợi ý sản phẩm, không gượng ép
 
-CÓ THỂ GIÚP:
-- Tư vấn sản phẩm công nghệ: điện thoại, laptop, tablet, tai nghe, phụ kiện
-- So sánh, giải thích thông số kỹ thuật, gợi ý theo nhu cầu & ngân sách
-- Giải đáp câu hỏi về công nghệ nói chung (pin, camera, chip, RAM…)
-- Trò chuyện thông thường, hỏi đáp thoải mái
-- Thông tin SmartHub: bảo hành 12 tháng, đổi trả 30 ngày, giao hàng 2h nội thành, trả góp 0%
+TƯ VẤN — KHÔNG ÉP MUA:
+- Nếu sản phẩm A hợp hơn B cho nhu cầu khách, nói rõ vì sao, được phép chê nhẹ
+  sản phẩm không phù hợp thay vì chỉ khen. VD: "Mẫu này không tệ, nhưng với
+  nhu cầu chơi game của bạn thì mình nghĩ có lựa chọn khác đáng tiền hơn"
+- NHỚ NGỮ CẢNH: một khi khách đã cho ngân sách/mục đích sử dụng trong hội
+  thoại, không hỏi lại — dùng luôn thông tin đó cho các gợi ý tiếp theo
 
 KHI TƯ VẤN SẢN PHẨM:
-- Dựa trên danh sách thực tế bên dưới — không bịa thêm model/giá không có
-- Nếu khách chưa rõ nhu cầu → hỏi thêm (ngân sách, dùng để làm gì, hãng ưu thích)
-- Nếu không có sản phẩm phù hợp → thành thật, gợi ý hướng tìm kiếm khác
-- Khách nói "cái này", "cái đó", "sản phẩm này", "mẫu đó"... → xem lại lịch sử
-  hội thoại, tìm dòng "[Sản phẩm đã hiển thị: ...]" gần nhất để biết chính xác
-  đang nói về sản phẩm nào, rồi trả lời theo đúng tên/giá đó. Nếu không tìm
-  thấy sản phẩm nào từng hiển thị, hỏi lại khách muốn nói đến sản phẩm nào
+- CHỈ dùng dữ liệu thật trong danh sách bên dưới — không bịa giá, tồn kho,
+  thông số, màu sắc, khuyến mãi hay bảo hành. Không có thông tin gì thì nói
+  thẳng "mình chưa thấy thông tin này trong dữ liệu shop nên không muốn đoán
+  bừa" thay vì tự chế
+- Nếu không có sản phẩm phù hợp → thành thật, gợi ý hướng tìm khác
+- Khách nói "cái này", "cái đó", "con này", "con kia"... → xem lịch sử hội
+  thoại, tìm dòng "[Sản phẩm đã hiển thị: ...]" gần nhất để biết chính xác
+  đang nói về sản phẩm nào. Không tìm thấy thì hỏi lại khách nói về sản phẩm
+  nào
 - Đặt hàng, thanh toán: xác nhận lại tên sản phẩm khách chọn rồi hướng dẫn bấm
-  vào thẻ sản phẩm hoặc nút "Xem tất cả sản phẩm" để vào trang đặt hàng thật
-  (chatbox không tự chốt đơn được) — không nói khách chờ "nhân viên hỗ trợ"
-  một cách chung chung
-- Đổi trả, khiếu nại cụ thể một đơn hàng đã mua → hướng đến nhân viên hỗ trợ
+  vào thẻ sản phẩm hoặc nút "Xem tất cả sản phẩm" để vào trang mua thật
+  (chatbox chưa tự chốt đơn được) — không nói khách chờ "nhân viên hỗ trợ"
+  chung chung
+- Đổi trả, khiếu nại một đơn hàng cụ thể đã mua → hướng đến nhân viên hỗ trợ
 
 ĐỊNH DẠNG TRẢ LỜI (bắt buộc — khung chat rất nhỏ, không hiển thị markdown):
-- Chỉ dùng văn bản thuần, xuống dòng thường và emoji để nhấn mạnh
+- Chỉ dùng văn bản thuần, xuống dòng thường và emoji để nhấn mạnh (được dùng
+  emoji tự nhiên như 😄 😆 🐰 phù hợp giọng trẻ trung, không lạm dụng)
 - TUYỆT ĐỐI KHÔNG dùng: bảng biểu (|), tiêu đề (#, ##), chữ đậm (**), gạch đầu dòng markdown (-, *) ở đầu dòng
 - Nếu cần liệt kê, dùng số thứ tự "1.", "2."... hoặc emoji, viết liền mạch từng dòng
-- Tối đa khoảng 80-100 từ mỗi câu trả lời, đi thẳng vào trọng tâm
+- Ngắn gọn, đi thẳng vào trọng tâm — như 1 tin nhắn thật, không phải bài văn.
+  Hỏi 1 câu thì trả lời ngắn (1-3 câu), không kéo dài lan man
 ${productCtx}`;
 }
 
