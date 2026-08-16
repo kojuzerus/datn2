@@ -453,6 +453,37 @@ function extractCleanReply(raw: string): string | null {
   return null;
 }
 
+// ── Đối chiếu câu hỏi ngắn với sản phẩm vừa hiển thị trong lịch sử ────────────
+// Khách hay gõ tắt kiểu tham chiếu ("15 plus", "cái đó", "mẫu i14") thay vì lặp
+// lại đầy đủ tên sản phẩm — các pattern trigger/brand/category cố định sẽ
+// không bắt được câu này. Nếu có danh sách "[Sản phẩm đã hiển thị: ...]" (do
+// frontend nhúng vào lịch sử) và câu hỏi hiện tại khớp với 1 trong số đó, dùng
+// luôn tên sản phẩm đó làm từ khóa tìm kiếm thay vì trả lời chung chung.
+function resolveKeywordFromHistory(message: string, history: any[]): string | null {
+  const norm = (s: string) =>
+    s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d");
+
+  let shownNames: string[] = [];
+  for (let i = history.length - 1; i >= 0; i--) {
+    const content: string = history[i]?.content || "";
+    const m = content.match(/\[Sản phẩm đã hiển thị: ([^\]]+)\]/);
+    if (m) {
+      shownNames = [...m[1].matchAll(/([^,]+?)\s*\([^)]*\)/g)].map((x) => x[1].trim());
+      break;
+    }
+  }
+  if (!shownNames.length) return null;
+
+  const msgTokens = norm(message).split(/\s+/).filter(Boolean);
+  if (!msgTokens.length) return null;
+
+  for (const name of shownNames) {
+    const nameNorm = norm(name);
+    if (msgTokens.every((tok) => nameNorm.includes(tok))) return name;
+  }
+  return null;
+}
+
 // ── Handler ───────────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   try {
@@ -462,8 +493,26 @@ export async function POST(req: NextRequest) {
 
     if (!message) return NextResponse.json({ success: false, message: "Thiếu nội dung" }, { status: 400 });
 
-    const intent   = extractIntent(message);
-    const products = intent.is_product_query ? await fetchProducts(intent) : [];
+    const intent = extractIntent(message);
+
+    // Câu hỏi không khớp trigger nào NHƯNG khớp tên sản phẩm vừa hiển thị →
+    // vẫn coi là truy vấn sản phẩm, tìm đúng sản phẩm đó thay vì bỏ qua.
+    if (!intent.is_product_query) {
+      const resolved = resolveKeywordFromHistory(message, history);
+      if (resolved) { intent.is_product_query = true; intent.keyword = resolved; }
+    }
+
+    let products = intent.is_product_query ? await fetchProducts(intent) : [];
+
+    // Từ khóa gốc không ra kết quả nào — thử lại bằng tên sản phẩm đã hiển thị
+    // trước đó (trường hợp trigger có khớp nhưng từ khóa trích ra bị lệch).
+    if (intent.is_product_query && products.length === 0) {
+      const resolved = resolveKeywordFromHistory(message, history);
+      if (resolved && resolved.toLowerCase() !== (intent.keyword || "").toLowerCase()) {
+        intent.keyword = resolved;
+        products = await fetchProducts(intent);
+      }
+    }
 
     const productCtx = products.length
       ? `\nSẢN PHẨM HIỆN CÓ (dùng để tư vấn):\n` + products.map((p, i) =>
