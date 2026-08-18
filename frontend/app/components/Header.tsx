@@ -27,6 +27,7 @@ import { useRouter } from "next/navigation";
 import Logo from "./Logo";
 import MegaMenuButton from "./Megamenu";
 import { useComparison } from "./comparisonContext";
+import { useFavorites } from "./favoritesContext";
 import { guestCartCount } from "../lib/guestCart";
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
@@ -91,6 +92,7 @@ const fmtPrice = (n: number) =>
 export default function Header() {
   const [cartCount, setCartCount] = useState(0);
   const { items: compareItems } = useComparison();
+  const { items: favoriteItems } = useFavorites();
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -366,6 +368,17 @@ export default function Header() {
               >
                 <Package className="w-3 h-3" />
                 Theo dõi đơn hàng
+              </Link>
+              <span className="text-red-600 text-xs">|</span>
+              <Link
+                href="/yeu-thich"
+                className="flex items-center gap-1 text-[11px] text-red-200 hover:text-white transition-colors"
+              >
+                <Heart className="w-3 h-3" />
+                Yêu thích
+                {favoriteItems.length > 0 && (
+                  <span className="ml-0.5 text-yellow-300 font-semibold">({favoriteItems.length})</span>
+                )}
               </Link>
               <span className="text-red-600 text-xs">|</span>
               <a

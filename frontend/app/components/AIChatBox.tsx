@@ -271,42 +271,76 @@ export default function AIChatBox() {
         .chat-btn-in { animation: chatBounceIn 0.4s cubic-bezier(0.34,1.56,0.64,1); }
       `}</style>
 
-      {/* ── Floating rabbit button ─────────────────────────────────────────── */}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-center gap-1">
-        {/* Tooltip nhỏ */}
-        {!open && (
-          <div className="bg-gray-800 text-white text-xs px-2.5 py-1 rounded-full whitespace-nowrap shadow-lg mb-1 opacity-0 group-hover:opacity-100 pointer-events-none select-none"
-            style={{ animation: "banner-fade-up 0.4s ease both 1.2s" }}>
-            Tư vấn AI 🐰
-          </div>
-        )}
-
-        <button
-          onClick={() => setOpen((v) => !v)}
-          title="Tư vấn AI SmartHub"
-          className="relative w-16 h-16 rounded-full bg-gradient-to-br from-red-500 to-red-700 shadow-2xl hover:shadow-red-400/40 hover:scale-110 active:scale-95 transition-all duration-200 flex items-center justify-center overflow-visible"
+      {/* ── Cụm nút nổi: Zalo ở dưới, chat AI ở trên ─────────────────────────
+           flex-col-reverse: phần tử khai báo TRƯỚC (Zalo) lại nằm DƯỚI CÙNG
+           trong cách hiển thị, phần tử sau (chat) xếp lên trên nó. */}
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col-reverse items-center gap-3">
+        {/* Liên hệ Zalo */}
+        <a
+          href="https://zalo.me/84399006749"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Liên hệ qua Zalo"
+          className="relative w-14 h-14 rounded-full flex items-center justify-center shadow-2xl hover:shadow-blue-400/40 hover:scale-110 active:scale-95 transition-all duration-200"
+          style={{ background: "linear-gradient(140deg,#0068FF 0%,#0052CC 100%)" }}
         >
-          {/* Rabbit con thỏ nhảy */}
-          <div className="flex items-center justify-center">
-            <Rabbit3D size={46} />
-          </div>
+          {/* Icon Zalo — bong bóng chat bo góc kiểu logo Zalo, chữ "Zalo" màu xanh bên trong */}
+          <svg width="30" height="30" viewBox="0 0 48 48" className="drop-shadow-sm">
+            <path
+              d="M24 4C12.95 4 4 11.85 4 21.5c0 5.62 3.06 10.62 7.82 13.82-0.26 2.02-0.98 4.6-2.62 6.98-0.22 0.32 0.08 0.74 0.46 0.64 3.5-0.94 6.44-2.66 8.34-3.98C20.02 39.32 21.98 39.5 24 39.5c11.05 0 20-7.85 20-17.5S35.05 4 24 4Z"
+              fill="#fff"
+            />
+            <text
+              x="24" y="27"
+              textAnchor="middle"
+              fill="#0068FF"
+              fontSize="13.5"
+              fontWeight="800"
+              fontFamily="Arial, sans-serif"
+              letterSpacing="-0.3"
+            >
+              Zalo
+            </text>
+          </svg>
+        </a>
 
-          {/* Dấu chấm online */}
-          <span className="absolute top-0 right-0 w-3.5 h-3.5 bg-green-400 rounded-full border-2 border-white shadow" />
-
-          {/* Badge unread */}
-          {unread && !open && (
-            <span className="absolute -top-1 -left-1 w-5 h-5 bg-red-500 rounded-full text-white text-[10px] font-bold flex items-center justify-center shadow chat-btn-in border border-white">
-              1
-            </span>
+        {/* Nút chat AI (con thỏ) */}
+        <div className="flex flex-col items-center gap-1">
+          {/* Tooltip nhỏ */}
+          {!open && (
+            <div className="bg-gray-800 text-white text-xs px-2.5 py-1 rounded-full whitespace-nowrap shadow-lg mb-1 opacity-0 group-hover:opacity-100 pointer-events-none select-none"
+              style={{ animation: "banner-fade-up 0.4s ease both 1.2s" }}>
+              Tư vấn AI 🐰
+            </div>
           )}
-        </button>
+
+          <button
+            onClick={() => setOpen((v) => !v)}
+            title="Tư vấn AI SmartHub"
+            className="relative w-16 h-16 rounded-full bg-gradient-to-br from-red-500 to-red-700 shadow-2xl hover:shadow-red-400/40 hover:scale-110 active:scale-95 transition-all duration-200 flex items-center justify-center overflow-visible"
+          >
+            {/* Rabbit con thỏ nhảy */}
+            <div className="flex items-center justify-center">
+              <Rabbit3D size={46} />
+            </div>
+
+            {/* Dấu chấm online */}
+            <span className="absolute top-0 right-0 w-3.5 h-3.5 bg-green-400 rounded-full border-2 border-white shadow" />
+
+            {/* Badge unread */}
+            {unread && !open && (
+              <span className="absolute -top-1 -left-1 w-5 h-5 bg-red-500 rounded-full text-white text-[10px] font-bold flex items-center justify-center shadow chat-btn-in border border-white">
+                1
+              </span>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* ── Chat window ────────────────────────────────────────────────────── */}
       {open && (
         <div
-          className="chat-window fixed bottom-[5.5rem] right-6 z-50 w-[360px] max-h-[580px] flex flex-col rounded-2xl shadow-2xl overflow-hidden border border-gray-100"
+          className="chat-window fixed bottom-[10.75rem] right-6 z-50 w-[360px] max-h-[580px] flex flex-col rounded-2xl shadow-2xl overflow-hidden border border-gray-100"
           style={{ boxShadow: "0 20px 60px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.05)" }}
         >
           {/* ── Header ──────────────────────────────────────────────────────── */}
