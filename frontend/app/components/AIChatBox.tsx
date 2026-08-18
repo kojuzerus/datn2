@@ -2,8 +2,10 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { X, Send, Star, ChevronRight, Sparkles } from "lucide-react";
+import { X, Send, Star, ChevronRight, Sparkles, ShoppingCart } from "lucide-react";
 import Rabbit3D from "./Rabbit3D";
+import { useCart } from "../hooks/useCart";
+import { toastSuccess, toastError } from "../utils/toast";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -51,10 +53,26 @@ const QUICK_CHIPS = [
 // ── Mini product card (dùng trong chat) ─────────────────────────────────────
 function ChatProductCard({ p }: { p: Product }) {
   const displayPrice = p.giaSale ?? p.gia;
+  const { addToCart, adding } = useCart();
+
+  const handleAddToCart = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const ok = await addToCart({
+      productId: String(p.id),
+      tenSanPham: p.ten,
+      hinhAnh: p.thumbnail,
+      gia: displayPrice,
+      soLuong: 1,
+    });
+    if (ok) toastSuccess(`Đã thêm "${p.ten}" vào giỏ hàng!`);
+    else toastError("Không thể thêm vào giỏ hàng, thử lại nhé!");
+  };
+
   return (
     <Link
       href={`/sanpham/${p.slug}`}
-      className="flex-shrink-0 w-[130px] rounded-xl border border-gray-100 bg-white shadow-sm hover:shadow-md transition-shadow overflow-hidden group"
+      className="relative flex-shrink-0 w-[130px] rounded-xl border border-gray-100 bg-white shadow-sm hover:shadow-md transition-shadow overflow-hidden group"
     >
       {/* Ảnh */}
       <div className="relative bg-gray-50 h-[100px] overflow-hidden">
@@ -78,6 +96,15 @@ function ChatProductCard({ p }: { p: Product }) {
             -{p.giamGia}%
           </span>
         )}
+        {/* Thêm vào giỏ hàng — nổi góc trên phải ảnh, không chiếm thêm chỗ của card hẹp */}
+        <button
+          onClick={handleAddToCart}
+          disabled={adding}
+          title="Thêm vào giỏ hàng"
+          className="absolute top-1 right-1 z-10 w-6 h-6 rounded-full bg-white/95 shadow-md flex items-center justify-center text-gray-500 hover:text-red-600 hover:scale-110 active:scale-95 transition-all disabled:opacity-60"
+        >
+          <ShoppingCart size={12} />
+        </button>
       </div>
 
       {/* Info */}

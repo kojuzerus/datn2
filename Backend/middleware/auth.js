@@ -9,16 +9,11 @@ module.exports = (req, res, next) => {
   try {
     const decoded = jwt.verify(header.split(" ")[1], SECRET);
 
-    console.log("[auth] decoded =", decoded); // ← log tạm, xóa sau khi xong
-
     req.userId = decoded.id || decoded._id || decoded.userId;
     req.user = { ...decoded, _id: req.userId, id: req.userId };
 
-    console.log("[auth] userId =", req.userId); // ← log tạm
-
     next();
   } catch (err) {
-    console.log("[auth] verify failed:", err.message); // ← log tạm
     res.status(401).json({ message: "Token không hợp lệ hoặc đã hết hạn" });
   }
 };

@@ -2,67 +2,79 @@
 
 import { useState } from "react";
 import { usePathname } from "next/navigation";
-import VoucherSpinWheel from "./VoucherSpinWheel";
+import { Gift, X } from "lucide-react";
+import { useSpinEvent } from "./SpinEventProvider";
 
 export default function FloatingSpinWheel() {
-  const [isOpen, setIsOpen] = useState(false);
+  const { openBanner } = useSpinEvent();
   const pathname = usePathname();
+  // Chỉ ẩn tạm cho lần xem hiện tại — không lưu localStorage, nên tải lại trang
+  // (F5 / mở lại) sẽ luôn hiện lại nút vòng quay này.
+  const [dismissed, setDismissed] = useState(false);
 
-  // Chỉ hiển thị ở trang chủ
-  if (pathname !== "/") return null;
+  const handleDismiss = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDismissed(true);
+  };
+
+  // Chỉ hiển thị ở trang chủ, và khi khách chưa bấm ẩn trong lần xem này
+  if (pathname !== "/" || dismissed) return null;
 
   return (
-    <>
-      {/* Container góc dưới bên phải - đẩy cao lên trên nút bấm khác */}
-      <div className="fixed bottom-40 right-4 z-40 flex flex-col items-center">
-        {/* 1. Nhãn Tooltip phía trên (nhấp nháy nhẹ) */}
-        <div className="mb-1.5 px-3.5 py-1 bg-gradient-to-r from-red-600 to-rose-600 text-white text-xs font-bold rounded-full shadow-lg flex items-center gap-1.5 animate-bounce select-none border border-red-400/30">
-          <span>Vòng quay</span>
-          <span className="text-sm">🎁</span>
-        </div>
+    <div className="fixed bottom-40 left-4 z-40 flex flex-col items-center">
+      {/* 1. Nhãn phía trên — gọn, khít với nút tròn bên dưới, không tràn ra ngoài */}
+      <div className="mb-1.5 px-2.5 py-0.5 bg-gradient-to-r from-red-600 to-rose-600 text-white text-[10px] font-bold rounded-full shadow-lg animate-pulse select-none border border-red-400/30 whitespace-nowrap">
+        Vòng quay
+      </div>
 
-        {/* 2. Nút tròn Icon chính */}
+      <div className="relative">
+        {/* Nút X — ẩn tạm widget này, đặt ngoài <button> chính để không lồng button trong button */}
         <button
-          onClick={() => setIsOpen(true)}
-          className="relative group flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-tr from-red-600 via-red-500 to-amber-500 shadow-2xl hover:scale-110 active:scale-95 transition-all duration-300"
-          title="Mở Vòng quay may mắn"
+          onClick={handleDismiss}
+          title="Ẩn vòng quay"
+          className="absolute -top-1 -right-1 z-20 w-5 h-5 rounded-full bg-white text-gray-500 shadow-md border border-gray-200 flex items-center justify-center hover:bg-gray-100 hover:text-red-500 transition-colors"
         >
-          {/* VÒNG QUAY TỰ ĐỘNG XOAY LIÊN TỤC (spin 8s chậm dãi mượt mà) */}
-          <div className="w-10 h-10 animate-[spin_8s_linear_infinite]">
-            <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow">
-              {/* Các múi vòng quay màu sắc */}
-              <path d="M50 50 L50 2 A48 48 0 0 1 91.5 26 Z" fill="#f59e0b" />
-              <path d="M50 50 L91.5 26 A48 48 0 0 1 91.5 74 Z" fill="#ef4444" />
-              <path d="M50 50 L91.5 74 A48 48 0 0 1 50 98 Z" fill="#3b82f6" />
-              <path d="M50 50 L50 98 A48 48 0 0 1 8.5 74 Z" fill="#10b981" />
-              <path d="M50 50 L8.5 74 A48 48 0 0 1 8.5 26 Z" fill="#8b5cf6" />
-              <path d="M50 50 L8.5 26 A48 48 0 0 1 50 2 Z" fill="#ec4899" />
-              {/* Đường viền ngoài */}
-              <circle
-                cx="50"
-                cy="50"
-                r="47"
-                fill="none"
-                stroke="#fef08a"
-                strokeWidth="3"
-              />
-            </svg>
-          </div>
+          <X className="w-3 h-3" />
+        </button>
 
-          {/* Tâm cố định ở giữa (Không bị xoay theo vòng) */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="w-5 h-5 rounded-full bg-white shadow-md border-2 border-amber-400 flex items-center justify-center">
-              <span className="text-[10px] font-black text-red-600">GO</span>
+        {/* 2. Nút tròn — bấm vào mở banner giới thiệu trước, không mở thẳng vòng quay */}
+        <button
+          onClick={openBanner}
+          className="relative group flex items-center justify-center w-16 h-16 rounded-full transition-all duration-300 hover:scale-110 active:scale-95"
+          title="Vòng quay may mắn"
+        >
+          {/* Vầng sáng phát nhẹ phía sau, cùng tông với banner đỏ-cam-vàng */}
+          <span
+            className="absolute inset-0 rounded-full animate-ping opacity-40"
+            style={{ background: "radial-gradient(circle, #fbbf24 0%, transparent 70%)" }}
+          />
+
+          {/* Viền ngoài — gradient đỏ/cam/vàng đồng bộ với banner + vòng quay thật */}
+          <div
+            className="relative w-full h-full rounded-full p-[3px] shadow-2xl"
+            style={{ background: "linear-gradient(135deg,#dc2626 0%,#f97316 55%,#fbbf24 100%)" }}
+          >
+            {/* VÒNG QUAY TỰ XOAY — tông vàng-kim/trắng như banner, không còn cầu vồng lộn xộn */}
+            <div className="w-full h-full rounded-full animate-[spin_9s_linear_infinite] overflow-hidden">
+              <svg viewBox="0 0 100 100" className="w-full h-full">
+                <path d="M50 50 L50 2 A48 48 0 0 1 91.5 26 Z" fill="#fde68a" />
+                <path d="M50 50 L91.5 26 A48 48 0 0 1 91.5 74 Z" fill="#ffffff" />
+                <path d="M50 50 L91.5 74 A48 48 0 0 1 50 98 Z" fill="#fbbf24" />
+                <path d="M50 50 L50 98 A48 48 0 0 1 8.5 74 Z" fill="#ffffff" />
+                <path d="M50 50 L8.5 74 A48 48 0 0 1 8.5 26 Z" fill="#fde68a" />
+                <path d="M50 50 L8.5 26 A48 48 0 0 1 50 2 Z" fill="#ffffff" />
+              </svg>
             </div>
           </div>
 
-          {/* 3. Chấm xanh Online ở góc trên phải */}
-          <span className="absolute top-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full z-10" />
+          {/* Tâm cố định ở giữa (không xoay theo vòng) — dùng icon Gift đồng bộ với banner & vòng quay thật */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="w-7 h-7 rounded-full bg-white shadow-md border-2 border-amber-400 flex items-center justify-center">
+              <Gift className="w-3.5 h-3.5 text-red-600" />
+            </div>
+          </div>
         </button>
       </div>
-
-      {/* Component Vòng quay mở ra khi click */}
-      <VoucherSpinWheel open={isOpen} onClose={() => setIsOpen(false)} />
-    </>
+    </div>
   );
 }

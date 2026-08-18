@@ -177,6 +177,9 @@ export default function ProductDetailPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [showStickyBar, setShowStickyBar] = useState(false);
   const [related, setRelated] = useState<Product[]>([]);
+  // Hiện khi thêm giỏ hàng lúc ảnh sản phẩm đã cuộn khuất màn hình — lúc đó animation
+  // "bay vào giỏ" xuất phát từ vị trí ngoài màn hình nên người dùng không thấy được.
+  const [showCartToast, setShowCartToast] = useState(false);
 
   const tabRef = useRef<HTMLDivElement>(null);
   const reviewsRef = useRef<HTMLDivElement>(null);
@@ -364,9 +367,20 @@ export default function ProductDetailPage() {
   const handleAddToCart = async () => {
     if (!product || !inStock) return;
     const imgSrc = selectedVariant?.image || product.thumbnail || "";
-    if (mainImgRef.current && imgSrc) {
+
+    // Ảnh còn hiện trên màn hình (chưa cuộn khuất) → chạy animation bay vào giỏ như cũ.
+    // Ảnh đã cuộn khuất (VD đang bấm ở sticky bar dưới cùng) → animation sẽ xuất phát
+    // từ ngoài màn hình, người dùng không thấy gì cả — hiện thông báo bên trái thay thế.
+    const rect = mainImgRef.current?.getBoundingClientRect();
+    const imageVisible = !!rect && rect.bottom > 0 && rect.top < window.innerHeight;
+
+    if (imageVisible && mainImgRef.current && imgSrc) {
       flyToCart(imgSrc, mainImgRef.current.getBoundingClientRect());
+    } else {
+      setShowCartToast(true);
+      setTimeout(() => setShowCartToast(false), 2600);
     }
+
     const success = await addToCart({
       productId: String(product.id),
       tenSanPham: product.ten,
@@ -1418,6 +1432,21 @@ export default function ProductDetailPage() {
                   ? "Đã thêm!"
                   : "Thêm vào giỏ"}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Thông báo thêm giỏ hàng — góc trên phải, thay cho animation bay vào giỏ
+           khi ảnh sản phẩm đã cuộn khuất màn hình (không thấy animation chạy) ── */}
+      {showCartToast && product && (
+        <div
+          className="fixed top-20 right-5 z-50 flex items-center gap-3 bg-white rounded-md border border-gray-200 shadow-lg px-4 py-3 max-w-[320px]"
+          style={{ animation: "fadeInScale 0.3s cubic-bezier(0.34,1.56,0.64,1) both" }}
+        >
+          <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
+          <div className="min-w-0">
+            <p className="text-[13px] font-semibold text-gray-800">Đã thêm vào giỏ hàng!</p>
+            <p className="text-[12px] text-gray-500 truncate">{product.ten}</p>
           </div>
         </div>
       )}

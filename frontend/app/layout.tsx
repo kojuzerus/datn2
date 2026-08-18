@@ -6,6 +6,7 @@ import ThemeToggle from "./components/ThemeToggle";
 import LoginPromptModal from "./components/LoginPromptModal";
 import ScrollToTop from "./components/ScrollToTop";
 import FloatingSpinWheel from "./components/FloatingSpinWheel";
+import { SpinEventProvider } from "./components/SpinEventProvider";
 
 const beVietnamPro = Be_Vietnam_Pro({
   variable: "--font-be-vietnam",
@@ -33,10 +34,12 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-50">
         <ThemeProvider>
           <ThemeToggle />
-          {children}
-          <LoginPromptModal />
-          <ScrollToTop />
-          <FloatingSpinWheel />
+          <SpinEventProvider>
+            {children}
+            <LoginPromptModal />
+            <ScrollToTop />
+            <FloatingSpinWheel />
+          </SpinEventProvider>
         </ThemeProvider>
       </body>
     </html>

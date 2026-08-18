@@ -34,7 +34,6 @@ const SEGMENT_COLORS = [
 /** Ô "chúc may mắn lần sau" luôn xám, để khách nhận ra ngay đó là ô trắng */
 const NONE_COLOR = "#64748b";
 
-const WHEEL_SIZE = 400; // px hiển thị
 const VB = 200; // viewBox
 const CX = 100;
 const CY = 100;
@@ -217,7 +216,7 @@ export default function VoucherSpinWheel({
       <div className="relative bg-white border border-gray-200 shadow-xl rounded-2xl p-8 max-w-md w-full text-center">
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 text-gray-500 hover:text-black transition"
+          className="absolute top-3 right-3 z-20 text-gray-500 hover:text-black transition"
           aria-label="Đóng"
         >
           <X size={22} />
@@ -241,10 +240,7 @@ export default function VoucherSpinWheel({
           </div>
         ) : (
           <>
-            <div
-              className="relative mx-auto mb-6"
-              style={{ width: WHEEL_SIZE, height: WHEEL_SIZE }}
-            >
+            <div className="relative mx-auto mb-6 w-[280px] h-[280px] sm:w-[320px] sm:h-[320px]">
               {/* Kim chỉ */}
               <div
                 style={{
@@ -270,8 +266,8 @@ export default function VoucherSpinWheel({
               <svg
                 ref={wheelRef}
                 viewBox={`0 0 ${VB} ${VB}`}
-                width={WHEEL_SIZE}
-                height={WHEEL_SIZE}
+                width="100%"
+                height="100%"
                 style={{
                   display: "block",
                   borderRadius: "50%",

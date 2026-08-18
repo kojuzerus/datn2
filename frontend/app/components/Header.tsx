@@ -21,14 +21,12 @@ import {
   Newspaper,
   Heart,
   Package,
-  Gift,
 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Logo from "./Logo";
 import MegaMenuButton from "./Megamenu";
 import { useComparison } from "./comparisonContext";
-import VoucherSpinWheel from "./VoucherSpinWheel";
 import { guestCartCount } from "../lib/guestCart";
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
@@ -51,6 +49,13 @@ interface SearchProduct {
   giaSale: number | null;
 }
 
+// Sản phẩm hiện trong thanh "HOT" chạy chữ — lấy tên + slug thật để bấm vào
+// đi thẳng tới trang chi tiết, không còn dò theo tên (tránh 0 kết quả nếu tên lệch).
+interface TrendingProduct {
+  ten: string;
+  slug: string;
+}
+
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
 
 const CATEGORY_ICON_MAP: Record<string, React.ElementType> = {
@@ -66,17 +71,6 @@ const CATEGORY_ICON_MAP: Record<string, React.ElementType> = {
 };
 
 const CAT_ORDER = ["dien-thoai", "laptop", "dien-may", "phu-kien", "tablet"];
-
-const HOT_PRODUCTS = [
-  "iPhone 17 Pro Max",
-  "Samsung Galaxy Z Fold7 5G",
-  "MacBook Air M4 2025",
-  "Laptop Lenovo LOQ 15IRR9",
-  "iPad Pro M4",
-  "Apple Watch Ultra 3",
-  "ASUS ROG Zephyrus G16",
-  "Sony WH-1000XM6",
-];
 
 const TRENDING_KEYWORDS = [
   "iPhone 16",
@@ -103,7 +97,7 @@ export default function Header() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [mobileCategories, setMobileCategories] = useState<CategoryItem[]>([]);
-  const [showSpinWheel, setShowSpinWheel] = useState(false);
+  const [hotProducts, setHotProducts] = useState<TrendingProduct[]>([]);
 
   // ── Search state ──
   const [searchInput, setSearchInput] = useState("");
@@ -121,6 +115,20 @@ export default function Header() {
   );
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
+  // ── Fetch sản phẩm bán chạy thật cho thanh "HOT" ──
+  useEffect(() => {
+    const ctrl = new AbortController();
+    fetch(`${apiUrl}/api/products/best-selling?limit=8`, { signal: ctrl.signal })
+      .then((r) => r.json())
+      .then((json) => {
+        if (json?.success && Array.isArray(json.data)) {
+          setHotProducts(json.data.map((p: { ten: string; slug: string }) => ({ ten: p.ten, slug: p.slug })));
+        }
+      })
+      .catch(() => {});
+    return () => ctrl.abort();
+  }, [apiUrl]);
 
   // ── Fetch mobile categories ──
   useEffect(() => {
@@ -528,14 +536,6 @@ export default function Header() {
                 )}
               </Link>
 
-              <button
-                onClick={() => setShowSpinWheel(true)}
-                title="Vòng quay may mắn"
-                className="w-10 h-10 flex items-center justify-center rounded-xl text-gray-500 hover:text-red-600 hover:bg-red-50 border border-gray-200 hover:border-red-200 transition-all relative"
-              >
-                <Gift className="w-5 h-5" />
-              </button>
-
               <Link
                 href="/giohang"
                 id="cart-icon"
@@ -690,17 +690,6 @@ export default function Header() {
                 Giỏ hàng {cartCount > 0 && `(${cartCount})`}
               </Link>
 
-              <button
-                onClick={() => {
-                  setShowSpinWheel(true);
-                  setMobileOpen(false);
-                }}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm hover:bg-gray-50 transition-colors"
-              >
-                <Gift className="w-5 h-5" />
-                Quay số
-              </button>
-
               {isLoggedIn ? (
                 <button
                   onClick={handleLogout}
@@ -722,32 +711,30 @@ export default function Header() {
           </div>
         )}
       </header>
-      <VoucherSpinWheel
-        open={showSpinWheel}
-        onClose={() => setShowSpinWheel(false)}
-      />
 
       {/* ── Ticker — nằm dưới header, cuộn ra ngoài khi scroll ── */}
-      <div className="bg-red-50 dark:bg-slate-800 border-b border-red-100 dark:border-slate-700 overflow-hidden">
-        <div className="max-w-screen-xl mx-auto px-6 py-1.5 flex items-center gap-3">
-          <span className="flex-shrink-0 bg-red-600 text-white text-[11px] font-bold px-2 py-0.5 rounded">
-            HOT
-          </span>
-          <div className="overflow-hidden flex-1">
-            <div className="flex gap-8 animate-ticker whitespace-nowrap">
-              {[...HOT_PRODUCTS, ...HOT_PRODUCTS].map((p, i) => (
-                <button
-                  key={i}
-                  onClick={() => handleTrendingClick(p)}
-                  className="text-xs text-gray-500 hover:text-red-600 transition-colors"
-                >
-                  {p}
-                </button>
-              ))}
+      {hotProducts.length > 0 && (
+        <div className="bg-red-50 dark:bg-slate-800 border-b border-red-100 dark:border-slate-700 overflow-hidden">
+          <div className="max-w-screen-xl mx-auto px-6 py-1.5 flex items-center gap-3">
+            <span className="flex-shrink-0 bg-red-600 text-white text-[11px] font-bold px-2 py-0.5 rounded">
+              HOT
+            </span>
+            <div className="overflow-hidden flex-1">
+              <div className="flex gap-8 animate-ticker whitespace-nowrap">
+                {[...hotProducts, ...hotProducts].map((p, i) => (
+                  <Link
+                    key={i}
+                    href={`/sanpham/${p.slug}`}
+                    className="text-xs text-gray-500 hover:text-red-600 transition-colors"
+                  >
+                    {p.ten}
+                  </Link>
+                ))}
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </>
   );
 }

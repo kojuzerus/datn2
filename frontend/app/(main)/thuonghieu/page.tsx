@@ -15,6 +15,9 @@ interface Brand {
 export default function ThuongHieuPage() {
   const [brands, setBrands] = useState<Brand[]>([]);
   const [loading, setLoading] = useState(true);
+  // Ảnh logo lấy từ dịch vụ ngoài, có brand không có sẵn icon (404) — lỗi thì tự
+  // chuyển sang icon Tag thay vì để ảnh vỡ.
+  const [failedLogos, setFailedLogos] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     fetch(`${API_BASE}/api/brands`)
@@ -53,8 +56,15 @@ export default function ThuongHieuPage() {
                 className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-gray-100 p-6 hover:shadow-md hover:border-red-100 transition-all no-underline"
               >
                 <div className="w-16 h-16 flex items-center justify-center">
-                  {b.logo
-                    ? <img src={b.logo} alt={b.brand_name} className="max-w-full max-h-full object-contain" />
+                  {b.logo && !failedLogos.has(b.brand_id)
+                    ? (
+                      <img
+                        src={b.logo}
+                        alt={b.brand_name}
+                        className="max-w-full max-h-full object-contain"
+                        onError={() => setFailedLogos((prev) => new Set(prev).add(b.brand_id))}
+                      />
+                    )
                     : <Tag className="w-8 h-8 text-gray-300" />}
                 </div>
                 <span className="text-sm font-semibold text-slate-800 text-center">{b.brand_name}</span>

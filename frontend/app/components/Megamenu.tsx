@@ -373,6 +373,9 @@ function BrandsSection({
   categorySlug?: string;
 }) {
   const gridCols = cols === 4 ? "grid-cols-4" : "grid-cols-3";
+  // Vài dịch vụ logo ngoài (Simple Icons, Clearbit...) không có sẵn hết mọi thương hiệu
+  // hoặc đã ngừng hoạt động — ảnh lỗi thì tự chuyển sang biểu tượng chữ cái đầu.
+  const [failedLogos, setFailedLogos] = useState<Set<string>>(new Set());
 
   return (
     <div>
@@ -404,6 +407,8 @@ function BrandsSection({
               "bg-yellow-100 text-yellow-700",
             ];
             const colorClass = colors[brand.brand_id % colors.length];
+            const logoUrl = brand.logo || BRAND_LOGOS[brand.brand_name.toLowerCase()];
+            const showLogo = logoUrl && !failedLogos.has(brand.brand_name);
             return (
               <Link
                 key={brand.brand_id}
@@ -411,12 +416,13 @@ function BrandsSection({
                 onClick={onClose}
                 className="flex flex-col items-center gap-1.5 p-2.5 rounded-xl border border-gray-100 bg-white hover:border-red-200 hover:bg-red-50 transition-all text-center group"
               >
-                {brand.logo || BRAND_LOGOS[brand.brand_name.toLowerCase()] ? (
+                {showLogo ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={brand.logo || BRAND_LOGOS[brand.brand_name.toLowerCase()]}
+                    src={logoUrl}
                     alt={brand.brand_name}
                     className="w-9 h-9 rounded-xl object-contain p-0.5"
+                    onError={() => setFailedLogos((prev) => new Set(prev).add(brand.brand_name))}
                   />
                 ) : (
                   <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-[12px] font-bold transition-colors group-hover:bg-red-100 group-hover:text-red-600 ${colorClass}`}>

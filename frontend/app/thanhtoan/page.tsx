@@ -18,6 +18,7 @@ import {
   Lock,
   Tag,
   X,
+  Gift,
 } from "lucide-react";
 import SearchableSelect, { SelectOption } from "../components/SearchableSelect";
 import { toastError, toastWarning } from "../utils/toast";
@@ -80,6 +81,15 @@ interface AvailablePromo {
   end_date: string;
 }
 
+// Mã khách đã trúng ở Vòng quay may mắn (chưa dùng) — GET /api/spin/spin-status
+// (LƯU Ý: không phải /api/vouchers/spin-status — route đó là bản nháp cũ, luôn trả cứng hasSpun:false)
+interface SpinVoucherInfo {
+  code: string;
+  label: string;
+  type: string;
+  value: number;
+}
+
 function formatPrice(n: number) {
   return n.toLocaleString("vi-VN") + "₫";
 }
@@ -125,6 +135,7 @@ export default function ThanhToanPage() {
   const [promoError, setPromoError] = useState("");
   const [applyingPromo, setApplyingPromo] = useState(false);
   const [availablePromos, setAvailablePromos] = useState<AvailablePromo[]>([]);
+  const [spinVoucher, setSpinVoucher] = useState<SpinVoucherInfo | null>(null);
 
   const [provinces, setProvinces] = useState<SelectOption[]>([]);
   const [districts, setDistricts] = useState<SelectOption[]>([]);
@@ -147,6 +158,7 @@ export default function ThanhToanPage() {
     );
     fetchProvinces();
     fetchAvailablePromos();
+    fetchSpinVoucher();
   }, []);
 
   const fetchAvailablePromos = async () => {
@@ -154,6 +166,22 @@ export default function ThanhToanPage() {
       const res = await fetch(`${API_URL}/api/promotions/available`);
       const data = await res.json();
       if (data.success) setAvailablePromos(data.data);
+    } catch {}
+  };
+
+  // Mã trúng từ Vòng quay may mắn — chỉ hiện nếu đã trúng thật (không phải "chúc may mắn
+  // lần sau") và chưa dùng. Nút này gọi chung handleApplyPromo/validate — nơi đó đã tự
+  // nhận diện đây là mã vòng quay (nhánh checkSpinVoucher trong promotionController).
+  const fetchSpinVoucher = async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_URL}/api/spin/spin-status`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.hasSpun && data.voucher && !data.voucher.isUsed && data.voucher.type !== "none") {
+        setSpinVoucher(data.voucher);
+      }
     } catch {}
   };
 
@@ -835,6 +863,28 @@ export default function ThanhToanPage() {
                       <p className="text-xs text-red-500 mt-1.5">
                         {promoError}
                       </p>
+                    )}
+
+                    {/* Mã trúng từ Vòng quay may mắn — ưu tiên hiện trước mã công khai */}
+                    {spinVoucher && (
+                      <button
+                        onClick={() => handleApplyPromo(spinVoucher.code)}
+                        disabled={applyingPromo}
+                        className="w-full text-left border border-dashed border-amber-300 bg-amber-50/60 hover:bg-amber-50 hover:border-amber-400 rounded-sm px-3 py-2.5 transition mt-3 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
+                        <p className="text-[11px] text-amber-600 font-semibold flex items-center gap-1 mb-1">
+                          <Gift className="w-3 h-3" />
+                          Mã bạn trúng từ Vòng quay may mắn — bấm để dùng
+                        </p>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-sm font-bold font-mono text-amber-700">
+                            {spinVoucher.code}
+                          </span>
+                          <span className="text-xs font-semibold text-amber-600 shrink-0">
+                            {spinVoucher.label}
+                          </span>
+                        </div>
+                      </button>
                     )}
 
                     {/* Danh sách mã đang có */}
