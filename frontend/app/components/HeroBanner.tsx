@@ -12,6 +12,11 @@ import {
   Clock,
 } from "lucide-react";
 
+// ── Màu chung cho cả banner — đồng bộ với màu thương hiệu đỏ dùng xuyên suốt
+// web (header, nút mua hàng, Flash Sale...), không đổi màu theo từng slide nữa.
+const BRAND_BG = "linear-gradient(135deg, #ffffff 0%, #fff5f5 55%, #ffffff 100%)";
+const BRAND_COLOR = "#D32F2F";
+
 // ── Slide data ───────────────────────────────────────────────────────
 const SLIDES = [
   {
@@ -24,9 +29,9 @@ const SLIDES = [
     cta: "Đặt trước ngay",
     href: "/sanpham?tu-khoa=iPhone%2017%20Pro%20Max",
     productImg: "/banners/iphone-17-pro.png",
-    bg: "linear-gradient(135deg, #fff7ed 0%, #ffedd5 60%, #fef3e2 100%)",
-    tagColor: "#ea580c",
-    ctaBg: "#ea580c",
+    bg: BRAND_BG,
+    tagColor: BRAND_COLOR,
+    ctaBg: BRAND_COLOR,
   },
   {
     id: 2,
@@ -38,9 +43,9 @@ const SLIDES = [
     cta: "Mua ngay",
     href: "/sanpham?tu-khoa=Samsung%20S25%20Ultra",
     productImg: "/banners/samsung-s25-ultra.png",
-    bg: "linear-gradient(135deg, #f5f0ff 0%, #ede8ff 60%, #f2ecff 100%)",
-    tagColor: "#7c3aed",
-    ctaBg: "#7c3aed",
+    bg: BRAND_BG,
+    tagColor: BRAND_COLOR,
+    ctaBg: BRAND_COLOR,
   },
   {
     id: 3,
@@ -52,9 +57,9 @@ const SLIDES = [
     cta: "Khám phá ngay",
     href: "/sanpham?tu-khoa=MacBook%20Air%20M4",
     productImg: "/banners/macbook-air-m4.png",
-    bg: "linear-gradient(135deg, #f0fff8 0%, #d1fae5 60%, #e8fff4 100%)",
-    tagColor: "#059669",
-    ctaBg: "#059669",
+    bg: BRAND_BG,
+    tagColor: BRAND_COLOR,
+    ctaBg: BRAND_COLOR,
   },
 ];
 

@@ -447,8 +447,23 @@ function ProductsContent() {
     fetchProducts(next, true);
   };
 
-  /* ── Filter handlers ── */
-  const toggleDropdown = (key: DropdownKey) => setOpenDropdown((cur) => (cur === key ? "" : key));
+  /* ── Filter handlers ──
+     Hàng nút lọc cuộn ngang (overflow-x-auto) — theo CSS, hễ overflow-x khác
+     "visible" thì overflow-y cũng tự bị ẩn theo, nên dropdown không thể nằm
+     bên trong hàng đó (sẽ bị cắt mất phần tràn xuống dưới). Giải pháp: dropdown
+     render bên NGOÀI hàng cuộn, còn vị trí trái/phải tính bằng JS theo toạ độ
+     nút vừa bấm để luôn hiện đúng ngay dưới nút đó. */
+  const [dropdownLeft, setDropdownLeft] = useState(0);
+  const toolbarInnerRef = useRef<HTMLDivElement>(null);
+
+  const toggleDropdown = (key: DropdownKey, btn?: HTMLButtonElement | null) => {
+    if (btn && toolbarInnerRef.current) {
+      const btnRect = btn.getBoundingClientRect();
+      const containerRect = toolbarInnerRef.current.getBoundingClientRect();
+      setDropdownLeft(btnRect.left - containerRect.left);
+    }
+    setOpenDropdown((cur) => (cur === key ? "" : key));
+  };
   const handleCategory = (slug: string | null) => pushParams({ "danh-muc": slug, "thuong-hieu": null });
   const handleToggleBrand = (id: number) => {
     const idStr = String(id);
@@ -522,7 +537,7 @@ function ProductsContent() {
 
       {/* ── Sticky toolbar — full viewport width ── */}
       <div ref={toolbarRef} className={`sticky top-[108px] z-20 mb-4 transition-all duration-200 ${isSticky ? "bg-white/95 backdrop-blur-sm shadow-[0_2px_16px_rgba(0,0,0,0.07)]" : ""}`}>
-        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+        <div ref={toolbarInnerRef} className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 relative">
 
         {/* ── Hàng 1: Bộ lọc ── */}
         <div className="flex items-center gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none] py-3">
@@ -558,7 +573,7 @@ function ProductsContent() {
 
           {/* Danh mục */}
           <button
-            onClick={() => toggleDropdown("category")}
+            onClick={(e) => toggleDropdown("category", e.currentTarget)}
             className={`shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[13px] font-medium whitespace-nowrap transition-all duration-150 ${
               danhMucSlug || openDropdown === "category"
                 ? "bg-red-500 text-white shadow-sm"
@@ -580,7 +595,7 @@ function ProductsContent() {
 
           {/* Thương hiệu */}
           <button
-            onClick={() => toggleDropdown("brand")}
+            onClick={(e) => toggleDropdown("brand", e.currentTarget)}
             className={`shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[13px] font-medium whitespace-nowrap transition-all duration-150 ${
               brandIds.length > 0 || openDropdown === "brand"
                 ? "bg-red-500 text-white shadow-sm"
@@ -602,7 +617,7 @@ function ProductsContent() {
 
           {/* Khoảng giá */}
           <button
-            onClick={() => toggleDropdown("price")}
+            onClick={(e) => toggleDropdown("price", e.currentTarget)}
             className={`shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[13px] font-medium whitespace-nowrap transition-all duration-150 ${
               priceKey || openDropdown === "price"
                 ? "bg-red-500 text-white shadow-sm"
@@ -624,7 +639,7 @@ function ProductsContent() {
 
           {/* Đánh giá */}
           <button
-            onClick={() => toggleDropdown("rating")}
+            onClick={(e) => toggleDropdown("rating", e.currentTarget)}
             className={`shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[13px] font-medium whitespace-nowrap transition-all duration-150 ${
               ratingMin || openDropdown === "rating"
                 ? "bg-red-500 text-white shadow-sm"
@@ -691,6 +706,44 @@ function ProductsContent() {
           </div>
         </div>
 
+        {/* ── Dropdown Danh mục/Thương hiệu/Khoảng giá/Đánh giá — render NGOÀI hàng
+             cuộn ngang (tránh bị overflow-x-auto cắt mất), vị trí trái tính động
+             theo toạ độ nút vừa bấm (dropdownLeft) để luôn hiện đúng dưới nút đó. */}
+        {openDropdown === "category" && (
+          <div className="absolute top-full mt-1 z-30 w-56 bg-white border border-gray-100 rounded-2xl shadow-xl p-3 max-h-80 overflow-y-auto" style={{ left: dropdownLeft }}>
+            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2.5 px-1">Danh mục</p>
+            <CategoryList categories={categories} danhMucSlug={danhMucSlug} onCategory={(s) => { handleCategory(s); setOpenDropdown(""); }} />
+          </div>
+        )}
+        {openDropdown === "brand" && (
+          <div className="absolute top-full mt-1 z-30 w-72 bg-white border border-gray-100 rounded-2xl shadow-xl p-3" style={{ left: dropdownLeft }}>
+            <div className="flex items-center justify-between mb-2.5 px-1">
+              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Thương hiệu</p>
+              {brandIds.length > 0 && (
+                <button onClick={() => { pushParams({ "thuong-hieu": null }); setOpenDropdown(""); }} className="text-[11px] text-red-500 hover:text-red-700 font-medium">Xóa</button>
+              )}
+            </div>
+            <BrandList brands={brands} loadingBrands={loadingBrands} brandIds={brandIds} onToggleBrand={handleToggleBrand} />
+            {brandIds.length > 0 && (
+              <button onClick={() => setOpenDropdown("")} className="mt-3 w-full py-2 bg-red-600 hover:bg-red-700 text-white text-[12.5px] font-semibold rounded-xl transition-colors">
+                Xem kết quả
+              </button>
+            )}
+          </div>
+        )}
+        {openDropdown === "price" && (
+          <div className="absolute top-full mt-1 z-30 w-60 bg-white border border-gray-100 rounded-2xl shadow-xl p-3" style={{ left: dropdownLeft }}>
+            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2.5 px-1">Khoảng giá</p>
+            <PriceList priceKey={priceKey} onPricePreset={(k) => { handlePricePreset(k); setOpenDropdown(""); }} />
+          </div>
+        )}
+        {openDropdown === "rating" && (
+          <div className="absolute top-full mt-1 z-30 w-60 bg-white border border-gray-100 rounded-2xl shadow-xl p-3" style={{ left: dropdownLeft }}>
+            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2.5 px-1">Đánh giá</p>
+            <RatingList ratingMin={ratingMin} onRating={(v) => { handleRating(v); setOpenDropdown(""); }} />
+          </div>
+        )}
+
         {/* ── Combined filter panel ── */}
         {openDropdown === "filter" && (
           <div className="absolute left-0 top-full mt-1 z-30 w-[min(860px,calc(100vw-2rem))] bg-white border border-gray-100 rounded-2xl shadow-2xl overflow-hidden">
@@ -750,41 +803,6 @@ function ProductsContent() {
           </div>
         )}
 
-        {/* ── Dropdowns ── */}
-        {openDropdown === "category" && (
-          <div className="absolute left-0 top-full mt-1 z-30 w-56 bg-white border border-gray-100 rounded-2xl shadow-xl p-3 max-h-80 overflow-y-auto">
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2.5 px-1">Danh mục</p>
-            <CategoryList categories={categories} danhMucSlug={danhMucSlug} onCategory={(s) => { handleCategory(s); setOpenDropdown(""); }} />
-          </div>
-        )}
-        {openDropdown === "brand" && (
-          <div className="absolute left-0 top-full mt-1 z-30 w-72 bg-white border border-gray-100 rounded-2xl shadow-xl p-3">
-            <div className="flex items-center justify-between mb-2.5 px-1">
-              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Thương hiệu</p>
-              {brandIds.length > 0 && (
-                <button onClick={() => { pushParams({ "thuong-hieu": null }); setOpenDropdown(""); }} className="text-[11px] text-red-500 hover:text-red-700 font-medium">Xóa</button>
-              )}
-            </div>
-            <BrandList brands={brands} loadingBrands={loadingBrands} brandIds={brandIds} onToggleBrand={handleToggleBrand} />
-            {brandIds.length > 0 && (
-              <button onClick={() => setOpenDropdown("")} className="mt-3 w-full py-2 bg-red-600 hover:bg-red-700 text-white text-[12.5px] font-semibold rounded-xl transition-colors">
-                Xem kết quả
-              </button>
-            )}
-          </div>
-        )}
-        {openDropdown === "price" && (
-          <div className="absolute left-0 top-full mt-1 z-30 w-60 bg-white border border-gray-100 rounded-2xl shadow-xl p-3">
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2.5 px-1">Khoảng giá</p>
-            <PriceList priceKey={priceKey} onPricePreset={(k) => { handlePricePreset(k); setOpenDropdown(""); }} />
-          </div>
-        )}
-        {openDropdown === "rating" && (
-          <div className="absolute left-0 top-full mt-1 z-30 w-60 bg-white border border-gray-100 rounded-2xl shadow-xl p-3">
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2.5 px-1">Đánh giá</p>
-            <RatingList ratingMin={ratingMin} onRating={(v) => { handleRating(v); setOpenDropdown(""); }} />
-          </div>
-        )}
         </div>{/* end inner container */}
       </div>{/* end toolbar */}
 
