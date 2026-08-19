@@ -1,14 +1,45 @@
 "use client";
 
 import Link from "next/link";
-import React from "react";
-import { Phone, Mail, MapPin, Clock, ShieldCheck, Star, Store } from "lucide-react";
+import React, { useState } from "react";
+import { Phone, Mail, MapPin, Clock, ShieldCheck, Star, Store, Loader2 } from "lucide-react";
 import { FaFacebookF, FaYoutube, FaTiktok } from "react-icons/fa";
 import { SiZalo } from "react-icons/si";
 import Logo from "./Logo";
+import { toastSuccess, toastError } from "../utils/toast";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
+
+  // ── Đăng ký nhận tin ──
+  const [newsletterEmail, setNewsletterEmail]     = useState("");
+  const [subscribing, setSubscribing]             = useState(false);
+
+  const handleSubscribe = async () => {
+    const email = newsletterEmail.trim();
+    if (!email) return toastError("Vui lòng nhập email!");
+    setSubscribing(true);
+    try {
+      const res  = await fetch(`${API_URL}/api/newsletter/subscribe`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        toastSuccess(json.message);
+        setNewsletterEmail("");
+      } else {
+        toastError(json.message || "Có lỗi xảy ra, thử lại nhé!");
+      }
+    } catch {
+      toastError("Không thể kết nối đến máy chủ!");
+    } finally {
+      setSubscribing(false);
+    }
+  };
 
   const footerCategories = [
     { href: "/sanpham?danh-muc=iphone-air", label: "iPhone Air" },
@@ -232,10 +263,19 @@ export default function Footer() {
               <input
                 type="email"
                 placeholder="Nhập email"
-                className="w-full rounded-sm border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100"
+                value={newsletterEmail}
+                onChange={(e) => setNewsletterEmail(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") handleSubscribe(); }}
+                disabled={subscribing}
+                className="w-full rounded-sm border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 disabled:opacity-60"
               />
-              <button className="w-full rounded-sm bg-red-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-red-700">
-                NHẬN NGAY
+              <button
+                onClick={handleSubscribe}
+                disabled={subscribing}
+                className="w-full flex items-center justify-center gap-2 rounded-sm bg-red-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60 cursor-pointer"
+              >
+                {subscribing ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                {subscribing ? "Đang gửi..." : "NHẬN NGAY"}
               </button>
             </div>
           </div>

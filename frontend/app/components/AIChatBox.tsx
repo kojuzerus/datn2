@@ -310,7 +310,7 @@ export default function AIChatBox() {
           {!open && (
             <div className="bg-gray-800 text-white text-xs px-2.5 py-1 rounded-full whitespace-nowrap shadow-lg mb-1 opacity-0 group-hover:opacity-100 pointer-events-none select-none"
               style={{ animation: "banner-fade-up 0.4s ease both 1.2s" }}>
-              Tư vấn AI 🐰
+              Tư vấn AI
             </div>
           )}
 

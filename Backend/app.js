@@ -29,6 +29,7 @@ const reviewRoutes = require("./routes/review");
 const chatRoutes = require("./routes/chat");
 
 const siteSettingRoutes = require("./routes/siteSetting");
+const newsletterRoutes = require("./routes/newsletter");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -73,6 +74,7 @@ app.use("/api/news", newsRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/settings", siteSettingRoutes);
+app.use("/api/newsletter", newsletterRoutes);
 
 /* ─── Routes admin ─── */
 app.use("/api/admin/stats", statsRoutes);
