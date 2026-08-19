@@ -2,11 +2,10 @@
 
 const app = require('../app');
 const http = require('http');
-const mongoose = require('mongoose');
+const connectDB = require('../config/db');
 require('dotenv').config();
 
 const port = process.env.PORT || 5000;
-const MONGO_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/SMARTHUB';
 
 app.set('port', port);
 
@@ -33,10 +32,8 @@ server.on('error', (error) => {
   }
 });
 
-mongoose
-  .connect(MONGO_URI)
+connectDB()
   .then(() => {
-    console.log('✅ MongoDB connected:', MONGO_URI);
     server.listen(port, () => {
       console.log(`Server running on port ${port}`);
     });
