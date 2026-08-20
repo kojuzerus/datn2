@@ -44,7 +44,7 @@ const onlineStatusSteps: StatusStep[] = [
   { key: 'cho_xac_nhan', label: 'Đã Đặt', description: 'Đơn hàng được tạo' },
   { key: 'da_xac_nhan', label: 'Đã Thanh Toán', description: 'Thanh toán thành công' },
   { key: 'dang_giao', label: 'Đã Giao ĐVVC', description: 'Gửi đơn vị vận chuyển' },
-  { key: 'da_giao', label: 'Chờ Giao Hàng', description: 'Đang trên đường' },
+  { key: 'da_giao', label: 'Đã Giao Hàng', description: 'Giao hàng thành công' },
 ];
 
 const codStatusSteps: StatusStep[] = [
