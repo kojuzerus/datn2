@@ -24,7 +24,8 @@ import SearchableSelect, { SelectOption } from "../components/SearchableSelect";
 import { toastError, toastWarning } from "../utils/toast";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-const GEO_BASE_URL = "https://provinces.open-api.vn/api";
+// API cũ (không có /v1) đã bị nhà cung cấp gỡ bỏ (trả 404) — phải chỉ định phiên bản rõ ràng.
+const GEO_BASE_URL = "https://provinces.open-api.vn/api/v1";
 
 interface CartItem {
   _id: string;
