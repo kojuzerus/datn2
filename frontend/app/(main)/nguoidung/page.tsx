@@ -16,7 +16,8 @@ import { toastError, toastWarning } from '../../utils/toast';
 import CancelOrderModal from '../../components/CancelOrderModal';
 
 const API_URL  = process.env.NEXT_PUBLIC_API_URL  || 'http://localhost:5000';
-const GEO_API  = 'https://provinces.open-api.vn/api';
+// API cũ (không có /v1) đã bị nhà cung cấp gỡ bỏ (trả 404) — phải chỉ định phiên bản rõ ràng.
+const GEO_API  = 'https://provinces.open-api.vn/api/v1';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
