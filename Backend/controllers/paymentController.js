@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const Order = require('../models/orderModel');
+const { adjustTotalSold } = require('./orderController');
 
 // Hàm encode theo chuẩn VNPAY
 const vnpayEncode = (value) => {
@@ -123,7 +124,15 @@ exports.returnHandler = async (req, res) => {
     if (checkSum.toLowerCase() === (secureHash || '').toLowerCase()) {
       const order = await Order.findById(txnRef);
       if (order) {
+        const trangThaiCu = order.trangThai;
         order.trangThai = (vnpResponseCode === '00') ? 'da_xac_nhan' : 'da_huy';
+
+        // Thanh toán thất bại/bị hủy trên VNPAY → trừ lại total_sold đã cộng lúc tạo đơn
+        // (kiểm tra trạng thái cũ để tránh trừ nhiều lần nếu VNPAY gọi return nhiều lần).
+        if (order.trangThai === 'da_huy' && trangThaiCu !== 'da_huy') {
+          await adjustTotalSold(order.items, -1);
+        }
+
         await order.save();
       }
 
