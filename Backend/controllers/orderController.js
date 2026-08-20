@@ -14,6 +14,9 @@ async function adjustTotalSold(items, delta) {
     })
   );
 }
+// Xuất ra để paymentController dùng lại đúng logic này khi VNPAY báo thanh toán thất bại
+// (tránh việc đơn bị huỷ ở luồng VNPAY vẫn còn tính vào "đã bán").
+exports.adjustTotalSold = adjustTotalSold;
 
 // POST /api/orders — Tạo đơn hàng từ giỏ hàng
 exports.createOrder = async (req, res) => {
