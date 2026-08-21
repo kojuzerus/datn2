@@ -176,7 +176,6 @@ export default function AIChatBox() {
   const [input, setInput]     = useState("");
   const [loading, setLoading] = useState(false);
   const [unread, setUnread]   = useState(false);
-  const { addToCart } = useCart();
 
   const router = useRouter();
   const { addToCart } = useCart();
