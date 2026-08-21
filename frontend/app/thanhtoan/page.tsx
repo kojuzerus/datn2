@@ -187,16 +187,6 @@ export default function ThanhToanPage() {
   };
 
   const fetchCart = async () => {
-    // Ưu tiên "Mua ngay": không dùng giỏ hàng
-    const buyNowRaw = sessionStorage.getItem("smarthub_buynow_item");
-    if (buyNowRaw) {
-      try {
-        const buyNowItem: CartItem = JSON.parse(buyNowRaw);
-        setItems([buyNowItem]);
-        return;
-      } catch {}
-    }
-
     const res = await fetch(`${API_URL}/api/cart`, {
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -415,7 +405,6 @@ export default function ThanhToanPage() {
 
     if (data.success) {
       localStorage.removeItem("smarthub_checkout_ids");
-      sessionStorage.removeItem("smarthub_buynow_item");
       window.dispatchEvent(new Event("cart-updated"));
       // Nếu VNPAY, lấy URL thanh toán và redirect
       if (paymentMethod === "vnpay") {
