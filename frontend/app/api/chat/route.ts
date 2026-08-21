@@ -586,12 +586,60 @@ function resolveKeywordFromHistory(message: string, history: any[]): string | nu
 // nhận diện khi câu nói rõ ràng là ý định giao dịch, tránh việc AI/hệ thống tự
 // ý thêm hàng khi khách chỉ đang hỏi han bình thường.
 function extractActionIntent(msg: string): "add_to_cart" | "buy_now" | null {
-  const lower = msg.toLowerCase();
+  const lower = msg.toLowerCase().trim();
   if (/mua (luôn|ngay)|đặt (hàng|mua)( ngay| luôn)?|chốt đơn|chốt luôn|xuống tiền|lấy (con|cái|mẫu) này( luôn)?/.test(lower))
     return "buy_now";
-  if (/thêm (vào |)giỏ( hàng)?|cho vào giỏ|bỏ vào giỏ/.test(lower))
+  if (
+    /thêm (vào |)giỏ( hàng)?|cho vào giỏ|bỏ vào giỏ/.test(lower) ||
+    // Câu ra lệnh ngắn không kèm chữ "giỏ" nhưng rõ ràng đang tiếp nối một thao
+    // tác vừa nói tới (VD: "thêm đi", "lấy giúp mình", "thêm cái này luôn") —
+    // bắt buộc có động từ hành động NGAY ĐẦU câu để tránh dính câu bình thường
+    // khác chứa "thêm" ở giữa (VD: "thêm sản phẩm khác đi").
+    /^(thêm|lấy|cho)(\s+(nó|cái này|con này|cái đó|con đó))?\s+(đi|dùm|giúp|nhé|luôn)$/.test(lower)
+  )
     return "add_to_cart";
   return null;
+}
+
+// Vị trí sản phẩm khách chỉ định bằng thứ tự thay vì tên (VD: "sản phẩm đầu
+// tiên", "cái thứ 2", "con cuối cùng") — trả về index 0-based hoặc null.
+function resolveOrdinalIndex(msg: string): number | null {
+  const lower = msg.toLowerCase();
+  if (/\b(cuối cùng|cuối|sau cùng)\b/.test(lower)) return -1; // -1 = phần tử cuối, xử lý riêng ở nơi gọi
+  const ORDINALS: [RegExp, number][] = [
+    [/\b(đầu tiên|đầu|số 1|thứ nhất|thứ 1)\b/, 0],
+    [/\b(thứ hai|thứ 2|số 2)\b/, 1],
+    [/\b(thứ ba|thứ 3|số 3)\b/, 2],
+    [/\b(thứ tư|thứ 4|số 4)\b/, 3],
+    [/\b(thứ năm|thứ 5|số 5)\b/, 4],
+  ];
+  for (const [re, idx] of ORDINALS) if (re.test(lower)) return idx;
+  return null;
+}
+
+// Lượt trước Bunny vừa hỏi khách chọn màu nào (do resolveAction/resolvePending-
+// ColorAction sinh ra câu hỏi cố định) — nếu tin nhắn hiện tại CHỈ là tên 1 màu
+// trong danh sách đó, hiểu ngầm là khách đang trả lời câu hỏi đó, không cần
+// khách gõ lại "thêm vào giỏ" hay tên sản phẩm từ đầu.
+function resolvePendingColorChoice(
+  message: string,
+  history: any[]
+): { productName: string; color: string; type: "add_to_cart" | "buy_now" } | null {
+  const lastAssistant = [...history].reverse().find((h: any) => h.role === "assistant");
+  if (!lastAssistant) return null;
+  const m = String(lastAssistant.content || "").match(
+    /"([^"]+)"\s+hiện có mấy màu:\s*([^.]+)\.\s*Bạn thích màu nào để mình (chốt đơn|thêm vào giỏ) nhé/i
+  );
+  if (!m) return null;
+
+  const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d").trim();
+  const productName = m[1].trim();
+  const colors = m[2].split(",").map((c) => c.trim()).filter(Boolean);
+  const msgNorm = norm(message);
+  const matched = colors.find((c) => norm(c) === msgNorm || msgNorm.includes(norm(c)));
+  if (!matched) return null;
+
+  return { productName, color: matched, type: m[3].toLowerCase() === "chốt đơn" ? "buy_now" : "add_to_cart" };
 }
 
 interface ActionResult {
@@ -623,6 +671,7 @@ async function resolveAction(
   currentProducts: any[]
 ): Promise<ActionResult> {
   const verb = actionType === "buy_now" ? "mua" : "thêm giỏ";
+  const shownNames = getLastShownNames(history);
 
   // 1. Đang chỉ có đúng 1 sản phẩm trong danh sách vừa tìm được → chắc chắn là nó
   let target: any =
@@ -630,16 +679,27 @@ async function resolveAction(
       ? currentProducts[0]
       : currentProducts.find((p: any) => message.toLowerCase().includes(p.ten.toLowerCase())) || null;
 
-  // 2. Không rõ từ danh sách hiện tại → thử tên sản phẩm đã hiển thị gần nhất
+  // 2. Khách chỉ định bằng THỨ TỰ ("sản phẩm đầu tiên", "cái thứ 2", "con cuối
+  //    cùng") thay vì gõ lại tên — ưu tiên khớp với danh sách vừa tìm ở lượt
+  //    này, không có thì lấy theo thứ tự trong danh sách vừa hiển thị gần nhất.
+  if (!target) {
+    const idx = resolveOrdinalIndex(message);
+    if (idx != null) {
+      const realIdx = idx === -1 ? currentProducts.length - 1 : idx;
+      const realIdxShown = idx === -1 ? shownNames.length - 1 : idx;
+      if (currentProducts[realIdx]) target = currentProducts[realIdx];
+      else if (shownNames[realIdxShown]) target = await fetchExactProduct(shownNames[realIdxShown]);
+    }
+  }
+
+  // 3. Không rõ từ danh sách hiện tại → thử tên sản phẩm đã hiển thị gần nhất
   //    khớp với TỪ KHÓA cụ thể trong câu (VD: "15 plus", "cái i14").
-  let shownNames: string[] = [];
   if (!target) {
     const resolvedName = resolveKeywordFromHistory(message, history);
     if (resolvedName) target = await fetchExactProduct(resolvedName);
-    shownNames = getLastShownNames(history);
   }
 
-  // 3. Câu chỉ là hành động thuần túy, không nhắc tên sản phẩm nào (VD: "thêm
+  // 4. Câu chỉ là hành động thuần túy, không nhắc tên sản phẩm nào (VD: "thêm
   //    vào giỏ cho tôi", "lấy con này luôn") → nếu lượt trước CHỈ hiển thị đúng
   //    1 sản phẩm, hiểu ngầm là đang nói về nó, không cần khách lặp lại tên.
   if (!target && shownNames.length === 1) {
@@ -700,6 +760,55 @@ async function resolveAction(
   };
 }
 
+// Hoàn tất hành động đang treo chờ khách chọn màu (từ resolvePendingColorChoice)
+// — khác resolveAction ở chỗ đã BIẾT chắc sản phẩm + màu, chỉ cần tra lại giá/
+// tồn kho mới nhất trước khi xác nhận, không cần hỏi lại gì thêm.
+async function resolvePendingColorAction(pc: {
+  productName: string;
+  color: string;
+  type: "add_to_cart" | "buy_now";
+}): Promise<ActionResult> {
+  const target = await fetchExactProduct(pc.productName);
+  if (!target) {
+    return {
+      action: null,
+      note: "",
+      resolvedProduct: null,
+      fallbackReply: `Mình không tìm lại được "${pc.productName}" nữa, bạn nhắn lại tên sản phẩm giúp mình nhé! 🐰`,
+    };
+  }
+
+  const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d").trim();
+  const variant = (Array.isArray(target.variants) ? target.variants : []).find(
+    (v: any) => norm(v.color || "") === norm(pc.color) && (v.stock_quantity ?? 0) > 0
+  );
+  if (!variant) {
+    return {
+      action: null,
+      note: `\n[Hệ thống: màu "${pc.color}" của "${target.ten}" hiện không còn hàng — báo thật, để khách chọn màu khác.]`,
+      resolvedProduct: target,
+      fallbackReply: `Màu "${pc.color}" của "${target.ten}" hiện không còn hàng rồi bạn ơi 😢 Bạn chọn màu khác giúp mình nhé!`,
+    };
+  }
+
+  return {
+    action: {
+      type: pc.type,
+      product: {
+        id: target.id,
+        ten: target.ten,
+        slug: target.slug,
+        thumbnail: target.thumbnail,
+        gia: variant.sale_price ?? variant.price,
+        variant: variant.color,
+      },
+    },
+    note: "",
+    resolvedProduct: target,
+    fallbackReply: "",
+  };
+}
+
 // ── Handler ───────────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   try {
@@ -751,12 +860,19 @@ phẩm chỉ có biến thể theo MÀU SẮC, KHÔNG có các mức dung lượ
     // ── Hành động thêm giỏ / mua ngay ─────────────────────────────────────────
     // Xét SAU khi đã có `products` (ưu tiên khớp trong danh sách vừa tìm) —
     // resolveAction có thể tự fetch thêm nếu cần tên sản phẩm đã hiển thị trước đó.
-    const actionType = extractActionIntent(message);
+    const actionTypeFromMsg = extractActionIntent(message);
+    // Câu hiện tại không tự nêu ý định giao dịch, nhưng lượt trước Bunny vừa
+    // hỏi khách chọn màu nào — nếu khách chỉ trả lời đúng 1 tên màu, hiểu ngầm
+    // là đang tiếp tục thao tác đó (không cần gõ lại "thêm vào giỏ"/"mua").
+    const pendingColor = !actionTypeFromMsg ? resolvePendingColorChoice(message, history) : null;
+
     let action: { type: "add_to_cart" | "buy_now"; product: any } | null = null;
     let actionNote = "";
     let actionFallbackReply = "";
-    if (actionType) {
-      const result = await resolveAction(actionType, message, history, products);
+    if (actionTypeFromMsg || pendingColor) {
+      const result = actionTypeFromMsg
+        ? await resolveAction(actionTypeFromMsg, message, history, products)
+        : await resolvePendingColorAction(pendingColor!);
       action = result.action;
       actionNote = result.note;
       actionFallbackReply = result.fallbackReply;
@@ -782,11 +898,18 @@ phẩm chỉ có biến thể theo MÀU SẮC, KHÔNG có các mức dung lượ
     const aiReplyDeduped = aiReplyStripped ? dedupeRepeatedReply(aiReplyStripped) : null;
     const aiReply = aiReplyDeduped ? extractCleanReply(aiReplyDeduped) : null;
 
-    // Câu này là hành động (thêm giỏ/mua ngay) mà chưa resolve chắc chắn được
-    // (hỏi màu / hết hàng / chưa rõ sản phẩm) → ưu tiên fallback CHUYÊN BIỆT
-    // cho action thay vì buildReply() chung (hàm đó không biết về actionNote,
-    // dễ sinh câu trả lời lạc đề như "chưa tìm thấy null").
-    let reply = aiReply || actionFallbackReply || buildReply(message, intent, products);
+    let reply = aiReply || buildReply(message, intent, products);
+
+    // Câu này là hành động (thêm giỏ/mua ngay) mà CHƯA resolve chắc chắn được
+    // (hỏi màu / hết hàng / chưa rõ sản phẩm) → LUÔN dùng câu hỏi cố định của
+    // hệ thống, kể cả khi AI đã trả lời thành công. 2 lý do:
+    // 1) AI có thể tự diễn đạt khác đi hoặc lỡ khẳng định "đã thêm vào giỏ"
+    //    trong khi thực tế chưa/không thêm (rủi ro giao dịch, phải tuyệt đối
+    //    chính xác).
+    // 2) Câu hỏi màu cần giữ ĐÚNG NGUYÊN VĂN để resolvePendingColorChoice() có
+    //    thể đọc lại ở lượt kế tiếp khi khách chỉ trả lời tên màu — nếu để AI
+    //    tự phóng tác câu chữ, lượt sau sẽ không nhận diện lại được.
+    if (actionFallbackReply) reply = actionFallbackReply;
 
     // Hành động ĐÃ chắc chắn resolve được (đúng 1 sản phẩm, đủ hàng, không cần
     // hỏi thêm màu) → tự viết câu xác nhận, KHÔNG dùng lời AI cho phần này để
