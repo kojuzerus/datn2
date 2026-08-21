@@ -38,7 +38,7 @@ const EVENTS = [
 const PROMOS = [
   { img: "/ads/redmi-17-home.png",   title: "Redmi 17 Series mở bán — ưu đãi lên đời cực chất",              href: "/sanpham?tu-khoa=redmi" },
   { img: "/ads/OppoReno16F-2.jpg",   title: "OPPO Reno16 F 5G — giảm sốc kèm quà tặng chính hãng",           href: "/sanpham?tu-khoa=oppo" },
-  { img: "/ads/690x300_iPhone17Pro_1.png", title: "iPhone 17 Pro — siu hời để lên đời, trả góp 0%",          href: "/sanpham?tu-khoa=iphone" },
+  { img: "/ads/690x300_iPhone17Pro_1.png", title: "iPhone 17 Pro — siu hời để lên đời",                       href: "/sanpham?tu-khoa=iphone" },
   { img: "/ads/Z8-OPEN.png",         title: "Galaxy Z Fold8 series — đặt trước nhận ưu đãi tới 7 triệu",     href: "/sanpham?tu-khoa=galaxy" },
 ];
 

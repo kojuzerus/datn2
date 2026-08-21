@@ -104,9 +104,6 @@ function ProductCard({ p }: { p: Product }) {
                 Giảm {p.giamGia}%
               </span>
             ) : <span />}
-            <span className="bg-blue-50 text-blue-600 text-[10px] font-semibold px-2 py-0.5 rounded border border-blue-100 whitespace-nowrap">
-              Trả góp 0%
-            </span>
           </div>
 
           {/* Image */}
