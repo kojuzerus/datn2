@@ -4,6 +4,7 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Suspense } from 'react';
 import { CheckCircle2, ShoppingBag, ClipboardList, Hash } from 'lucide-react';
+import { formatOrderCode } from '../lib/orderCode';
 
 function SuccessContent() {
   const params  = useSearchParams();
@@ -32,7 +33,7 @@ function SuccessContent() {
             <Hash className="w-4 h-4 text-gray-400 shrink-0" />
             <div className="text-left min-w-0">
               <p className="text-xs text-gray-400 mb-0.5">Mã đơn hàng</p>
-              <p className="font-mono font-bold text-gray-700 text-sm truncate">{orderId}</p>
+              <p className="font-mono font-bold text-gray-700 text-sm truncate">{formatOrderCode(orderId)}</p>
             </div>
           </div>
         )}

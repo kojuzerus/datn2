@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ArrowLeft, Clock, MapPin, XCircle, Check, Star } from 'lucide-react';
 import CancelOrderModal from '../../components/CancelOrderModal';
 import { toastError } from '../../utils/toast';
+import { formatOrderCode } from '../../lib/orderCode';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -155,7 +156,7 @@ export default function OrderDetailPage() {
           </Link>
           <div>
             <p className="text-sm uppercase tracking-[0.3em] text-red-500">Đơn hàng</p>
-            <h1 className="mt-1 text-2xl font-bold text-gray-900">Mã: {params.id}</h1>
+            <h1 className="mt-1 text-2xl font-bold text-gray-900">Mã: {formatOrderCode(order?._id)}</h1>
           </div>
         </div>
 
