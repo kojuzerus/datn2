@@ -2,10 +2,12 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { X, Send, Star, ChevronRight, Sparkles, ShoppingCart } from "lucide-react";
 import Rabbit3D from "./Rabbit3D";
 import { useCart } from "../hooks/useCart";
 import { toastSuccess, toastError } from "../utils/toast";
+import { isLoggedIn } from "../lib/authPrompt";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -30,6 +32,18 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   products?: Product[];
+}
+
+interface ChatAction {
+  type: "add_to_cart" | "buy_now";
+  product: {
+    id: number;
+    ten: string;
+    slug: string;
+    thumbnail: string;
+    gia: number;
+    variant: string | null;
+  };
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -162,6 +176,9 @@ export default function AIChatBox() {
   const [loading, setLoading] = useState(false);
   const [unread, setUnread]   = useState(false);
 
+  const router = useRouter();
+  const { addToCart } = useCart();
+
   const endRef    = useRef<HTMLDivElement>(null);
   const inputRef  = useRef<HTMLInputElement>(null);
   const bodyRef   = useRef<HTMLDivElement>(null);
@@ -213,8 +230,19 @@ export default function AIChatBox() {
 
       const data = await res.json();
 
+      // Backend đã resolve chắc chắn 1 sản phẩm (đủ hàng, không cần hỏi thêm
+      // màu) và trả về action → thực thi thêm giỏ hàng thật ngay tại đây (chỉ
+      // trình duyệt mới có token/giỏ hàng khách, nên phần thực thi phải ở FE).
+      // Backend không biết trạng thái đăng nhập của khách (không gửi token khi
+      // gọi /api/chat) — nên việc yêu cầu đăng nhập cho "mua ngay" phải chốt ở
+      // đây, TRƯỚC khi hiển thị tin nhắn, để không hiển thị 2 câu mâu thuẫn nhau.
+      const action: ChatAction | null = data.action || null;
+      const needsLogin = action?.type === "buy_now" && !isLoggedIn();
+
       // Backend trả lỗi (success: false hoặc không có reply)
-      const replyText = data.reply || (data.message ? `⚠️ ${data.message}` : "Xin lỗi, mình gặp sự cố. Thử lại nhé! 🐰");
+      const replyText = needsLogin
+        ? `Bạn cần đăng nhập trước để mình chốt đơn "${action!.product.ten}" giúp nhé! 🐰 Bấm vào biểu tượng tài khoản ở góc trên để đăng nhập rồi quay lại đây nha.`
+        : data.reply || (data.message ? `⚠️ ${data.message}` : "Xin lỗi, mình gặp sự cố. Thử lại nhé! 🐰");
 
       const assistantMsg: Message = {
         id:       `a-${Date.now()}`,
@@ -224,6 +252,38 @@ export default function AIChatBox() {
       };
       setMessages((prev) => [...prev, assistantMsg]);
       if (!open) setUnread(true);
+
+      if (action?.type === "buy_now") {
+        // Giống nút "Mua ngay" trên trang sản phẩm: đi thẳng sang thanh toán 1
+        // món, không cộng dồn vào giỏ hàng — cần đăng nhập trước.
+        if (!needsLogin) {
+          sessionStorage.setItem(
+            "smarthub_buynow_item",
+            JSON.stringify({
+              _id: `buynow_${action.product.id}`,
+              productId: String(action.product.id),
+              tenSanPham: action.product.ten,
+              hinhAnh: action.product.thumbnail,
+              gia: action.product.gia,
+              soLuong: 1,
+              variant: action.product.variant || "",
+            })
+          );
+          localStorage.removeItem("smarthub_checkout_ids");
+          setTimeout(() => router.push("/thanhtoan"), 400);
+        }
+      } else if (action?.type === "add_to_cart") {
+        const ok = await addToCart({
+          productId:  String(action.product.id),
+          tenSanPham: action.product.ten,
+          hinhAnh:    action.product.thumbnail,
+          gia:        action.product.gia,
+          soLuong:    1,
+          variant:    action.product.variant || undefined,
+        });
+        if (ok) toastSuccess(`Đã thêm "${action.product.ten}" vào giỏ hàng!`);
+        else toastError("Không thêm được vào giỏ hàng, bạn thử bấm vào sản phẩm nhé!");
+      }
     } catch (err) {
       const isOffline = err instanceof TypeError && (err.message.includes("fetch") || err.message.includes("network"));
       setMessages((prev) => [

@@ -88,15 +88,46 @@ function extractIntent(msg: string): Intent {
   // "mua điện thoại iphone" → capture "mua điện thoại iphone" thay vì "iphone"),
   // khiến tìm kiếm theo cụm đó không khớp sản phẩm nào và rơi về danh mục rộng
   // (ra luôn cả Samsung, OPPO... dù khách chỉ hỏi iPhone).
+  //
+  // CHÚ Ý 2 lỗi từng gặp:
+  // 1) [\w] trong JS regex chỉ khớp ký tự ASCII — một từ có dấu như "mà" bị cắt
+  //    cụt còn "m" (chỉ "m" là \w, "à" thì không) → keyword lệch dữ liệu. Phải
+  //    dùng \p{L}\p{N} (Unicode) + cờ "u" để khớp đúng cả tiếng Việt có dấu.
+  // 2) Vòng lặp 0-3 từ phía sau quá tham lam, nuốt luôn các từ đệm hội thoại
+  //    không thuộc tên sản phẩm (VD: "iphone xem sao" → keyword bị lẫn "xem
+  //    sao"), khiến tìm kiếm ra 0 kết quả. Chặn bằng danh sách từ đệm KHÔNG
+  //    được nuốt vào keyword.
+  // CHÚ Ý: KHÔNG thêm "không"/"được" vào đây — chúng là từ đệm trong nhiều câu
+  // ("được không", "cho tôi được") nhưng cũng là từ mô tả thật trong tên/cụm
+  // sản phẩm ("tai nghe không dây"). Loại chúng ra sẽ làm gãy case đó.
+  const KEYWORD_STOP_WORDS = [
+    "giá","dưới","trên","từ","khoảng","với","tốt","rẻ","bền","triệu","tr",
+    "xem","sao","mà","nhé","nhỉ","à","đi","vậy","thế","này","đó","luôn",
+    "cho","tôi","giúp","dùm","nha","nhá","ơi","thử","nào","ạ","ha",
+    "hả","hử","đây","kìa","ừ","ừm","đấy","hen",
+  ];
+  const stopLookahead = KEYWORD_STOP_WORDS.join("|");
   const m2 = msg.match(
-    /(?:iphone|samsung|xiaomi|oppo|laptop|macbook|galaxy|redmi|poco|vivobook|zenbook|ideapad|vivo|realme|nokia|sony|lg|dell|hp|lenovo|asus|acer|msi|huawei|jbl|anker|logitech|razer|airpod|tai nghe|earbud|buds|loa|speaker|bàn phím|chuột|sạc|ốp lưng|tablet|ipad|đồng hồ|watch)(?:\s+(?!giá|dưới|trên|từ|khoảng|với|tốt|rẻ|bền|triệu|tr\b)[\w]+){0,3}/i
+    new RegExp(
+      `(?:iphone|samsung|xiaomi|oppo|laptop|macbook|galaxy|redmi|poco|vivobook|zenbook|ideapad|vivo|realme|nokia|sony|lg|dell|hp|lenovo|asus|acer|msi|huawei|jbl|anker|logitech|razer|airpod|tai nghe|earbud|buds|loa|speaker|bàn phím|chuột|sạc|ốp lưng|tablet|ipad|đồng hồ|watch)(?:\\s+(?!(?:${stopLookahead})(?:\\s|$|[?.,!]))[\\p{L}\\p{N}]+){0,3}`,
+      "iu"
+    )
   );
   const kwMatch = msg.match(/(?:tìm|mua|xem|muốn|cần|gợi ý)\s+(.{2,50}?)(?:\s+(?:giá|dưới|từ|khoảng|với|tốt|rẻ|bền)|[?.!]|$)/i);
+  // An toàn 2 lớp: dù regex ở trên đã chặn từ đệm phía trước, vẫn cắt thêm mọi
+  // từ đệm còn sót lại ở CUỐI keyword (VD: kwMatch không dùng lookahead trên).
+  const stopSet = new Set(KEYWORD_STOP_WORDS);
+  const stripTrailingFillers = (raw: string): string => {
+    const words = raw.trim().split(/\s+/);
+    while (words.length > 1 && stopSet.has(words[words.length - 1].toLowerCase()))
+      words.pop();
+    return words.join(" ");
+  };
   if (m2) {
-    intent.keyword = m2[0].trim();
+    intent.keyword = stripTrailingFillers(m2[0].trim());
   } else if (kwMatch) {
     const raw = kwMatch[1].trim().toLowerCase();
-    if (!GENERIC_WORDS.has(raw)) intent.keyword = kwMatch[1].trim();
+    if (!GENERIC_WORDS.has(raw)) intent.keyword = stripTrailingFillers(kwMatch[1].trim());
   } else if (intent.brand) {
     intent.keyword = intent.brand;
   }
@@ -237,10 +268,14 @@ KHI TƯ VẤN SẢN PHẨM:
   nào. Dòng "[Sản phẩm đã hiển thị: ...]" này CHỈ là ghi chú nội bộ để bạn
   đọc — TUYỆT ĐỐI KHÔNG chép lại đoạn ngoặc vuông đó vào câu trả lời gửi cho
   khách
-- Đặt hàng, thanh toán: xác nhận lại tên sản phẩm khách chọn rồi hướng dẫn bấm
-  vào thẻ sản phẩm hoặc nút "Xem tất cả sản phẩm" để vào trang mua thật
-  (chatbox chưa tự chốt đơn được) — không nói khách chờ "nhân viên hỗ trợ"
-  chung chung
+- Đặt hàng, thanh toán: khách nói "thêm vào giỏ", "cho vào giỏ" → hệ thống tự
+  thêm sản phẩm vào giỏ hàng thật cho khách. Khách nói "mua luôn", "mua ngay",
+  "chốt đơn", "đặt hàng" → hệ thống đưa thẳng khách sang trang thanh toán để
+  chốt đơn (không phải chat suông, là hành động thật). Nếu có ghi chú
+  "[Hệ thống: ...]" ở cuối, làm đúng theo hướng dẫn đó (hỏi màu nếu có nhiều
+  màu, báo hết hàng nếu hết, hoặc hỏi rõ sản phẩm nào nếu chưa xác định được)
+  — không tự ý bịa ra là "đã thêm vào giỏ"/"đã đưa sang thanh toán" khi có ghi
+  chú yêu cầu hỏi lại. Không nói khách chờ "nhân viên hỗ trợ" chung chung
 - Đổi trả, khiếu nại một đơn hàng cụ thể đã mua → hướng đến nhân viên hỗ trợ
 
 ĐỊNH DẠNG TRẢ LỜI (bắt buộc — khung chat rất nhỏ, không hiển thị markdown):
@@ -383,26 +418,32 @@ function buildReply(msg: string, intent: Intent, products: any[]): string {
       return `Hiện SmartHub đang cập nhật thêm ${intent.category} mới bạn nhé! 😊\nBạn cho mình biết ngân sách hoặc hãng muốn dùng — mình tư vấn chính xác hơn! 🐰`;
     }
     const priceNote = intent.price_max ? ` dưới ${fmt(intent.price_max)}` : "";
-    const lines = [`SmartHub đang có **${products.length} mẫu ${intent.category}**${priceNote} 📱\nDưới đây là một số gợi ý nổi bật:\n`];
+    const lines = [`SmartHub đang có ${products.length} mẫu ${intent.category}${priceNote} 📱\nDưới đây là một số gợi ý nổi bật:\n`];
     products.slice(0, 3).forEach((p, i) => {
       const price = fmt(p.giaSale ?? p.gia);
       const disc = p.giamGia ? ` (giảm ${p.giamGia}%)` : "";
-      lines.push(`${i + 1}. **${p.ten}** — ${price}${disc} ★${p.danhGia}/5`);
+      lines.push(`${i + 1}. ${p.ten} — ${price}${disc} ★${p.danhGia}/5`);
     });
     lines.push("\nBạn ưu tiên tiêu chí gì: camera, hiệu năng hay pin? Mình tư vấn thêm nhé! 🐰");
     return lines.join("\n");
   }
 
+  // Không có keyword/category/brand nào tách được (VD: câu chỉ có từ đệm/hành
+  // động chung chung như "thêm vào giỏ cho tôi" mà không kèm tên sản phẩm) →
+  // hỏi lại rõ ràng, KHÔNG hiển thị "null" hay giá trị rỗng cho khách.
+  const hint = intent.keyword || intent.category || intent.brand;
+  if (!hint) {
+    return "Bạn đang muốn nói về sản phẩm nào vậy? Nhắn tên sản phẩm giúp mình với, mình tìm ngay! 🐰";
+  }
+
   if (!products.length) {
-    const hint = intent.keyword || intent.brand;
     return `Hmm, mình chưa tìm thấy "${hint}" trong kho SmartHub 😅\nBạn thử nhập tên model đầy đủ hơn, hoặc cho mình biết bạn cần loại sản phẩm gì — mình gợi ý ngay! 🐰`;
   }
 
-  const what = intent.keyword || intent.category || intent.brand;
-  const lines = [`Tìm được **${products.length} sản phẩm**${what ? ` cho "${what}"` : ""} ✨`];
+  const lines = [`Tìm được ${products.length} sản phẩm cho "${hint}" ✨`];
   if (intent.price_max) lines.push(`Trong khoảng dưới ${fmt(intent.price_max)} 💰`);
   const best = products[0];
-  lines.push(`\n🏆 **${best.ten}** — ${fmt(best.giaSale ?? best.gia)}${best.giamGia ? ` (-${best.giamGia}%)` : ""} ★${best.danhGia}/5`);
+  lines.push(`\n🏆 ${best.ten} — ${fmt(best.giaSale ?? best.gia)}${best.giamGia ? ` (-${best.giamGia}%)` : ""} ★${best.danhGia}/5`);
   lines.push("Bấm vào sản phẩm để xem chi tiết nhé! 🐰");
   return lines.join("\n");
 }
@@ -511,19 +552,22 @@ const FILLER_WORDS = new Set([
   "oi", "ban", "minh", "cho", "toi", "voi", "duoc", "khong",
 ]);
 
+// Tách riêng để dùng chung cho cả resolveKeywordFromHistory lẫn resolveAction
+// (hành động thêm giỏ/mua ngay cũng cần biết danh sách sản phẩm vừa hiển thị).
+function getLastShownNames(history: any[]): string[] {
+  for (let i = history.length - 1; i >= 0; i--) {
+    const content: string = history[i]?.content || "";
+    const m = content.match(/\[Sản phẩm đã hiển thị: ([^\]]+)\]/);
+    if (m) return [...m[1].matchAll(/([^,]+?)\s*\([^)]*\)/g)].map((x) => x[1].trim());
+  }
+  return [];
+}
+
 function resolveKeywordFromHistory(message: string, history: any[]): string | null {
   const norm = (s: string) =>
     s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d");
 
-  let shownNames: string[] = [];
-  for (let i = history.length - 1; i >= 0; i--) {
-    const content: string = history[i]?.content || "";
-    const m = content.match(/\[Sản phẩm đã hiển thị: ([^\]]+)\]/);
-    if (m) {
-      shownNames = [...m[1].matchAll(/([^,]+?)\s*\([^)]*\)/g)].map((x) => x[1].trim());
-      break;
-    }
-  }
+  const shownNames = getLastShownNames(history);
   if (!shownNames.length) return null;
 
   const msgTokens = norm(message).split(/\s+/).filter((t) => t && !FILLER_WORDS.has(t));
@@ -534,6 +578,126 @@ function resolveKeywordFromHistory(message: string, history: any[]): string | nu
     if (msgTokens.every((tok) => nameNorm.includes(tok))) return name;
   }
   return null;
+}
+
+// ── Hành động: tự thêm giỏ hàng / mua ngay ────────────────────────────────────
+// Khác với is_product_query (chỉ để tra dữ liệu cho AI), cụm này kích hoạt một
+// HÀNH ĐỘNG THẬT trên giỏ hàng khách — nên tách biệt và xét cẩn thận hơn: chỉ
+// nhận diện khi câu nói rõ ràng là ý định giao dịch, tránh việc AI/hệ thống tự
+// ý thêm hàng khi khách chỉ đang hỏi han bình thường.
+function extractActionIntent(msg: string): "add_to_cart" | "buy_now" | null {
+  const lower = msg.toLowerCase();
+  if (/mua (luôn|ngay)|đặt (hàng|mua)( ngay| luôn)?|chốt đơn|chốt luôn|xuống tiền|lấy (con|cái|mẫu) này( luôn)?/.test(lower))
+    return "buy_now";
+  if (/thêm (vào |)giỏ( hàng)?|cho vào giỏ|bỏ vào giỏ/.test(lower))
+    return "add_to_cart";
+  return null;
+}
+
+interface ActionResult {
+  action: { type: "add_to_cart" | "buy_now"; product: any } | null;
+  note: string; // ghi chú riêng cho AI (system prompt), không hiển thị cho khách
+  resolvedProduct: any | null; // để gộp vào danh sách products hiển thị (nếu có)
+  fallbackReply: string; // dùng khi AI (Claude/Groq/OpenRouter) đều lỗi — không được rơi về buildReply() vì hàm đó không biết gì về action
+}
+
+// Tra đúng 1 sản phẩm theo tên đã biết chính xác (từ lịch sử hiển thị) — dùng
+// riêng cho resolveAction, khác fetchProducts() vốn để tìm/gợi ý danh sách.
+async function fetchExactProduct(name: string): Promise<any | null> {
+  const p = new URLSearchParams({ limit: "5", search: buildSearchRegex(name) });
+  try {
+    const res = await fetch(`${BACKEND}/api/products?${p}`, { next: { revalidate: 0 } });
+    if (!res.ok) return null;
+    const d = await res.json();
+    const arr: any[] = d.data || [];
+    return arr.find((p2: any) => p2.ten.toLowerCase() === name.toLowerCase()) || (arr.length === 1 ? arr[0] : null);
+  } catch {
+    return null;
+  }
+}
+
+async function resolveAction(
+  actionType: "add_to_cart" | "buy_now",
+  message: string,
+  history: any[],
+  currentProducts: any[]
+): Promise<ActionResult> {
+  const verb = actionType === "buy_now" ? "mua" : "thêm giỏ";
+
+  // 1. Đang chỉ có đúng 1 sản phẩm trong danh sách vừa tìm được → chắc chắn là nó
+  let target: any =
+    currentProducts.length === 1
+      ? currentProducts[0]
+      : currentProducts.find((p: any) => message.toLowerCase().includes(p.ten.toLowerCase())) || null;
+
+  // 2. Không rõ từ danh sách hiện tại → thử tên sản phẩm đã hiển thị gần nhất
+  //    khớp với TỪ KHÓA cụ thể trong câu (VD: "15 plus", "cái i14").
+  let shownNames: string[] = [];
+  if (!target) {
+    const resolvedName = resolveKeywordFromHistory(message, history);
+    if (resolvedName) target = await fetchExactProduct(resolvedName);
+    shownNames = getLastShownNames(history);
+  }
+
+  // 3. Câu chỉ là hành động thuần túy, không nhắc tên sản phẩm nào (VD: "thêm
+  //    vào giỏ cho tôi", "lấy con này luôn") → nếu lượt trước CHỈ hiển thị đúng
+  //    1 sản phẩm, hiểu ngầm là đang nói về nó, không cần khách lặp lại tên.
+  if (!target && shownNames.length === 1) {
+    target = await fetchExactProduct(shownNames[0]);
+  }
+
+  if (!target) {
+    const options = shownNames.length > 1 ? ` (${shownNames.slice(0, 4).join(", ")})` : "";
+    return {
+      action: null,
+      note: `\n[Hệ thống: khách muốn ${verb} nhưng CHƯA RÕ đang nói về sản phẩm nào — hỏi lại khách muốn chọn sản phẩm nào, không tự bịa ra là đã thêm vào giỏ.]`,
+      resolvedProduct: null,
+      fallbackReply: `Bạn muốn ${verb === "mua" ? "mua" : "thêm vào giỏ"} sản phẩm nào vậy${options}? Nhắn rõ tên giúp mình với nhé! 🐰`,
+    };
+  }
+
+  const stockVariants = Array.isArray(target.variants)
+    ? target.variants.filter((v: any) => (v.stock_quantity ?? 0) > 0)
+    : [];
+
+  // Sản phẩm có variants nhưng không màu nào còn hàng
+  if (Array.isArray(target.variants) && target.variants.length > 0 && stockVariants.length === 0) {
+    return {
+      action: null,
+      note: `\n[Hệ thống: "${target.ten}" hiện đã HẾT HÀNG ở mọi màu — báo thật cho khách, không thêm vào giỏ, có thể gợi ý sản phẩm tương tự khác.]`,
+      resolvedProduct: target,
+      fallbackReply: `"${target.ten}" hiện tạm hết hàng ở tất cả các màu rồi bạn ơi 😢 Bạn muốn mình gợi ý sản phẩm tương tự khác không?`,
+    };
+  }
+
+  // Nhiều màu còn hàng → phải hỏi khách chọn màu trước khi thêm, không đoán bừa
+  if (stockVariants.length > 1) {
+    const colors = stockVariants.map((v: any) => v.color).filter(Boolean).join(", ");
+    return {
+      action: null,
+      note: `\n[Hệ thống: khách muốn ${verb} "${target.ten}" nhưng sản phẩm có nhiều màu còn hàng (${colors}) — PHẢI hỏi khách chọn màu nào trước, KHÔNG được tự thêm vào giỏ.]`,
+      resolvedProduct: target,
+      fallbackReply: `"${target.ten}" hiện có mấy màu: ${colors}. Bạn thích màu nào để mình ${verb === "mua" ? "chốt đơn" : "thêm vào giỏ"} nhé? 🎨`,
+    };
+  }
+
+  const variant = stockVariants[0]; // 0 hoặc 1 phần tử — sản phẩm không phân biến thể vẫn ok (undefined)
+  return {
+    action: {
+      type: actionType,
+      product: {
+        id: target.id,
+        ten: target.ten,
+        slug: target.slug,
+        thumbnail: target.thumbnail,
+        gia: variant ? (variant.sale_price ?? variant.price) : (target.giaSale ?? target.gia),
+        variant: variant?.color || null,
+      },
+    },
+    note: "",
+    resolvedProduct: target,
+    fallbackReply: "",
+  };
 }
 
 // ── Handler ───────────────────────────────────────────────────────────────────
@@ -584,7 +748,26 @@ phẩm chỉ có biến thể theo MÀU SẮC, KHÔNG có các mức dung lượ
         }).join("\n")
       : intent.is_product_query ? "\n[Không có sản phẩm phù hợp trong kho]" : "";
 
-    const system = buildSystemPrompt(productCtx);
+    // ── Hành động thêm giỏ / mua ngay ─────────────────────────────────────────
+    // Xét SAU khi đã có `products` (ưu tiên khớp trong danh sách vừa tìm) —
+    // resolveAction có thể tự fetch thêm nếu cần tên sản phẩm đã hiển thị trước đó.
+    const actionType = extractActionIntent(message);
+    let action: { type: "add_to_cart" | "buy_now"; product: any } | null = null;
+    let actionNote = "";
+    let actionFallbackReply = "";
+    if (actionType) {
+      const result = await resolveAction(actionType, message, history, products);
+      action = result.action;
+      actionNote = result.note;
+      actionFallbackReply = result.fallbackReply;
+      // Gộp sản phẩm vừa resolve vào danh sách hiển thị (nếu chưa có) để card
+      // sản phẩm hiện luôn trong khung chat cho khách thấy đang thao tác món nào.
+      if (result.resolvedProduct && !products.some((p: any) => p.id === result.resolvedProduct.id)) {
+        products = [result.resolvedProduct, ...products].slice(0, 8);
+      }
+    }
+
+    const system = buildSystemPrompt(productCtx + actionNote);
 
     // Thử lần lượt: Claude → Groq → OpenRouter → template
     const aiReplyRaw = await callClaude(system, message, history)
@@ -599,9 +782,24 @@ phẩm chỉ có biến thể theo MÀU SẮC, KHÔNG có các mức dung lượ
     const aiReplyDeduped = aiReplyStripped ? dedupeRepeatedReply(aiReplyStripped) : null;
     const aiReply = aiReplyDeduped ? extractCleanReply(aiReplyDeduped) : null;
 
-    const reply = aiReply || buildReply(message, intent, products);
+    // Câu này là hành động (thêm giỏ/mua ngay) mà chưa resolve chắc chắn được
+    // (hỏi màu / hết hàng / chưa rõ sản phẩm) → ưu tiên fallback CHUYÊN BIỆT
+    // cho action thay vì buildReply() chung (hàm đó không biết về actionNote,
+    // dễ sinh câu trả lời lạc đề như "chưa tìm thấy null").
+    let reply = aiReply || actionFallbackReply || buildReply(message, intent, products);
 
-    return NextResponse.json({ success: true, reply, products });
+    // Hành động ĐÃ chắc chắn resolve được (đúng 1 sản phẩm, đủ hàng, không cần
+    // hỏi thêm màu) → tự viết câu xác nhận, KHÔNG dùng lời AI cho phần này để
+    // tránh model bịa ra "đã thêm vào giỏ" trong khi thực tế chưa/không thêm.
+    if (action) {
+      const colorTxt = action.product.variant ? ` (màu ${action.product.variant})` : "";
+      reply =
+        action.type === "buy_now"
+          ? `Được rồi nè! Mình đưa bạn qua trang thanh toán để chốt "${action.product.ten}"${colorTxt} luôn đây 🛒\nNếu chưa đăng nhập thì đăng nhập rồi hoàn tất giúp mình nhé!`
+          : `Xong rồi nè! Mình đã thêm "${action.product.ten}"${colorTxt} vào giỏ hàng cho bạn 🛒\nCần gì thêm thì bạn cứ hỏi mình nha!`;
+    }
+
+    return NextResponse.json({ success: true, reply, products, action });
   } catch (err: any) {
     console.error("[/api/chat]", err.message);
     return NextResponse.json({ success: false, message: err.message }, { status: 500 });
