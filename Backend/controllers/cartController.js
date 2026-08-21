@@ -1,4 +1,32 @@
-const Cart = require("../models/cartModel");
+const Cart    = require("../models/cartModel");
+const Product = require("../models/productModel");
+const Variant = require("../models/variantModel");
+
+// ── Tra tồn kho thật của 1 biến thể ─────────────────────────────────────────
+// Trước đây addToCart/updateQuantity không đối chiếu với tồn kho DB — khách
+// bấm "Thêm vào giỏ" nhiều lần hoặc gõ số lượng tùy ý là cộng dồn vô hạn,
+// không phản ánh đúng số hàng thật còn trong kho. Variants có thể nhúng sẵn
+// trong document product (dữ liệu mới) hoặc nằm ở collection product_variants
+// riêng (dữ liệu cũ) — xem thêm attachVariants() trong productController.js.
+// Trả về null khi không xác định được (sản phẩm không tồn tại/không phân biến
+// thể) — nghĩa là KHÔNG áp giới hạn ở tầng này, tránh chặn nhầm.
+async function getAvailableStock(productId, variant) {
+  const pid = Number(productId);
+  if (!Number.isFinite(pid)) return null;
+
+  const product = await Product.findOne({ product_id: pid }).select("variants").lean();
+  if (!product) return null;
+
+  const variants = Array.isArray(product.variants) && product.variants.length
+    ? product.variants
+    : await Variant.find({ product_id: pid }).lean();
+  if (!variants.length) return null;
+
+  const match = variant
+    ? variants.find((v) => (v.color || "").toLowerCase() === variant.toLowerCase())
+    : variants[0];
+  return match ? (match.stock_quantity ?? 0) : null;
+}
 
 // Lấy giỏ hàng
 exports.getCart = async (req, res) => {
@@ -24,15 +52,41 @@ exports.addToCart = async (req, res) => {
     const idx = cart.items.findIndex(
       i => i.productId.toString() === productId && i.variant === variant
     );
+    const currentQty = idx > -1 ? cart.items[idx].soLuong : 0;
+
+    // Chặn vượt tồn kho thật — cộng dồn với số đã có sẵn trong giỏ, không chỉ
+    // xét riêng lần thêm này (khách bấm "thêm vào giỏ" nhiều lần liên tiếp).
+    const stock = await getAvailableStock(productId, variant);
+    let addQty = soLuong;
+    let capped = false;
+    if (stock != null) {
+      const room = Math.max(0, stock - currentQty);
+      if (room <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: currentQty > 0
+            ? `Bạn đã có ${currentQty} sản phẩm này trong giỏ — đúng bằng số hàng còn trong kho rồi`
+            : "Sản phẩm hiện đã hết hàng",
+        });
+      }
+      if (addQty > room) { addQty = room; capped = true; }
+    }
 
     if (idx > -1) {
-      cart.items[idx].soLuong += soLuong;
+      cart.items[idx].soLuong += addQty;
     } else {
-      cart.items.push({ productId, tenSanPham, hinhAnh, gia, soLuong, variant });
+      cart.items.push({ productId, tenSanPham, hinhAnh, gia, soLuong: addQty, variant });
     }
 
     await cart.save();
-    res.json({ success: true, message: "Đã thêm vào giỏ hàng", cart });
+    res.json({
+      success: true,
+      message: capped
+        ? `Kho chỉ còn ${stock} sản phẩm, đã thêm tối đa ${addQty} vào giỏ`
+        : "Đã thêm vào giỏ hàng",
+      cart,
+      capped,
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: "Lỗi server" });
   }
@@ -52,6 +106,11 @@ exports.updateQuantity = async (req, res) => {
 
     const item = cart.items.id(itemId);
     if (!item) return res.status(404).json({ success: false, message: "Không tìm thấy sản phẩm" });
+
+    const stock = await getAvailableStock(item.productId, item.variant);
+    if (stock != null && soLuong > stock) {
+      return res.status(400).json({ success: false, message: `Kho chỉ còn ${stock} sản phẩm` });
+    }
 
     item.soLuong = soLuong;
     await cart.save();

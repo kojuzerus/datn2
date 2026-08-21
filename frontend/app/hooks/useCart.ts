@@ -17,12 +17,12 @@ export function useCart() {
     gia: number;
     soLuong?: number;
     variant?: string;
+    maxStock?: number; // tồn kho thật (nếu trang gọi biết) — chặn giỏ khách vãng lai vượt kho
   }) => {
     // Khách chưa đăng nhập vẫn thêm được vào giỏ hàng (lưu tạm ở máy).
     // Chỉ bắt đăng nhập khi vào bước thanh toán.
     if (!isLoggedIn()) {
-      addGuestCartItem(product);
-      return true;
+      return addGuestCartItem(product);
     }
     const token = localStorage.getItem('smarthub_token');
 
