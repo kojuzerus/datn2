@@ -43,16 +43,10 @@ function ratingTier(rating: number) {
 function RatingMeter({ rating }: { rating: number }) {
   const safeRating = Number.isFinite(rating) ? rating : 0;
   const tier = ratingTier(safeRating);
-  const pct  = Math.max(0, Math.min(5, safeRating)) / 5 * 100;
   return (
-    <div className="flex items-center gap-2">
-      <span className={`text-[12px] font-bold tabular-nums px-1.5 py-0.5 rounded-md border ${tier.bg} ${tier.text} ${tier.border}`}>
-        {safeRating.toFixed(1)}
-      </span>
-      <div className="w-14 h-1.5 rounded-full bg-gray-100 overflow-hidden">
-        <div className={`h-full rounded-full ${tier.bar}`} style={{ width: `${pct}%` }} />
-      </div>
-    </div>
+    <span className={`text-[12px] font-bold tabular-nums px-1.5 py-0.5 rounded-md border ${tier.bg} ${tier.text} ${tier.border}`}>
+      {safeRating.toFixed(1)}
+    </span>
   );
 }
 
