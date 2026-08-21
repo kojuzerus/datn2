@@ -161,6 +161,46 @@ function extractIntent(message) {
   return intent;
 }
 
+// ── Phát hiện & xử lý hành động "thêm giỏ hàng" / "đặt hàng" qua chat ───────
+// Chatbox không chỉ tư vấn mà còn có thể THỰC SỰ thực hiện hành động: nhận diện
+// câu lệnh, xác định đúng sản phẩm khách đang nói tới (trong danh sách vừa
+// hiển thị), rồi trả về cho FE thực thi thêm giỏ hàng thật (dùng lại logic
+// giỏ hàng có sẵn — hỗ trợ cả khách vãng lai lẫn khách đã đăng nhập).
+function detectCartAction(message) {
+  const addCart = /(giỏ hàng|vào giỏ|bỏ giỏ|thêm giỏ|cho vào giỏ)/i.test(message);
+  const wantsCheckout = /(đặt hàng luôn|đặt đơn|chốt đơn|thanh toán luôn|thanh toán ngay|mua luôn|xác nhận đặt hàng)/i.test(message);
+  return { addCart, wantsCheckout };
+}
+
+function resolveCartTargets(message, pool = []) {
+  if (!pool.length) return null;
+  const norm = (s) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d");
+  const lower = norm(message);
+
+  if (/(tat ca|het\b|toan bo)/.test(lower)) return pool.slice(0, 10);
+
+  const ordinals = [
+    [/dau tien|thu nhat|so 1\b/, 0],
+    [/thu hai|thu 2\b|so 2\b/, 1],
+    [/thu ba|thu 3\b|so 3\b/, 2],
+    [/cuoi cung|cai cuoi/, pool.length - 1],
+  ];
+  for (const [re, idx] of ordinals) {
+    if (re.test(lower) && pool[idx]) return [pool[idx]];
+  }
+
+  // Khớp theo tên sản phẩm (2 từ đầu, VD: "iphone 17", "samsung galaxy")
+  const matched = pool.filter((p) => {
+    const tokens = norm(p.ten).split(/\s+/).slice(0, 2).join(" ");
+    return tokens && lower.includes(tokens);
+  });
+  if (matched.length) return matched;
+
+  if (pool.length === 1) return pool; // chỉ đang hiển thị đúng 1 sp → không cần nói rõ tên
+
+  return null; // mơ hồ (nhiều sp, không rõ ý) → để AI hỏi lại cho rõ
+}
+
 // ── Gọi AI (thử Groq → OpenRouter) ─────────────────────────────────────────
 async function callAI(systemPrompt, userMessage, history = []) {
   const groqKey        = process.env.GROQ_API_KEY;
@@ -264,7 +304,7 @@ function buildTemplateReply(message, intent, products) {
 // ── Main handler ─────────────────────────────────────────────────────────────
 exports.chat = async (req, res) => {
   try {
-    const { message, history = [] } = req.body;
+    const { message, history = [], lastProducts = [] } = req.body;
     if (!message?.trim()) {
       return res.status(400).json({ success: false, message: "Thiếu nội dung tin nhắn" });
     }
@@ -303,6 +343,35 @@ exports.chat = async (req, res) => {
       if (intent.sort === "price_desc") found.sort((a, b) => (b.giaSale ?? b.gia) - (a.giaSale ?? a.gia));
 
       products = found.slice(0, 6);
+    }
+
+    // ── 2.5 Hành động thêm giỏ hàng / đặt hàng ─────────────────────────────
+    // Khách vừa tìm sp trong lượt này thì ưu tiên dùng danh sách đó, không thì
+    // dùng lại danh sách sp đã hiển thị ở lượt trước (FE gửi kèm lên).
+    const cartAction = detectCartAction(message);
+    if (cartAction.addCart || cartAction.wantsCheckout) {
+      const pool = products.length ? products : (Array.isArray(lastProducts) ? lastProducts : []);
+      const targets = resolveCartTargets(message, pool);
+      if (targets && targets.length) {
+        const fmt2 = (n) => new Intl.NumberFormat("vi-VN").format(n) + "đ";
+        const lines = [`Mình đã thêm ${targets.length} sản phẩm vào giỏ hàng cho bạn rồi nhé 🛒✅`];
+        targets.forEach((p) => lines.push(`• ${p.ten} — ${fmt2(p.giaSale ?? p.gia)}`));
+        if (cartAction.wantsCheckout) lines.push(`\nBấm nút bên dưới để tới trang thanh toán và hoàn tất đơn hàng nhé 💳`);
+
+        return res.json({
+          success: true,
+          reply: lines.join("\n"),
+          products: [],
+          cartAction: {
+            items: targets.map((p) => ({
+              productId: String(p.id), tenSanPham: p.ten, hinhAnh: p.thumbnail, gia: p.giaSale ?? p.gia,
+            })),
+          },
+          cta: cartAction.wantsCheckout ? { label: "Đến trang thanh toán →", href: "/thanhtoan" } : null,
+        });
+      }
+      // Không xác định được sản phẩm nào (mơ hồ/chưa có sp nào từng hiển thị)
+      // → để rơi xuống bước 3, nhờ AI hỏi lại cho rõ dựa trên ngữ cảnh hội thoại.
     }
 
     // ── 3. Sinh phản hồi ───────────────────────────────────────────────────

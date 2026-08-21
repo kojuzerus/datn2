@@ -30,6 +30,7 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   products?: Product[];
+  cta?: { label: string; href: string };
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -161,6 +162,7 @@ export default function AIChatBox() {
   const [input, setInput]     = useState("");
   const [loading, setLoading] = useState(false);
   const [unread, setUnread]   = useState(false);
+  const { addToCart } = useCart();
 
   const endRef    = useRef<HTMLDivElement>(null);
   const inputRef  = useRef<HTMLInputElement>(null);
@@ -205,10 +207,15 @@ export default function AIChatBox() {
         return { role: m.role, content: m.content };
       });
 
+      // Gửi kèm danh sách sp đã hiển thị gần nhất để backend hiểu "thêm tất cả
+      // vào giỏ", "mua cái đầu tiên"... đang nói tới sản phẩm nào.
+      const lastWithProducts = [...messages].reverse().find((m) => m.role === "assistant" && m.products?.length);
+      const lastProducts = lastWithProducts?.products || [];
+
       const res = await fetch(`/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: msg, history }),
+        body: JSON.stringify({ message: msg, history, lastProducts }),
       });
 
       const data = await res.json();
@@ -216,11 +223,26 @@ export default function AIChatBox() {
       // Backend trả lỗi (success: false hoặc không có reply)
       const replyText = data.reply || (data.message ? `⚠️ ${data.message}` : "Xin lỗi, mình gặp sự cố. Thử lại nhé! 🐰");
 
+      // AI xác định được hành động thêm giỏ hàng thật (không chỉ chat suông)
+      // → thực thi ngay bằng logic giỏ hàng có sẵn (hỗ trợ cả khách vãng lai).
+      if (data.cartAction?.items?.length) {
+        for (const item of data.cartAction.items) {
+          await addToCart(item);
+        }
+        window.dispatchEvent(new Event("cart-updated"));
+        toastSuccess(
+          data.cartAction.items.length === 1
+            ? `Đã thêm "${data.cartAction.items[0].tenSanPham}" vào giỏ hàng!`
+            : `Đã thêm ${data.cartAction.items.length} sản phẩm vào giỏ hàng!`
+        );
+      }
+
       const assistantMsg: Message = {
         id:       `a-${Date.now()}`,
         role:     "assistant",
         content:  replyText,
         products: data.products || [],
+        cta:      data.cta || undefined,
       };
       setMessages((prev) => [...prev, assistantMsg]);
       if (!open) setUnread(true);
@@ -418,6 +440,16 @@ export default function AIChatBox() {
                         Xem tất cả sản phẩm
                       </Link>
                     </div>
+                  )}
+
+                  {/* CTA (VD: đến trang thanh toán) khi AI vừa thực hiện thêm giỏ hàng */}
+                  {msg.cta && (
+                    <Link
+                      href={msg.cta.href}
+                      className="flex items-center justify-center gap-1 w-full text-center text-xs font-semibold text-white bg-gradient-to-br from-red-500 to-red-600 hover:brightness-105 rounded-full px-3 py-2 shadow-sm transition-all"
+                    >
+                      {msg.cta.label}
+                    </Link>
                   )}
                 </div>
               </div>
