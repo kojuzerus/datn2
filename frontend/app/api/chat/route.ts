@@ -144,7 +144,10 @@ function extractIntent(msg: string): Intent {
   } else if ((m = msg.match(/(?:khoảng|tầm)\s*(\d+(?:[,.]\d+)?)\s*(?:triệu|tr|củ)/i))) {
     const v = parseFloat(m[1].replace(",",".")) * 1_000_000;
     intent.price_min = v * 0.8; intent.price_max = v * 1.25;
-  } else if ((m = msg.match(/(\d+(?:[,.]\d+)?)\s*(?:triệu|tr|củ)\b/i))) {
+  // \b sau "củ" không dùng được — "ủ" là ký tự có dấu, ngoài phạm vi \w (chỉ
+  // ASCII) nên \b không bao giờ khớp ở đó (cùng lỗi \b đã gặp ở những chỗ
+  // khác). Thay bằng lookahead Unicode: không cho theo sau bởi chữ/số khác.
+  } else if ((m = msg.match(/(\d+(?:[,.]\d+)?)\s*(?:triệu|tr|củ)(?![\p{L}\p{N}])/iu))) {
     // Số tiền đứng một mình, không có "dưới/trên/khoảng" phía trước (VD:
     // "điện thoại 10 triệu chơi game") — hiểu là ngân sách tầm đó, co giãn nhẹ.
     const v = parseFloat(m[1].replace(",",".")) * 1_000_000;
@@ -605,13 +608,20 @@ function extractActionIntent(msg: string): "add_to_cart" | "buy_now" | null {
 // tiên", "cái thứ 2", "con cuối cùng") — trả về index 0-based hoặc null.
 function resolveOrdinalIndex(msg: string): number | null {
   const lower = msg.toLowerCase();
-  if (/\b(cuối cùng|cuối|sau cùng)\b/.test(lower)) return -1; // -1 = phần tử cuối, xử lý riêng ở nơi gọi
+  // CHÚ Ý: KHÔNG dùng \b quanh cụm có dấu — \b dựa trên định nghĩa \w (chỉ
+  // ASCII) nên với từ bắt đầu bằng ký tự có dấu như "đầu" ("đ" không phải \w),
+  // ranh giới "khoảng trắng → đ" không được coi là word boundary, khiến \b
+  // không bao giờ khớp (cùng gốc lỗi với keyword extraction ở trên). Thay bằng
+  // ranh giới tường minh: đầu chuỗi/khoảng trắng ở trước, khoảng trắng/cuối
+  // chuỗi/dấu câu ở sau.
+  const boundary = (phrase: string) => new RegExp(`(?:^|\\s)(?:${phrase})(?:\\s|$|[?.,!])`);
+  if (boundary("cuối cùng|sau cùng|cuối").test(lower)) return -1; // -1 = phần tử cuối, xử lý riêng ở nơi gọi
   const ORDINALS: [RegExp, number][] = [
-    [/\b(đầu tiên|đầu|số 1|thứ nhất|thứ 1)\b/, 0],
-    [/\b(thứ hai|thứ 2|số 2)\b/, 1],
-    [/\b(thứ ba|thứ 3|số 3)\b/, 2],
-    [/\b(thứ tư|thứ 4|số 4)\b/, 3],
-    [/\b(thứ năm|thứ 5|số 5)\b/, 4],
+    [boundary("đầu tiên|cái đầu|con đầu|đầu|số 1|thứ nhất|thứ 1"), 0],
+    [boundary("thứ hai|thứ 2|số 2"), 1],
+    [boundary("thứ ba|thứ 3|số 3"), 2],
+    [boundary("thứ tư|thứ 4|số 4"), 3],
+    [boundary("thứ năm|thứ 5|số 5"), 4],
   ];
   for (const [re, idx] of ORDINALS) if (re.test(lower)) return idx;
   return null;
