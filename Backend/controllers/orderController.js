@@ -3,6 +3,7 @@ const Cart      = require("../models/cartModel");
 const Product   = require("../models/productModel");
 const Promotion = require("../models/promotionModel");
 const { checkPromo } = require("./promotionController");
+const { markVoucherUsed } = require("./voucherController");
 
 // Cộng/trừ lượt bán thật theo số lượng từng sản phẩm trong đơn (delta: 1 khi đặt, -1 khi hủy)
 async function adjustTotalSold(items, delta) {
@@ -48,14 +49,22 @@ exports.createOrder = async (req, res) => {
     const phiGiaoHang = tongTien >= 500000 ? 0 : 30000;
 
     // Áp mã giảm giá (validate lại phía server, không tin số liệu từ client)
-    let maGiamGia = "";
-    let giamGia   = 0;
+    // LƯU Ý: phải truyền req.userId — thiếu tham số này khiến checkSpinVoucher
+    // luôn coi như "chưa đăng nhập" và từ chối mọi mã trúng từ vòng quay, dù
+    // khách đã đăng nhập thật và bước "Áp dụng" ở trên (có truyền userId) đã
+    // xác nhận mã hợp lệ. Đồng thời dùng result.thongTin.code thay vì
+    // result.promo.code — field "promo" chỉ tồn tại ở nhánh mã khuyến mãi
+    // thường, còn nhánh vòng quay trả về "voucher"; "thongTin.code" có ở cả 2.
+    let maGiamGia   = "";
+    let giamGia     = 0;
+    let promoSource = null; // "promotion" | "spin"
     if (promoCode?.trim()) {
-      const result = await checkPromo(promoCode, tongTien);
+      const result = await checkPromo(promoCode, tongTien, req.userId);
       if (!result.ok)
         return res.status(400).json({ success: false, message: result.message });
-      maGiamGia = result.promo.code;
-      giamGia   = result.discount;
+      maGiamGia   = result.thongTin.code;
+      giamGia     = result.discount;
+      promoSource = result.nguon;
     }
 
     const tongThanhToan = Math.max(0, tongTien + phiGiaoHang - giamGia);
@@ -80,9 +89,16 @@ exports.createOrder = async (req, res) => {
       ghiChu,
     });
 
-    // Trừ lượt sử dụng mã (sau khi đơn đã tạo thành công)
+    // Trừ lượt sử dụng mã (sau khi đơn đã tạo thành công) — đúng theo nguồn mã:
+    // mã khuyến mãi thường tăng used_count, còn mã vòng quay phải khoá lại
+    // (isUsed=true) để không dùng lại được nữa (trước đây không có bước này
+    // nên mã vòng quay dùng được nhiều lần).
     if (maGiamGia) {
-      await Promotion.updateOne({ code: maGiamGia }, { $inc: { used_count: 1 } });
+      if (promoSource === "spin") {
+        await markVoucherUsed(req.userId, maGiamGia, order._id);
+      } else {
+        await Promotion.updateOne({ code: maGiamGia }, { $inc: { used_count: 1 } });
+      }
     }
 
     // Chỉ xóa những item đã đặt khỏi giỏ hàng
