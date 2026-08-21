@@ -77,13 +77,23 @@ async function hydrateProducts(products) {
 }
 
 // ── Fallback: trích xuất intent bằng regex (không cần AI) ───────────────────
+// QUAN TRỌNG: mọi so khớp bên dưới đều thực hiện trên chuỗi đã bỏ dấu tiếng Việt
+// (xem normalizeVN) — nên các pattern liệt kê ở đây cũng phải viết KHÔNG DẤU,
+// nếu không so khớp sẽ luôn thất bại một cách âm thầm (bug từng gặp: "gợi ý",
+// "tư vấn", "tốt nhất", "mới"... có dấu không bao giờ khớp được với chuỗi đã
+// bỏ dấu, khiến rất nhiều câu hỏi tiếng Việt tự nhiên không kích hoạt tìm sản
+// phẩm thật, khiến AI trả lời chung chung/dễ bịa chuyện).
+function normalizeVN(s) {
+  return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d");
+}
+
 const CATEGORY_MAP = {
-  "điện thoại|smartphone|phone|iphone|android":            "Điện thoại",
-  "laptop|máy tính xách tay|notebook|macbook":             "Laptop",
-  "tablet|máy tính bảng|ipad":                             "Máy tính bảng",
-  "tai nghe|earphone|airpod|headphone|earbud":             "Phụ kiện",
-  "tivi|tv|smart tv|màn hình":                             "Tivi",
-  "phụ kiện|sạc|cáp|ốp lưng|bàn phím|chuột|loa|speaker": "Phụ kiện",
+  "dien thoai|smartphone|phone|iphone|android":         "Điện thoại",
+  "laptop|may tinh xach tay|notebook|macbook":           "Laptop",
+  "tablet|may tinh bang|ipad":                           "Máy tính bảng",
+  "tai nghe|earphone|airpod|headphone|earbud":           "Phụ kiện",
+  "tivi|tv|smart tv|man hinh":                            "Tivi",
+  "phu kien|sac|cap|op lung|ban phim|chuot|loa|speaker": "Phụ kiện",
 };
 
 const BRAND_MAP = [
@@ -92,7 +102,7 @@ const BRAND_MAP = [
 ];
 
 function extractIntent(message) {
-  const lower = message.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d");
+  const lower = normalizeVN(message);
 
   const intent = {
     is_product_query: false,
@@ -108,8 +118,8 @@ function extractIntent(message) {
   // câu chỉ gõ tên hãng/dòng máy (VD: "macbook air") mà thiếu động từ kích hoạt.
   const productTriggers = new RegExp(
     [
-      "tìm", "muon", "mua", "xem", "recommend", "gợi ý", "tư vấn", "cho mình", "có không",
-      "giá", "rẻ", "đắt", "tốt nhất", "bán chạy", "new", "mới",
+      "tim", "muon", "mua", "xem", "recommend", "goi y", "tu van", "cho minh", "co khong",
+      "gia", "re", "dat", "tot nhat", "ban chay", "new", "moi",
       "iphone", "ipad", "macbook", "airpod", "tai nghe", "tivi", "phone", "laptop", "tablet",
       ...BRAND_MAP,
     ].join("|")
@@ -161,6 +171,45 @@ function extractIntent(message) {
   return intent;
 }
 
+// ── Phát hiện & xử lý hành động "thêm giỏ hàng" / "đặt hàng" qua chat ───────
+// Chatbox không chỉ tư vấn mà còn có thể THỰC SỰ thực hiện hành động: nhận diện
+// câu lệnh, xác định đúng sản phẩm khách đang nói tới (trong danh sách vừa
+// hiển thị), rồi trả về cho FE thực thi thêm giỏ hàng thật (dùng lại logic
+// giỏ hàng có sẵn — hỗ trợ cả khách vãng lai lẫn khách đã đăng nhập).
+function detectCartAction(message) {
+  const addCart = /(giỏ hàng|vào giỏ|bỏ giỏ|thêm giỏ|cho vào giỏ)/i.test(message);
+  const wantsCheckout = /(đặt hàng luôn|đặt đơn|chốt đơn|thanh toán luôn|thanh toán ngay|mua luôn|xác nhận đặt hàng)/i.test(message);
+  return { addCart, wantsCheckout };
+}
+
+function resolveCartTargets(message, pool = []) {
+  if (!pool.length) return null;
+  const lower = normalizeVN(message);
+
+  if (/(tat ca|het\b|toan bo)/.test(lower)) return pool.slice(0, 10);
+
+  const ordinals = [
+    [/dau tien|thu nhat|so 1\b/, 0],
+    [/thu hai|thu 2\b|so 2\b/, 1],
+    [/thu ba|thu 3\b|so 3\b/, 2],
+    [/cuoi cung|cai cuoi/, pool.length - 1],
+  ];
+  for (const [re, idx] of ordinals) {
+    if (re.test(lower) && pool[idx]) return [pool[idx]];
+  }
+
+  // Khớp theo tên sản phẩm (2 từ đầu, VD: "iphone 17", "samsung galaxy")
+  const matched = pool.filter((p) => {
+    const tokens = normalizeVN(p.ten).split(/\s+/).slice(0, 2).join(" ");
+    return tokens && lower.includes(tokens);
+  });
+  if (matched.length) return matched;
+
+  if (pool.length === 1) return pool; // chỉ đang hiển thị đúng 1 sp → không cần nói rõ tên
+
+  return null; // mơ hồ (nhiều sp, không rõ ý) → để AI hỏi lại cho rõ
+}
+
 // ── Gọi AI (thử Groq → OpenRouter) ─────────────────────────────────────────
 async function callAI(systemPrompt, userMessage, history = []) {
   const groqKey        = process.env.GROQ_API_KEY;
@@ -178,8 +227,14 @@ async function callAI(systemPrompt, userMessage, history = []) {
     try {
       const Groq  = require("groq-sdk");
       const groq  = new Groq({ apiKey: groqKey });
+      // reasoning_effort thấp: openai/gpt-oss-120b mặc định "suy nghĩ" (reasoning
+      // tokens) khá nhiều trước khi trả lời — nếu để mặc định, phần suy nghĩ có
+      // thể ngốn hết max_tokens và cắt cụt/rỗng câu trả lời thật (finish_reason:
+      // "length", content trống). Hạ reasoning xuống "low" + tăng max_tokens để
+      // luôn có đủ chỗ cho câu trả lời hiển thị, tránh việc rơi về template.
       const res   = await groq.chat.completions.create({
-        model: "llama-3.3-70b-versatile", messages, temperature: 0.65, max_tokens: 400,
+        model: "openai/gpt-oss-120b", messages, temperature: 0.7, max_tokens: 700,
+        reasoning_effort: "low",
       });
       const text = res.choices[0]?.message?.content;
       if (text) return text;
@@ -264,7 +319,7 @@ function buildTemplateReply(message, intent, products) {
 // ── Main handler ─────────────────────────────────────────────────────────────
 exports.chat = async (req, res) => {
   try {
-    const { message, history = [] } = req.body;
+    const { message, history = [], lastProducts = [] } = req.body;
     if (!message?.trim()) {
       return res.status(400).json({ success: false, message: "Thiếu nội dung tin nhắn" });
     }
@@ -305,6 +360,35 @@ exports.chat = async (req, res) => {
       products = found.slice(0, 6);
     }
 
+    // ── 2.5 Hành động thêm giỏ hàng / đặt hàng ─────────────────────────────
+    // Khách vừa tìm sp trong lượt này thì ưu tiên dùng danh sách đó, không thì
+    // dùng lại danh sách sp đã hiển thị ở lượt trước (FE gửi kèm lên).
+    const cartAction = detectCartAction(message);
+    if (cartAction.addCart || cartAction.wantsCheckout) {
+      const pool = products.length ? products : (Array.isArray(lastProducts) ? lastProducts : []);
+      const targets = resolveCartTargets(message, pool);
+      if (targets && targets.length) {
+        const fmt2 = (n) => new Intl.NumberFormat("vi-VN").format(n) + "đ";
+        const lines = [`Mình đã thêm ${targets.length} sản phẩm vào giỏ hàng cho bạn rồi nhé 🛒✅`];
+        targets.forEach((p) => lines.push(`• ${p.ten} — ${fmt2(p.giaSale ?? p.gia)}`));
+        if (cartAction.wantsCheckout) lines.push(`\nBấm nút bên dưới để tới trang thanh toán và hoàn tất đơn hàng nhé 💳`);
+
+        return res.json({
+          success: true,
+          reply: lines.join("\n"),
+          products: [],
+          cartAction: {
+            items: targets.map((p) => ({
+              productId: String(p.id), tenSanPham: p.ten, hinhAnh: p.thumbnail, gia: p.giaSale ?? p.gia,
+            })),
+          },
+          cta: cartAction.wantsCheckout ? { label: "Đến trang thanh toán →", href: "/thanhtoan" } : null,
+        });
+      }
+      // Không xác định được sản phẩm nào (mơ hồ/chưa có sp nào từng hiển thị)
+      // → để rơi xuống bước 3, nhờ AI hỏi lại cho rõ dựa trên ngữ cảnh hội thoại.
+    }
+
     // ── 3. Sinh phản hồi ───────────────────────────────────────────────────
     const fmt = (n) => new Intl.NumberFormat("vi-VN").format(n) + "đ";
     const productCtx = products.length
@@ -312,14 +396,19 @@ exports.chat = async (req, res) => {
         products.map((p, i) => `${i + 1}. ${p.ten} (${p.thuongHieu}) — ${fmt(p.giaSale ?? p.gia)}${p.giamGia ? ` giảm ${p.giamGia}%` : ""} — ★${p.danhGia}/5`).join("\n")
       : intent.is_product_query ? "\n[Không tìm thấy sản phẩm]" : "";
 
-    const systemPrompt = `Bạn là Bunny 🐰 — linh vật thỏ dễ thương của SmartHub, shop điện tử tại Việt Nam.
-SmartHub chuyên bán: Điện thoại, Laptop, Máy tính bảng, Tai nghe & Phụ kiện, Tivi.
-Phong cách: thân thiện, nhiệt tình, ngắn gọn (tối đa 120 từ), dùng emoji vừa phải.
-Hướng dẫn xử lý:
-- Khi được chào hỏi (bạn ơi, hi, hello, chào…) → chào lại thân thiện, giới thiệu bản thân, hỏi bạn cần tìm gì.
-- Khi hỏi shop bán gì / có gì → giới thiệu các danh mục: Điện thoại, Laptop, Máy tính bảng, Tai nghe, Tivi, Phụ kiện.
-- Khi hỏi về sản phẩm cụ thể → tư vấn dựa vào danh sách sản phẩm bên dưới (nếu có).
-- Không bịa thông tin sản phẩm ngoài danh sách được cung cấp.${productCtx}`;
+    const systemPrompt = `Bạn là Bunny 🐰 — trợ lý AI của SmartHub.
+SmartHub CHỈ là một shop bán lẻ điện tử online tại Việt Nam — bán đúng 5 nhóm hàng: Điện thoại, Laptop, Máy tính bảng, Tai nghe & Phụ kiện, Tivi. SmartHub không tự phát triển phần mềm/app/AI riêng, không có "phiên bản", "dashboard", "tính năng mới", "sự kiện/hackathon" nào ngoài việc bán hàng — đừng nhầm SmartHub với một hãng công nghệ.
+
+Bạn là một AI thực sự, không phải chatbot trả lời theo kịch bản cứng nhắc — hãy trò chuyện tự nhiên như con người:
+- Đọc kỹ lịch sử hội thoại phía trên để hiểu ngữ cảnh, nhớ những gì khách đã nói/hỏi trước đó, không hỏi lại thông tin khách đã cung cấp.
+- Trả lời đúng trọng tâm câu hỏi thật của khách — kể cả khi họ tám chuyện, hỏi ngoài lề, đùa giỡn, hay hỏi ý kiến/so sánh — thay vì lúc nào cũng lái về "bạn cần tìm sản phẩm gì?".
+- Có cá tính: thân thiện, dí dỏm, ấm áp như một người tư vấn thật, không rập khuôn, không lặp lại y nguyên các câu chào/giới thiệu ở mỗi lượt.
+- Ngắn gọn, tự nhiên (thường 2-5 câu), emoji vừa phải, không lạm dụng.
+
+QUY TẮC BẮT BUỘC — chống bịa đặt:
+- Khi tư vấn sản phẩm → CHỈ dùng tên/giá/thông số trong "[Sản phẩm tìm được]" bên dưới (nếu có). Tuyệt đối không tự nghĩ ra tên sản phẩm, model, mức giá.
+- Nếu thấy "[Không tìm thấy sản phẩm]" → nói thật là chưa tìm thấy, hỏi lại để hiểu rõ nhu cầu hơn (đổi từ khóa/khoảng giá), KHÔNG được bịa ra sản phẩm khác để lấp chỗ trống.
+- Không tự bịa ra tin tức, xu hướng công nghệ, khuyến mãi, sự kiện, chương trình, tính năng app, hay "cập nhật" nào của SmartHub nếu không có trong dữ liệu được cung cấp — nếu khách hỏi kiểu "có gì mới/hot không", chỉ được trả lời dựa trên sản phẩm thực tế trong danh sách bên dưới; nếu không có, thành thật nói chưa có thông tin cụ thể và gợi ý khách xem trực tiếp trang sản phẩm hoặc cho biết cụ thể họ đang quan tâm loại nào.${productCtx}`;
 
     const aiReply = await callAI(systemPrompt, message, Array.isArray(history) ? history : []);
     const reply   = aiReply || buildTemplateReply(message, intent, products);
