@@ -14,6 +14,7 @@ import { ARTICLES } from "./tin-tuc/data";
 import HeroBanner from "../components/HeroBanner";
 import Rabbit3D from "../components/Rabbit3D";
 import { isLoggedIn } from "../lib/authPrompt";
+import { toastError } from "../utils/toast";
 
 // ─── API CONFIG ───────────────────────────────────────────────────────────────
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -492,9 +493,14 @@ function FlashSaleProductCard({ f, locked = false }: { f: FlashSaleActiveItem; l
   const liked = isFavorite(id);
   const router = useRouter();
 
-  // "Mua ngay" bỏ qua giỏ hàng, đi thẳng tới trang thanh toán — khớp hành vi
-  // nút "Mua ngay" ở trang chi tiết sản phẩm (sanpham/[slug]).
-  const handleBuyNow = (e: React.MouseEvent) => {
+  // "Mua ngay" — trước đây chỉ lưu tạm ở sessionStorage rồi vào thẳng trang
+  // thanh toán, KHÔNG hề thêm vào giỏ hàng thật trong DB. Backend tạo đơn luôn
+  // lọc theo giỏ hàng thật (Cart collection) nên khi bấm thanh toán sẽ báo lỗi
+  // "Không có sản phẩm nào được chọn" (item ảo "buynow_..." không khớp item
+  // nào trong giỏ thật). Sửa: thêm thật vào giỏ hàng trước, lấy đúng _id thật
+  // của item vừa thêm, rồi chỉ định trang thanh toán CHỈ thanh toán riêng item
+  // đó (tái dùng đúng cơ chế "chọn sản phẩm" có sẵn từ trang giỏ hàng).
+  const handleBuyNow = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (locked || soldOut) return;
@@ -502,18 +508,35 @@ function FlashSaleProductCard({ f, locked = false }: { f: FlashSaleActiveItem; l
       router.push("/login");
       return;
     }
-    const item = {
-      _id: `buynow_${id}`,
-      productId: String(id),
-      tenSanPham: product.product_name,
-      hinhAnh: product.thumbnail,
-      gia: f.sale_price,
-      soLuong: 1,
-      variant: variant?.color || "",
-    };
-    sessionStorage.setItem("smarthub_buynow_item", JSON.stringify(item));
-    localStorage.removeItem("smarthub_checkout_ids");
-    router.push("/thanhtoan");
+    const token = localStorage.getItem("smarthub_token");
+    const variantColor = variant?.color || "";
+    try {
+      const res = await fetch(`${BASE_URL}/api/cart/add`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          productId:  String(id),
+          tenSanPham: product.product_name,
+          hinhAnh:    product.thumbnail,
+          gia:        f.sale_price,
+          soLuong:    1,
+          variant:    variantColor,
+        }),
+      });
+      const data = await res.json();
+      const added = data.success
+        ? data.cart.items.find((i: { productId: string; variant: string; _id: string }) =>
+            i.productId === String(id) && i.variant === variantColor)
+        : null;
+      if (!added) {
+        toastError("Không thể xử lý mua ngay, thử lại nhé!");
+        return;
+      }
+      localStorage.setItem("smarthub_checkout_ids", JSON.stringify([added._id]));
+      router.push("/thanhtoan");
+    } catch {
+      toastError("Không thể xử lý mua ngay, thử lại nhé!");
+    }
   };
 
   const handleToggleFavorite = (e: React.MouseEvent) => {

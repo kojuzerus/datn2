@@ -163,8 +163,6 @@ export default function GioHangPage() {
       requireLogin('Vui lòng đăng nhập để tiến hành thanh toán.');
       return;
     }
-    // Xóa buy-now cũ (nếu có) để trang thanh toán đọc giỏ hàng
-    sessionStorage.removeItem('smarthub_buynow_item');
     localStorage.setItem('smarthub_checkout_ids', JSON.stringify([...selected]));
     router.push('/thanhtoan');
   };
