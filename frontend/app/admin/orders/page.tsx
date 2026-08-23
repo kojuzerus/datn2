@@ -6,6 +6,7 @@ import {
   Search, RefreshCw, X, CheckCircle, XCircle, Eye,
   Package, MapPin, CreditCard, Truck, Clock, FileText, AlertTriangle,
 } from "lucide-react";
+import { formatOrderCode } from "../../lib/orderCode";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -357,7 +358,7 @@ export default function AdminOrdersPage() {
                       onClick={() => setDetail(o)}
                     >
                       <td className="px-4 py-3.5 text-[#D32F2F] font-bold text-[12px]">
-                        #{o._id.slice(-6).toUpperCase()}
+                        {formatOrderCode(o._id)}
                       </td>
                       <td className="px-4 py-3.5">
                         <div className="text-[13px] font-medium text-gray-900">{o.receiverName}</div>
@@ -457,7 +458,7 @@ export default function AdminOrdersPage() {
                   <Package size={16} className="text-[#D32F2F]" />
                 </div>
                 <span className="text-[15px] font-bold text-gray-900">
-                  Đơn hàng #{detail._id.slice(-6).toUpperCase()}
+                  Đơn hàng {formatOrderCode(detail._id)}
                 </span>
               </div>
               <button

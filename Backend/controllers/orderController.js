@@ -1,6 +1,7 @@
 const Order     = require("../models/orderModel");
 const Cart      = require("../models/cartModel");
 const Product   = require("../models/productModel");
+const Variant   = require("../models/variantModel");
 const Promotion = require("../models/promotionModel");
 const { checkPromo } = require("./promotionController");
 const { markVoucherUsed } = require("./voucherController");
@@ -18,6 +19,39 @@ async function adjustTotalSold(items, delta) {
 // Xuất ra để paymentController dùng lại đúng logic này khi VNPAY báo thanh toán thất bại
 // (tránh việc đơn bị huỷ ở luồng VNPAY vẫn còn tính vào "đã bán").
 exports.adjustTotalSold = adjustTotalSold;
+
+// Trừ/hoàn tồn kho thật theo số lượng từng sản phẩm trong đơn (delta: -1 khi
+// đặt, +1 khi hủy) — TRƯỚC ĐÂY chỉ có adjustTotalSold(), không có bước này,
+// nên khách mua hết sạch hàng nhưng stock_quantity trong DB không hề giảm.
+// Variants có thể nhúng sẵn trong document product (dữ liệu mới) hoặc nằm ở
+// collection product_variants riêng (dữ liệu cũ) — xem thêm attachVariants()
+// trong productController.js, phải cập nhật đúng nơi variant đó thực sự nằm.
+async function adjustStock(items, delta) {
+  await Promise.all(
+    (items || []).map(async (i) => {
+      const product_id = parseInt(i.productId);
+      if (isNaN(product_id)) return;
+      const qty     = delta * i.soLuong;
+      const variant = i.variant || "";
+
+      // Sản phẩm chỉ có 1 biến thể không phân màu (color rỗng) → khớp thẳng
+      // vào phần tử đầu tiên thay vì so màu (tránh không khớp được gì).
+      const filter = variant
+        ? { product_id, "variants.color": variant }
+        : { product_id, "variants.0": { $exists: true } };
+      const update = variant
+        ? { $inc: { "variants.$.stock_quantity": qty } }
+        : { $inc: { "variants.0.stock_quantity": qty } };
+
+      const embedded = await Product.updateOne(filter, update);
+      if (embedded.matchedCount > 0) return;
+
+      // Không có variants nhúng sẵn (dữ liệu cũ) → cập nhật collection riêng
+      await Variant.updateOne({ product_id, color: variant }, { $inc: { stock_quantity: qty } });
+    })
+  );
+}
+exports.adjustStock = adjustStock;
 
 // POST /api/orders — Tạo đơn hàng từ giỏ hàng
 exports.createOrder = async (req, res) => {
@@ -107,6 +141,7 @@ exports.createOrder = async (req, res) => {
     await cart.save();
 
     await adjustTotalSold(order.items, 1);
+    await adjustStock(order.items, -1);
 
     res.status(201).json({ success: true, message: "Đặt hàng thành công", order });
   } catch (err) {
@@ -148,6 +183,7 @@ exports.cancelOrder = async (req, res) => {
     if (req.body.lyDoHuy) order.lyDoHuy = req.body.lyDoHuy;
     await order.save();
     await adjustTotalSold(order.items, -1);
+    await adjustStock(order.items, 1);
     res.json({ success: true, message: "Đã hủy đơn hàng", order });
   } catch (err) {
     res.status(500).json({ success: false, message: "Lỗi server" });
@@ -179,6 +215,7 @@ exports.updateOrderStatus = async (req, res) => {
 
     if (trangThai === "da_huy" && existing.trangThai !== "da_huy") {
       await adjustTotalSold(existing.items, -1);
+      await adjustStock(existing.items, 1);
     }
 
     existing.trangThai = trangThai;

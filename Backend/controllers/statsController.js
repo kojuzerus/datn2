@@ -200,7 +200,10 @@ exports.getRecentOrders = async (req, res) => {
         ? `${firstItem?.tenSanPham || ""} +${items.length - 1} sản phẩm`
         : (firstItem?.tenSanPham || "(không có sản phẩm)");
       return {
-        id:         "#" + o._id.toString().slice(-5).toUpperCase(),
+        // 6 ký tự cuối (không phải 5) — khớp đúng định dạng mã đơn dùng ở
+        // trang danh sách đơn hàng admin và các trang khách hàng, tránh cùng
+        // 1 đơn hiện ra 2-3 mã khác nhau tùy đang xem ở đâu.
+        id:         "#" + o._id.toString().slice(-6).toUpperCase(),
         orderId:    o._id.toString(),
         customer:   o.receiverName || "Khách hàng",
         product,

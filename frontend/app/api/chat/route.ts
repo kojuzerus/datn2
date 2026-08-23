@@ -404,7 +404,7 @@ function buildReply(msg: string, intent: Intent, products: any[]): string {
     return "Không có gì! 🐰 Nếu cần tư vấn thêm cứ hỏi mình nhé. SmartHub luôn sẵn sàng hỗ trợ bạn! 😊";
 
   if (/chính sách|bảo hành|đổi trả|giao hàng/.test(lower))
-    return "SmartHub có các chính sách sau:\n• 🛡️ Bảo hành 12 tháng chính hãng\n• 🔄 Đổi trả miễn phí trong 30 ngày\n• 🚀 Giao hàng trong 2h nội thành\n• 💳 Trả góp 0% lên đến 24 tháng";
+    return "SmartHub có các chính sách sau:\n• 🛡️ Bảo hành 12 tháng chính hãng\n• 🔄 Đổi trả miễn phí trong 30 ngày\n• 🚀 Giao hàng trong 2h nội thành";
 
   if (!intent.is_product_query) {
     if (/bạn là ai|bạn tên|mày là|mình là bunny|giới thiệu/i.test(lower))

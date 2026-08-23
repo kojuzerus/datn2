@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Package, ChevronRight, ChevronLeft, Clock3, CreditCard, XCircle, Home } from 'lucide-react';
+import { formatOrderCode } from '../lib/orderCode';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -218,7 +219,7 @@ export default function DonHangPage() {
                       </span>
                     </div>
                     <div className="text-sm text-gray-600">
-                      Mã đơn hàng: <span className="font-semibold text-gray-900">{order._id}</span>
+                      Mã đơn hàng: <span className="font-semibold text-gray-900">{formatOrderCode(order._id)}</span>
                     </div>
                   </div>
 

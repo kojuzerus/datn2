@@ -69,7 +69,6 @@ export default function Footer() {
     { href: "/sanpham?danh-muc=tivi-sony", label: "Tivi Sony" },
     { href: "/sanpham?danh-muc=tivi-lg", label: "Tivi LG" },
     { href: "/sanpham?danh-muc=camera", label: "Camera" },
-    { href: "/sanpham?danh-muc=tra-gop", label: "Trả góp" },
     { href: "/sanpham?danh-muc=xiaomi-17t", label: "Xiaomi 17T" },
   ];
 
@@ -81,7 +80,6 @@ export default function Footer() {
     { href: "/sanpham?danh-muc=tai-nghe", label: "Tai nghe & Loa" },
     { href: "/sanpham?danh-muc=dong-ho", label: "Đồng hồ thông minh" },
     { href: "/sanpham?giam-gia=1", label: "Khuyến mãi 🔥" },
-    { href: "/sanpham", label: "Trả góp 0%" },
   ];
 
   const support = [

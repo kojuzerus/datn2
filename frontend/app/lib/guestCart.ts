@@ -37,6 +37,11 @@ export function guestCartCount(): number {
   return read().reduce((s, i) => s + i.soLuong, 0);
 }
 
+// `maxStock`: tồn kho thật của biến thể này tại thời điểm gọi (nếu trang gọi
+// biết được, VD trang chi tiết sản phẩm có sẵn selectedVariant.stock_quantity).
+// Giỏ khách vãng lai lưu ở localStorage nên KHÔNG có cách nào tự tra tồn kho —
+// phải dựa vào giá trị trang gọi truyền vào; không truyền thì không giới hạn
+// ở bước này (giỏ hàng server vẫn chặn lại khi khách đăng nhập/gộp giỏ).
 export function addGuestCartItem(item: {
   productId: string;
   tenSanPham: string;
@@ -44,13 +49,22 @@ export function addGuestCartItem(item: {
   gia: number;
   soLuong?: number;
   variant?: string;
+  maxStock?: number;
 }) {
   const items = read();
   const variant = item.variant || '';
   const id = `${item.productId}__${variant}`;
   const idx = items.findIndex((i) => i._id === id);
+  const currentQty = idx > -1 ? items[idx].soLuong : 0;
+  const wantQty = item.soLuong || 1;
+  const addQty = item.maxStock != null
+    ? Math.max(0, Math.min(wantQty, item.maxStock - currentQty))
+    : wantQty;
+
+  if (addQty <= 0) return false; // đã có đủ/đầy tồn kho trong giỏ rồi
+
   if (idx > -1) {
-    items[idx].soLuong += item.soLuong || 1;
+    items[idx].soLuong += addQty;
   } else {
     items.push({
       _id: id,
@@ -58,11 +72,12 @@ export function addGuestCartItem(item: {
       tenSanPham: item.tenSanPham,
       hinhAnh: item.hinhAnh || '',
       gia: item.gia,
-      soLuong: item.soLuong || 1,
+      soLuong: addQty,
       variant,
     });
   }
   write(items);
+  return true;
 }
 
 export function updateGuestCartItem(id: string, soLuong: number) {

@@ -311,14 +311,6 @@ function ProductCard({ p }: { p: ProductFeatured }) {
               Giảm {p.giamGia}%
             </span>
           )}
-          {/* Trả góp ribbon — dán mép phải */}
-          <div
-            className="absolute top-3 right-0 z-10 bg-blue-50 text-blue-600 text-[10px] font-bold py-[3px] pl-4 pr-3 leading-none"
-            style={{ clipPath: "polygon(14px 0%,100% 0%,100% 100%,14px 100%,0% 50%)" }}
-          >
-            Trả góp 0%
-          </div>
-
           <img
             src={p.thumbnail || "https://placehold.co/300x300?text=No+Image"}
             alt={p.ten}

@@ -388,6 +388,7 @@ export default function ProductDetailPage() {
       gia: displayPrice,
       soLuong: Math.max(1, qty),
       variant: selectedVariant?.color || "",
+      maxStock: selectedVariant?.stock_quantity,
     });
     if (success) {
       setAddedToCart(true);

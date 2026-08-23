@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 const Order = require('../models/orderModel');
 const Cart = require('../models/cartModel');
-const { adjustTotalSold } = require('./orderController');
+const { adjustTotalSold, adjustStock } = require('./orderController');
 
 // Hàm encode theo chuẩn VNPAY
 const vnpayEncode = (value) => {
@@ -128,15 +128,17 @@ exports.returnHandler = async (req, res) => {
         const trangThaiCu = order.trangThai;
         order.trangThai = (vnpResponseCode === '00') ? 'da_xac_nhan' : 'da_huy';
 
-        // Thanh toán thất bại/bị hủy trên VNPAY → trừ lại total_sold đã cộng lúc tạo đơn
-        // (kiểm tra trạng thái cũ để tránh trừ nhiều lần nếu VNPAY gọi return nhiều lần).
+        // Thanh toán thất bại/bị hủy trên VNPAY → trừ lại total_sold đã cộng lúc tạo
+        // đơn, hoàn lại tồn kho đã trừ lúc đó, VÀ trả sản phẩm về giỏ hàng thật của
+        // khách (đơn tạo lúc bấm "Thanh toán VNPAY" đã xoá sẵn sản phẩm khỏi giỏ
+        // hàng trước khi biết kết quả thanh toán — nếu không trả lại, sản phẩm coi
+        // như "biến mất": không còn trong giỏ, không còn trong đơn nào hữu ích vì
+        // đơn đã huỷ). Kiểm tra trạng thái cũ để tránh làm những việc này nhiều lần
+        // nếu VNPAY gọi return nhiều lần.
         if (order.trangThai === 'da_huy' && trangThaiCu !== 'da_huy') {
           await adjustTotalSold(order.items, -1);
+          await adjustStock(order.items, 1);
 
-          // Đơn tạo lúc bấm "Thanh toán VNPAY" đã xoá sẵn sản phẩm khỏi giỏ hàng
-          // (trước khi biết kết quả thanh toán) — nếu thanh toán thất bại/huỷ,
-          // sản phẩm bị "biến mất" luôn, không còn trong giỏ lẫn trong đơn (đơn
-          // đã huỷ). Trả lại sản phẩm vào giỏ hàng để khách không mất hàng.
           let cart = await Cart.findOne({ userId: order.userId });
           if (!cart) cart = new Cart({ userId: order.userId, items: [] });
           for (const item of order.items) {
