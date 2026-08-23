@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const Order = require('../models/orderModel');
+const Cart = require('../models/cartModel');
 const { adjustTotalSold, adjustStock } = require('./orderController');
 
 // Hàm encode theo chuẩn VNPAY
@@ -128,11 +129,29 @@ exports.returnHandler = async (req, res) => {
         order.trangThai = (vnpResponseCode === '00') ? 'da_xac_nhan' : 'da_huy';
 
         // Thanh toán thất bại/bị hủy trên VNPAY → trừ lại total_sold đã cộng lúc tạo
-        // đơn VÀ hoàn lại tồn kho đã trừ lúc đó (kiểm tra trạng thái cũ để tránh
-        // trừ/hoàn nhiều lần nếu VNPAY gọi return nhiều lần).
+        // đơn, hoàn lại tồn kho đã trừ lúc đó, VÀ trả sản phẩm về giỏ hàng thật của
+        // khách (đơn tạo lúc bấm "Thanh toán VNPAY" đã xoá sẵn sản phẩm khỏi giỏ
+        // hàng trước khi biết kết quả thanh toán — nếu không trả lại, sản phẩm coi
+        // như "biến mất": không còn trong giỏ, không còn trong đơn nào hữu ích vì
+        // đơn đã huỷ). Kiểm tra trạng thái cũ để tránh làm những việc này nhiều lần
+        // nếu VNPAY gọi return nhiều lần.
         if (order.trangThai === 'da_huy' && trangThaiCu !== 'da_huy') {
           await adjustTotalSold(order.items, -1);
           await adjustStock(order.items, 1);
+
+          let cart = await Cart.findOne({ userId: order.userId });
+          if (!cart) cart = new Cart({ userId: order.userId, items: [] });
+          for (const item of order.items) {
+            const idx = cart.items.findIndex(
+              (i) => i.productId.toString() === item.productId && i.variant === item.variant
+            );
+            if (idx > -1) cart.items[idx].soLuong += item.soLuong;
+            else cart.items.push({
+              productId: item.productId, tenSanPham: item.tenSanPham, hinhAnh: item.hinhAnh,
+              gia: item.gia, soLuong: item.soLuong, variant: item.variant,
+            });
+          }
+          await cart.save();
         }
 
         await order.save();
