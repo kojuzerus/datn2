@@ -23,7 +23,7 @@ const orderSchema = new mongoose.Schema({
 
   paymentMethod: {
     type: String,
-    enum: ["cod", "banking", "vnpay"],
+    enum: ["cod", "banking", "vnpay", "vi"], // "vi" = thanh toán bằng số dư Ví SmartHub
     default: "cod",
   },
 

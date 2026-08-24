@@ -1,7 +1,6 @@
 const crypto = require('crypto');
 const Order = require('../models/orderModel');
-const Cart = require('../models/cartModel');
-const { adjustTotalSold, adjustStock } = require('./orderController');
+const { adjustTotalSold, adjustStock, restoreCartItems } = require('./orderController');
 
 // Hàm encode theo chuẩn VNPAY
 const vnpayEncode = (value) => {
@@ -138,20 +137,7 @@ exports.returnHandler = async (req, res) => {
         if (order.trangThai === 'da_huy' && trangThaiCu !== 'da_huy') {
           await adjustTotalSold(order.items, -1);
           await adjustStock(order.items, 1);
-
-          let cart = await Cart.findOne({ userId: order.userId });
-          if (!cart) cart = new Cart({ userId: order.userId, items: [] });
-          for (const item of order.items) {
-            const idx = cart.items.findIndex(
-              (i) => i.productId.toString() === item.productId && i.variant === item.variant
-            );
-            if (idx > -1) cart.items[idx].soLuong += item.soLuong;
-            else cart.items.push({
-              productId: item.productId, tenSanPham: item.tenSanPham, hinhAnh: item.hinhAnh,
-              gia: item.gia, soLuong: item.soLuong, variant: item.variant,
-            });
-          }
-          await cart.save();
+          await restoreCartItems(order.userId, order.items);
         }
 
         await order.save();
