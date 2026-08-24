@@ -5,6 +5,7 @@ const Variant   = require("../models/variantModel");
 const Promotion = require("../models/promotionModel");
 const { checkPromo } = require("./promotionController");
 const { markVoucherUsed } = require("./voucherController");
+const { refundToWallet, chargeWallet, getBalance } = require("./walletController");
 
 // Cộng/trừ lượt bán thật theo số lượng từng sản phẩm trong đơn (delta: 1 khi đặt, -1 khi hủy)
 async function adjustTotalSold(items, delta) {
@@ -52,6 +53,35 @@ async function adjustStock(items, delta) {
   );
 }
 exports.adjustStock = adjustStock;
+
+// Trả lại các item của đơn (đã bị xoá khỏi giỏ lúc tạo đơn) về giỏ hàng thật
+// của khách — dùng khi đơn bị huỷ do thanh toán thất bại (VNPAY/Ví), để sản
+// phẩm không "biến mất" (không còn trong giỏ lẫn không còn trong đơn hữu ích
+// nào vì đơn đã huỷ). Xuất ra để paymentController.js dùng lại đúng logic này.
+async function restoreCartItems(userId, items) {
+  let cart = await Cart.findOne({ userId });
+  if (!cart) cart = new Cart({ userId, items: [] });
+  for (const item of items || []) {
+    const idx = cart.items.findIndex(
+      (i) => i.productId.toString() === item.productId && i.variant === item.variant
+    );
+    if (idx > -1) cart.items[idx].soLuong += item.soLuong;
+    else cart.items.push({
+      productId: item.productId, tenSanPham: item.tenSanPham, hinhAnh: item.hinhAnh,
+      gia: item.gia, soLuong: item.soLuong, variant: item.variant,
+    });
+  }
+  await cart.save();
+}
+exports.restoreCartItems = restoreCartItems;
+
+// Đơn được coi là "đã thanh toán online" nếu trả bằng VNPAY/Ví VÀ đã qua khỏi
+// trạng thái "cho_xac_nhan" (với VNPAY/Ví, trạng thái nhảy thẳng lên
+// "da_xac_nhan" ngay khi thanh toán thành công — không dừng ở "cho_xac_nhan"
+// như COD) — dùng để quyết định có hoàn tiền vào ví khi đơn bị huỷ hay không.
+function daThanhToanOnline(order) {
+  return (order.paymentMethod === "vnpay" || order.paymentMethod === "vi") && order.trangThai !== "cho_xac_nhan";
+}
 
 // POST /api/orders — Tạo đơn hàng từ giỏ hàng
 exports.createOrder = async (req, res) => {
@@ -103,6 +133,15 @@ exports.createOrder = async (req, res) => {
 
     const tongThanhToan = Math.max(0, tongTien + phiGiaoHang - giamGia);
 
+    // Thanh toán bằng Ví SmartHub: kiểm tra đủ số dư TRƯỚC khi tạo đơn (fail
+    // sớm, tránh tạo đơn rồi mới báo lỗi). Việc trừ tiền thật sự diễn ra SAU
+    // khi đơn tạo thành công (bên dưới), vì cần orderId để ghi lịch sử giao dịch.
+    if (paymentMethod === "vi") {
+      const soDu = await getBalance(req.userId);
+      if (soDu < tongThanhToan)
+        return res.status(400).json({ success: false, message: "Số dư ví không đủ để thanh toán đơn hàng này" });
+    }
+
     const order = await Order.create({
       userId: req.userId,
       items: orderItems.map(i => ({
@@ -143,6 +182,25 @@ exports.createOrder = async (req, res) => {
     await adjustTotalSold(order.items, 1);
     await adjustStock(order.items, -1);
 
+    // Trừ tiền trong ví NGAY (đơn coi như đã thanh toán xong, giống VNPAY
+    // thành công) — nếu vì lý do hiếm gặp nào đó (race condition) số dư không
+    // còn đủ nữa, huỷ luôn đơn vừa tạo và trả lại mọi thay đổi ở trên.
+    if (paymentMethod === "vi") {
+      try {
+        await chargeWallet(req.userId, tongThanhToan, order._id, "Thanh toán đơn hàng bằng Ví SmartHub");
+        order.trangThai = "da_xac_nhan";
+        await order.save();
+      } catch (walletErr) {
+        order.trangThai = "da_huy";
+        order.lyDoHuy = "Thanh toán ví thất bại: " + walletErr.message;
+        await order.save();
+        await adjustTotalSold(order.items, -1);
+        await adjustStock(order.items, 1);
+        await restoreCartItems(req.userId, order.items);
+        return res.status(400).json({ success: false, message: walletErr.message });
+      }
+    }
+
     res.status(201).json({ success: true, message: "Đặt hàng thành công", order });
   } catch (err) {
     console.error(err);
@@ -176,7 +234,13 @@ exports.cancelOrder = async (req, res) => {
   try {
     const order = await Order.findOne({ _id: req.params.id, userId: req.userId });
     if (!order) return res.status(404).json({ success: false, message: "Không tìm thấy đơn hàng" });
-    if (order.trangThai !== "cho_xac_nhan")
+
+    // Khách tự huỷ được khi: (1) đơn COD chưa xác nhận (chưa mất tiền gì), hoặc
+    // (2) đơn đã thanh toán online (VNPAY/Ví) nhưng CHƯA giao — huỷ + hoàn tiền
+    // vào ví. Đơn đã "dang_giao"/"da_giao" thì không tự huỷ được nữa.
+    const coTheHoanTien = daThanhToanOnline(order) && order.trangThai === "da_xac_nhan";
+    const coTheHuy = order.trangThai === "cho_xac_nhan" || coTheHoanTien;
+    if (!coTheHuy)
       return res.status(400).json({ success: false, message: "Không thể hủy đơn hàng đang xử lý" });
 
     order.trangThai = "da_huy";
@@ -184,7 +248,22 @@ exports.cancelOrder = async (req, res) => {
     await order.save();
     await adjustTotalSold(order.items, -1);
     await adjustStock(order.items, 1);
-    res.json({ success: true, message: "Đã hủy đơn hàng", order });
+
+    let refunded = 0;
+    if (coTheHoanTien) {
+      refunded = await refundToWallet(
+        order.userId, order.tongThanhToan, order._id,
+        "Hoàn tiền do huỷ đơn đã thanh toán online"
+      );
+    }
+
+    res.json({
+      success: true,
+      message: refunded
+        ? `Đã hủy đơn hàng và hoàn ${refunded.toLocaleString("vi-VN")}đ vào Ví SmartHub`
+        : "Đã hủy đơn hàng",
+      order, refunded,
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: "Lỗi server" });
   }
@@ -214,8 +293,17 @@ exports.updateOrderStatus = async (req, res) => {
     if (!existing) return res.status(404).json({ success: false, message: "Không tìm thấy đơn hàng" });
 
     if (trangThai === "da_huy" && existing.trangThai !== "da_huy") {
+      // Tính trước khi trạng thái bị đổi — cần biết đơn CÓ ĐANG ở trạng thái
+      // "đã thanh toán online" hay không TRƯỚC khi set thành da_huy.
+      const canHoanTien = daThanhToanOnline(existing);
       await adjustTotalSold(existing.items, -1);
       await adjustStock(existing.items, 1);
+      if (canHoanTien) {
+        await refundToWallet(
+          existing.userId, existing.tongThanhToan, existing._id,
+          "Hoàn tiền do đơn bị huỷ (quản trị viên)"
+        );
+      }
     }
 
     existing.trangThai = trangThai;

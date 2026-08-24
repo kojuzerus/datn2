@@ -19,6 +19,7 @@ import {
   Tag,
   X,
   Gift,
+  Wallet,
 } from "lucide-react";
 import SearchableSelect, { SelectOption } from "../components/SearchableSelect";
 import { toastError, toastWarning } from "../utils/toast";
@@ -117,7 +118,8 @@ export default function ThanhToanPage() {
   const [items, setItems] = useState<CartItem[]>([]); // chỉ item được chọn
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedAddr, setSelectedAddr] = useState<string>("");
-  const [paymentMethod, setPaymentMethod] = useState<"cod" | "vnpay">("cod");
+  const [paymentMethod, setPaymentMethod] = useState<"cod" | "vnpay" | "vi">("cod");
+  const [walletBalance, setWalletBalance] = useState(0);
   const [ghiChu, setGhiChu] = useState("");
   const [loading, setLoading] = useState(true);
   const [placing, setPlacing] = useState(false);
@@ -160,7 +162,19 @@ export default function ThanhToanPage() {
     fetchProvinces();
     fetchAvailablePromos();
     fetchSpinVoucher();
+    fetchWallet();
   }, []);
+
+  const fetchWallet = async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_URL}/api/wallet`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) setWalletBalance(data.soDu || 0);
+    } catch {}
+  };
 
   const fetchAvailablePromos = async () => {
     try {
@@ -376,6 +390,8 @@ export default function ThanhToanPage() {
   const handlePlaceOrder = async () => {
     if (!selectedAddr) return toastWarning("Vui lòng chọn địa chỉ giao hàng");
     if (items.length === 0) return toastWarning("Không có sản phẩm nào");
+    if (paymentMethod === "vi" && walletBalance < tongThanhToan)
+      return toastWarning("Số dư ví không đủ để thanh toán đơn hàng này");
 
     const addr = addresses.find((a) => a._id === selectedAddr);
     if (!addr) return;
@@ -690,7 +706,7 @@ export default function ThanhToanPage() {
                       name="payment"
                       value={id}
                       checked={paymentMethod === id}
-                      onChange={() => setPaymentMethod(id as "cod" | "vnpay")}
+                      onChange={() => setPaymentMethod(id as "cod" | "vnpay" | "vi")}
                       className="accent-blue-500"
                     />
                     <div
@@ -710,7 +726,56 @@ export default function ThanhToanPage() {
                     </div>
                   </label>
                 ))}
+
+                {/* Ví SmartHub — số dư động nên hiển thị riêng, không nằm trong
+                    PAYMENT_METHODS tĩnh (còn phải biết đủ tiền hay không để khoá lại) */}
+                {(() => {
+                  const duDu = walletBalance >= tongThanhToan;
+                  return (
+                    <label
+                      className={`flex items-center gap-4 p-4 rounded-sm border-2 transition ${
+                        !duDu
+                          ? "border-gray-100 opacity-60 cursor-not-allowed"
+                          : paymentMethod === "vi"
+                            ? "border-blue-400 bg-blue-50 cursor-pointer"
+                            : "border-gray-100 hover:border-gray-200 cursor-pointer"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="payment"
+                        value="vi"
+                        checked={paymentMethod === "vi"}
+                        disabled={!duDu}
+                        onChange={() => setPaymentMethod("vi")}
+                        className="accent-blue-500"
+                      />
+                      <div className="w-12 h-10 bg-amber-50 rounded-sm flex items-center justify-center shrink-0 border border-gray-100">
+                        <Wallet className="w-5 h-5 text-amber-600" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-800 text-sm">Ví SmartHub</p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          Số dư khả dụng: {formatPrice(walletBalance)}
+                          {!duDu && " — không đủ để thanh toán đơn này"}
+                        </p>
+                      </div>
+                    </label>
+                  );
+                })()}
               </div>
+
+              {paymentMethod === "vi" && (
+                <div className="mt-3 p-4 bg-amber-50 border border-amber-100 rounded-sm">
+                  <p className="font-semibold text-amber-700 text-sm mb-2 flex items-center gap-1.5">
+                    <Wallet className="w-4 h-4" />
+                    Thanh toán bằng Ví SmartHub
+                  </p>
+                  <p className="text-sm text-amber-700">
+                    {formatPrice(tongThanhToan)} sẽ được trừ ngay từ số dư ví ({formatPrice(walletBalance)}) — không cần chuyển khoản hay quét mã.
+                  </p>
+                </div>
+              )}
 
               {paymentMethod === "vnpay" && (
                 <div className="mt-3 p-4 bg-yellow-50 border border-yellow-100 rounded-sm">
@@ -975,11 +1040,16 @@ export default function ThanhToanPage() {
 
               <button
                 onClick={handlePlaceOrder}
-                disabled={placing || items.length === 0 || !selectedAddr}
+                disabled={
+                  placing || items.length === 0 || !selectedAddr ||
+                  (paymentMethod === "vi" && walletBalance < tongThanhToan)
+                }
                 className={`w-full font-bold py-3.5 rounded-sm transition flex items-center justify-center gap-2 ${
                   paymentMethod === "vnpay"
                     ? "bg-yellow-500 hover:bg-yellow-600 text-white"
-                    : "bg-red-500 hover:bg-red-600 text-white"
+                    : paymentMethod === "vi"
+                      ? "bg-amber-500 hover:bg-amber-600 text-white"
+                      : "bg-red-500 hover:bg-red-600 text-white"
                 } disabled:bg-gray-200 disabled:text-gray-400`}
               >
                 {placing ? (
@@ -989,6 +1059,10 @@ export default function ThanhToanPage() {
                 ) : paymentMethod === "vnpay" ? (
                   <>
                     <CreditCard className="w-4 h-4" /> Thanh toán VNPAY
+                  </>
+                ) : paymentMethod === "vi" ? (
+                  <>
+                    <Wallet className="w-4 h-4" /> Thanh toán bằng Ví
                   </>
                 ) : (
                   <>
