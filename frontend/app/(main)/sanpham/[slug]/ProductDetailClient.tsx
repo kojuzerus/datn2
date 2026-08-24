@@ -1407,34 +1407,43 @@ export default function ProductDetailClient() {
         </Link>
       </div>
 
-      {/* ── Sticky buy bar (hiện khi cuộn qua khối thông tin chính) ── */}
+      {/* ── Sticky buy bar (hiện khi cuộn qua khối thông tin chính) ──
+          Trên mobile: thanh full-width sát đáy màn hình (giống app mua sắm
+          quen thuộc — Shopee/TGDD), đủ chỗ cho 2 nút, không bị cắt chữ. Từ
+          sm trở lên: giữ dạng thẻ nổi căn giữa như cũ (đủ rộng, không cần
+          full-width). z-[70]: PHẢI cao hơn mọi nút nổi khác (ThemeToggle/
+          AIChatBox/Zalo đều z-50, ScrollToTop z-40) — trước đây thanh này
+          z-40 NÊN CÁC NÚT NỔI ĐÈ LÊN CHE MẤT nút "Mua ngay"/"Thêm vào giỏ"
+          trên mobile, rất khó bấm trúng đúng nút mua hàng; đồng thời thanh
+          quá hẹp (358px) so với nội dung (ảnh + tên + giá + 2 nút) khiến chữ
+          nút "Thêm vào giỏ" bị cắt cụt — cả 2 lỗi đều gây khó dùng thật sự. */}
       {showStickyBar && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-white rounded-md border border-gray-200 shadow-lg p-3 flex items-center gap-4 w-[min(560px,calc(100vw-2rem))]">
+        <div className="fixed inset-x-0 bottom-0 sm:bottom-6 sm:left-1/2 sm:-translate-x-1/2 sm:inset-x-auto z-[70] bg-white border-t border-gray-200 sm:border sm:rounded-md shadow-[0_-4px_16px_rgba(0,0,0,0.08)] sm:shadow-lg p-2.5 sm:p-3 flex items-center gap-2 sm:gap-4 w-full sm:w-[min(560px,calc(100vw-2rem))]">
           <img
             src={product.thumbnail || "https://placehold.co/64x64?text=?"}
             alt={product.ten}
-            className="w-11 h-11 rounded-md object-cover bg-gray-50 shrink-0"
+            className="w-10 h-10 sm:w-11 sm:h-11 rounded-md object-cover bg-gray-50 shrink-0"
           />
           <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-semibold text-gray-800 truncate">
+            <p className="text-[12.5px] sm:text-[13px] font-semibold text-gray-800 truncate">
               {product.ten}
             </p>
-            <div className="flex items-center gap-2">
-              <p className="text-[14px] font-bold text-red-600">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <p className="text-[14px] font-bold text-red-600 whitespace-nowrap">
                 {fmt(displayPrice)}
               </p>
               {hasDiscount && (
-                <p className="text-[12px] text-gray-400 line-through">
+                <p className="hidden sm:block text-[12px] text-gray-400 line-through">
                   {fmt(originalPrice)}
                 </p>
               )}
             </div>
           </div>
-          <div className="shrink-0 flex items-center gap-2">
+          <div className="shrink-0 flex items-center gap-1.5 sm:gap-2">
             <button
               disabled={!inStock || adding}
               onClick={handleBuyNow}
-              className={`flex items-center justify-center px-4 py-2.5 rounded-md text-[13px] font-bold transition-all whitespace-nowrap ${
+              className={`flex items-center justify-center px-3 sm:px-4 py-2.5 rounded-md text-[13px] font-bold transition-all whitespace-nowrap ${
                 inStock && !adding
                   ? "bg-red-600 text-white hover:bg-red-700"
                   : "bg-gray-200 text-gray-400 cursor-not-allowed"
@@ -1445,7 +1454,7 @@ export default function ProductDetailClient() {
             <button
               disabled={!inStock || adding}
               onClick={handleAddToCart}
-              className={`flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-md text-[13px] font-semibold border-2 transition-all whitespace-nowrap ${
+              className={`flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-md text-[13px] font-semibold border-2 transition-all whitespace-nowrap ${
                 addedToCart
                   ? "border-green-500 bg-green-50 text-green-700"
                   : inStock && !adding
@@ -1453,12 +1462,10 @@ export default function ProductDetailClient() {
                     : "border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed"
               }`}
             >
-              <ShoppingCart className="w-3.5 h-3.5" />
-              {adding
-                ? "Đang thêm..."
-                : addedToCart
-                  ? "Đã thêm!"
-                  : "Thêm vào giỏ"}
+              <ShoppingCart className="w-3.5 h-3.5 shrink-0" />
+              <span className="hidden sm:inline">
+                {adding ? "Đang thêm..." : addedToCart ? "Đã thêm!" : "Thêm vào giỏ"}
+              </span>
             </button>
           </div>
         </div>

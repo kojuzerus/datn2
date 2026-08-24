@@ -387,9 +387,14 @@ export default function AIChatBox() {
 
         {/* Nút chat AI (con thỏ) */}
         <div className="flex flex-col items-center gap-1">
-          {/* Tooltip nhỏ */}
+          {/* Tooltip nhỏ — chỉ hiện trên desktop (hover), ẩn hẳn trên mobile:
+              di động không có "hover" nên tooltip luôn tự hiện lên (do
+              animation banner-fade-up chạy sau 1.2s) rồi đứng yên mãi mãi,
+              đè lên nội dung khác khi cuộn trang (VD: đè lên nút "Chia sẻ"
+              ở trang chi tiết sản phẩm) — icon con thỏ đã đủ rõ để nhận biết
+              là nút chat, không cần thêm nhãn chữ gây rối trên mobile. */}
           {!open && (
-            <div className="bg-gray-800 text-white text-xs px-2.5 py-1 rounded-full whitespace-nowrap shadow-lg mb-1 opacity-0 group-hover:opacity-100 pointer-events-none select-none"
+            <div className="hidden sm:block bg-gray-800 text-white text-xs px-2.5 py-1 rounded-full whitespace-nowrap shadow-lg mb-1 opacity-0 group-hover:opacity-100 pointer-events-none select-none"
               style={{ animation: "banner-fade-up 0.4s ease both 1.2s" }}>
               Tư vấn AI
             </div>
