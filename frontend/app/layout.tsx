@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Be_Vietnam_Pro } from "next/font/google";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import { ThemeProvider } from "./components/ThemeContext";
 import ThemeToggle from "./components/ThemeToggle";
 import LoginPromptModal from "./components/LoginPromptModal";
@@ -109,6 +110,12 @@ export default function RootLayout({
           </SpinEventProvider>
         </ThemeProvider>
       </body>
+      {/* Google Analytics 4 — chỉ gắn khi có Mã đo lường (NEXT_PUBLIC_GA_ID) để
+          local dev không tự gửi dữ liệu rác lên GA thật; component chính thức
+          của Next.js, tự tối ưu tải script không chặn render trang. */}
+      {process.env.NEXT_PUBLIC_GA_ID && (
+        <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />
+      )}
     </html>
   );
 }
