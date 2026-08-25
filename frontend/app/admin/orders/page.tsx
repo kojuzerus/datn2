@@ -59,7 +59,14 @@ const STATUS_FLOW = ["cho_xac_nhan", "da_xac_nhan", "dang_giao", "da_giao", "da_
 const FORWARD_FLOW = ["cho_xac_nhan", "da_xac_nhan", "dang_giao", "da_giao"] as const;
 
 function getAvailableStatuses(current: string): string[] {
-  if (current === "da_huy" || current === "da_giao") return [current];
+  if (current === "da_huy") return [current];
+  // "da_giao" vẫn khoá không cho tiến/lùi tuỳ ý như các trạng thái khác, NHƯNG
+  // cho phép lùi về "dang_giao" — khách bấm nhầm nút "Ghi Nhận Hàng" trong khi
+  // shipper thực tế CHƯA giao thì trước đây không có cách nào sửa lại (kể cả
+  // admin), đơn bị kẹt vĩnh viễn ở "đã giao" sai sự thật. Không cho lùi về
+  // "da_huy" ở đây vì da_huy có kèm hoàn tiền vào ví — lùi tự do dễ bị lợi
+  // dụng để hoàn tiền nhiều lần, cần xử lý thủ công riêng nếu gặp trường hợp đó.
+  if (current === "da_giao") return ["dang_giao", "da_giao"];
   const idx = FORWARD_FLOW.indexOf(current as typeof FORWARD_FLOW[number]);
   if (idx === -1) return [...STATUS_FLOW];
   return [...FORWARD_FLOW.slice(idx), "da_huy"];
