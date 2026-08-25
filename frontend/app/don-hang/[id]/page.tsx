@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Clock, MapPin, XCircle, Check, Star } from 'lucide-react';
 import CancelOrderModal from '../../components/CancelOrderModal';
-import { toastError } from '../../utils/toast';
+import { toastError, toastSuccess } from '../../utils/toast';
 import { formatOrderCode } from '../../lib/orderCode';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
@@ -57,6 +57,15 @@ const codStatusSteps: StatusStep[] = [
 
 const getStatusSteps = (paymentMethod: string): StatusStep[] =>
   paymentMethod?.toLowerCase() === 'cod' ? codStatusSteps : onlineStatusSteps;
+
+// Đã thanh toán online (VNPAY/Ví) và chưa giao → khách tự huỷ được, tiền hoàn
+// lại vào Ví SmartHub (xem cancelOrder() ở Backend/controllers/orderController.js
+// — cùng logic đã dùng đúng ở trang tài khoản /nguoidung, trang chi tiết đơn
+// hàng này trước đây chỉ cho huỷ khi 'cho_xac_nhan', thiếu nhánh đã thanh toán).
+function coTheHuyDon(o: Order) {
+  if (o.trangThai === 'cho_xac_nhan') return true;
+  return (o.paymentMethod === 'vnpay' || o.paymentMethod === 'vi') && o.trangThai === 'da_xac_nhan';
+}
 
 const statusLabels: Record<string, string> = {
   cho_xac_nhan: 'Chờ xác nhận',
@@ -133,6 +142,9 @@ export default function OrderDetailPage() {
       const data = await res.json();
       if (data.success) {
         setOrder(prev => prev ? { ...prev, trangThai: 'da_huy' } : prev);
+        // Backend đã tự soạn đúng câu báo hoàn tiền vào ví (nếu có) — dùng
+        // thẳng data.message thay vì tự viết lại, tránh lệch với thực tế.
+        toastSuccess(data.message || 'Đã hủy đơn hàng');
       } else {
         toastError(data.message || 'Không thể hủy đơn hàng');
       }
@@ -248,7 +260,7 @@ export default function OrderDetailPage() {
                       <span>Ngày nhận hàng dự kiến: <strong className="text-gray-900">22-02-2024</strong></span>
                     </div>
                     <div className="flex items-center gap-3">
-                      {order.trangThai === 'cho_xac_nhan' && (
+                      {coTheHuyDon(order) && (
                         <button
                           onClick={() => setShowCancelModal(true)}
                           className="px-5 py-2 text-sm font-semibold text-red-600 border border-red-300 bg-white rounded-md hover:bg-red-50 transition"
