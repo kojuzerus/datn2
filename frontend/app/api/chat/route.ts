@@ -843,6 +843,13 @@ function extractCleanReply(raw: string): string | null {
 const FILLER_WORDS = new Set([
   "di", "nhe", "nha", "a", "ne", "luon", "do", "nay", "vay", "thoi",
   "oi", "ban", "minh", "cho", "toi", "voi", "duoc", "khong",
+  // Cụm hành động giỏ hàng + đại từ trỏ chung ("nó") hay đi cùng câu ra lệnh
+  // ngắn (VD: "thêm nó vào giỏ hàng i") — cùng lỗi với KEYWORD_STOP_WORDS ở
+  // trên: thiếu các từ này khiến phép so khớp "MỌI từ phải khớp" luôn thất
+  // bại (không sản phẩm nào có chữ "vào"/"giỏ"/"hàng" trong tên), nên dù chỉ
+  // còn "nó" là từ thật sự vô nghĩa để đối chiếu, cả câu vẫn bị coi là không
+  // khớp sản phẩm nào — trong khi thực ra khách đang nói về ĐÚNG 1 sản phẩm.
+  "them", "vao", "gio", "hang", "bo", "no", "i",
 ]);
 
 // Tách riêng để dùng chung cho cả resolveKeywordFromHistory lẫn resolveAction
@@ -1023,6 +1030,19 @@ async function resolveAction(
   //    1 sản phẩm, hiểu ngầm là đang nói về nó, không cần khách lặp lại tên.
   if (!target && shownNames.length === 1) {
     target = await fetchExactProduct(shownNames[0]);
+  }
+
+  // 4.5. shownNames có nhiều sản phẩm (VD: 4 mẫu loa từ 1 lượt tìm kiếm cũ),
+  // nhưng cuộc trò chuyện đã thu hẹp lại còn nói về ĐÚNG 1 trong số đó ở câu
+  // trả lời GẦN NHẤT của chính Bunny (dù câu đó không kèm card sản phẩm, nên
+  // không có ghi chú "[Sản phẩm đã hiển thị: ...]" mới hơn) — khách nói "thêm
+  // nó/cái này vào giỏ" ngay sau đó gần như chắc chắn đang nói về sản phẩm đó,
+  // không phải hỏi lại cả danh sách cũ đã lỗi thời so với trọng tâm hiện tại.
+  if (!target && shownNames.length > 1) {
+    const lastAssistant = [...history].reverse().find((h: any) => h.role === "assistant");
+    const lastText = String(lastAssistant?.content || "").toLowerCase();
+    const mentioned = shownNames.filter((name) => lastText.includes(name.toLowerCase()));
+    if (mentioned.length === 1) target = await fetchExactProduct(mentioned[0]);
   }
 
   if (!target) {
