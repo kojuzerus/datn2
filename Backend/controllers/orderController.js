@@ -229,6 +229,27 @@ exports.getOrderById = async (req, res) => {
   }
 };
 
+// PUT /api/orders/:id/confirm-received — Khách tự xác nhận đã nhận được hàng
+// ("Ghi Nhận Hàng"). Chỉ hợp lệ khi đơn vị vận chuyển đã nhận đơn (dang_giao)
+// — chưa tới bước đó thì chưa có gì để xác nhận, đã giao/đã huỷ rồi thì
+// không cần xác nhận lại nữa.
+exports.confirmReceived = async (req, res) => {
+  try {
+    const order = await Order.findOne({ _id: req.params.id, userId: req.userId });
+    if (!order) return res.status(404).json({ success: false, message: "Không tìm thấy đơn hàng" });
+
+    if (order.trangThai !== "dang_giao")
+      return res.status(400).json({ success: false, message: "Đơn hàng chưa ở trạng thái đang giao, không thể xác nhận" });
+
+    order.trangThai = "da_giao";
+    await order.save();
+
+    res.json({ success: true, message: "Đã xác nhận nhận hàng, cảm ơn bạn!", order });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Lỗi server" });
+  }
+};
+
 // PUT /api/orders/:id/cancel — Hủy đơn hàng
 exports.cancelOrder = async (req, res) => {
   try {
