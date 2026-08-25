@@ -94,6 +94,7 @@ export default function OrderDetailPage() {
   const [error, setError] = useState('');
   const [cancelling, setCancelling] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [confirmingReceived, setConfirmingReceived] = useState(false);
 
   useEffect(() => {
     const token = getToken();
@@ -153,6 +154,30 @@ export default function OrderDetailPage() {
     } finally {
       setCancelling(false);
       setShowCancelModal(false);
+    }
+  };
+
+  // "Ghi Nhận Hàng" — khách tự xác nhận đã cầm được hàng khi đơn vị vận
+  // chuyển báo đang giao (dang_giao). Trước đây nút này không gắn onClick gì
+  // cả (bấm vào không làm gì) và backend cũng chưa có endpoint tương ứng.
+  const handleConfirmReceived = async () => {
+    setConfirmingReceived(true);
+    try {
+      const res = await fetch(`${API_URL}/api/orders/${params.id}/confirm-received`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setOrder(prev => prev ? { ...prev, trangThai: 'da_giao' } : prev);
+        toastSuccess(data.message || 'Đã xác nhận nhận hàng');
+      } else {
+        toastError(data.message || 'Không thể xác nhận nhận hàng');
+      }
+    } catch {
+      toastError('Lỗi kết nối, vui lòng thử lại');
+    } finally {
+      setConfirmingReceived(false);
     }
   };
 
@@ -268,9 +293,15 @@ export default function OrderDetailPage() {
                           Hủy đơn hàng
                         </button>
                       )}
-                      <button className="px-6 py-2 text-sm font-semibold text-white bg-red-600 rounded-md hover:bg-red-700 transition">
-                        Ghi Nhận Hàng
-                      </button>
+                      {order.trangThai === 'dang_giao' && (
+                        <button
+                          onClick={handleConfirmReceived}
+                          disabled={confirmingReceived}
+                          className="px-6 py-2 text-sm font-semibold text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-60 transition"
+                        >
+                          {confirmingReceived ? 'Đang xác nhận...' : 'Ghi Nhận Hàng'}
+                        </button>
+                      )}
                     </div>
                   </div>
                 )}
