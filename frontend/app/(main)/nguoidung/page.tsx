@@ -8,7 +8,7 @@ import {
   Edit3, Check, X, ChevronRight, Package,
   LogOut, Camera, Eye, EyeOff, MapPin,
   Plus, Trash2, Star, Home, ShoppingCart,
-  Wallet, LayoutGrid, Search, Heart,
+  Wallet, LayoutGrid, Search, Heart, Coins,
 } from 'lucide-react';
 import SearchableSelect, { SelectOption } from '../../components/SearchableSelect';
 import { useFavorites } from '../../components/favoritesContext';
@@ -255,8 +255,11 @@ export default function NguoiDungPage() {
     } finally { setWalletLoading(false); }
   }, []);
 
+  // Cũng fetch ở tab 'overview' (không chỉ 'wallet') — số dư ví giờ hiện
+  // luôn ở khối tóm tắt đầu trang (xem "Summary header"), không đợi khách
+  // bấm vào tab Ví SmartHub mới thấy.
   useEffect(() => {
-    if (tab === 'wallet' && user) fetchWallet();
+    if ((tab === 'wallet' || tab === 'overview') && user) fetchWallet();
   }, [tab, user, fetchWallet]);
 
   const handleCancelOrder = async (lyDoHuy: string) => {
@@ -602,9 +605,27 @@ export default function NguoiDungPage() {
 
         <div className="hidden sm:block w-px h-12 bg-gray-100" />
 
-        <div className="flex items-center gap-3">
+        {/* Số dư Ví SmartHub — bấm vào nhảy thẳng qua tab "Ví SmartHub" bên
+            dưới, giống hệt cách stat "Đơn hàng" đã làm. Trước đây số dư ví
+            CHỈ fetch khi khách tự bấm vào tab Ví, nên không hiện được ở đây
+            — đã đổi fetchWallet() gọi luôn cùng lúc với tab overview. */}
+        <button onClick={() => setTab('wallet')} className="flex items-center gap-3 text-left hover:opacity-80 transition-opacity">
           <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center shrink-0">
-            <Wallet className="w-5 h-5 text-amber-500" />
+            <Coins className="w-5 h-5 text-amber-500" />
+          </div>
+          <div>
+            <p className="font-bold text-gray-800 text-lg leading-none">
+              {walletLoading ? '—' : new Intl.NumberFormat('vi-VN').format(walletBalance) + 'đ'}
+            </p>
+            <p className="text-xs text-gray-400 mt-1">Số dư Ví SmartHub</p>
+          </div>
+        </button>
+
+        <div className="hidden sm:block w-px h-12 bg-gray-100" />
+
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center shrink-0">
+            <Wallet className="w-5 h-5 text-purple-500" />
           </div>
           <div>
             <p className="font-bold text-gray-800 text-lg leading-none">
