@@ -273,6 +273,16 @@ export default function AIChatBox() {
     }
   }, [open]);
 
+  // Input bị disabled={loading} lúc đang chờ Bunny trả lời — input bị disable
+  // thì trình duyệt tự rớt focus khỏi nó (hành vi mặc định của thẻ input khi
+  // disabled), nên bấm Enter gửi xong là con trỏ biến mất, phải bấm lại vào ô
+  // mới gõ tiếp được. Trả lời xong (loading tắt) thì tự focus lại ô nhập.
+  useEffect(() => {
+    if (!loading && open) {
+      setTimeout(() => inputRef.current?.focus(), 50);
+    }
+  }, [loading, open]);
+
   const sendMessage = useCallback(async (text?: string) => {
     const msg = (text ?? input).trim();
     if (!msg || loading) return;
