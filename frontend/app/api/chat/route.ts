@@ -154,6 +154,101 @@ function extractCompareTerms(msg: string): [string, string] | null {
   return [a, b];
 }
 
+// ── Tin tức / bài viết ─────────────────────────────────────────────────────────
+const NEWS_TRIGGERS = /tin tức|bài viết|blog|đọc tin|tin mới|khuyến mãi mới|sự kiện|có gì mới/i;
+
+function extractNewsKeyword(msg: string): string | null {
+  // Bắt buộc có từ nối "về/liên quan/nói về" mới coi là có chủ đề cụ thể — nếu
+  // không, các câu chung chung như "tin tức mới nhất" sẽ bị nuốt nhầm "mới
+  // nhất" làm từ khóa tìm kiếm, khiến search ra 0 kết quả dù thực sự có bài.
+  // Không có từ nối → trả null để fetchNews() lấy thẳng bài mới nhất, không lọc.
+  const m = msg.match(/(?:tin tức|bài viết|blog)\s+(?:về|liên quan|nói về)\s+(.+?)(?:[?.!]|$)/i);
+  const kw = m?.[1]?.trim();
+  return kw && kw.length > 1 ? kw : null;
+}
+
+interface NewsArticle {
+  title: string;
+  slug: string;
+  thumbnail: string;
+  summary: string;
+}
+
+async function fetchNews(keyword: string | null): Promise<NewsArticle[]> {
+  const p = new URLSearchParams({ limit: "4" });
+  if (keyword) p.set("search", keyword);
+  try {
+    const res = await fetch(`${BACKEND}/api/news?${p}`, { next: { revalidate: 0 } });
+    if (!res.ok) { console.error("[chat] fetchNews HTTP", res.status); return []; }
+    const data = await res.json();
+    return (data.data || []).map((n: any) => ({
+      title: n.title, slug: n.slug, thumbnail: n.thumbnail || "", summary: n.summary || "",
+    }));
+  } catch (e: any) { console.error("[chat] fetchNews threw:", e?.message); return []; }
+}
+
+// ── Tạo địa chỉ giao hàng qua chat ───────────────────────────────────────────
+// Khách nói "thêm địa chỉ" → hỏi đủ 6 trường theo MẪU CỐ ĐỊNH (giữ nguyên chữ
+// để lượt sau nhận diện lại đang ở giữa luồng nhập địa chỉ, giống cơ chế
+// resolvePendingColorChoice ở trên) → lượt kế tiếp bóc tách theo nhãn hoặc theo
+// thứ tự cố định nếu khách gõ liền một dòng → đủ + hợp lệ thì trả action thật
+// để FE tạo địa chỉ (chỉ trình duyệt mới có token khách, giống add-to-cart).
+type AddrKey = "receiverName" | "phone" | "province" | "district" | "ward" | "detailAddress";
+const ADDR_ORDER: AddrKey[] = ["receiverName", "phone", "province", "district", "ward", "detailAddress"];
+const ADDR_LABELS: Record<AddrKey, string> = {
+  receiverName: "Tên người nhận", phone: "Số điện thoại", province: "Tỉnh/Thành phố",
+  district: "Quận/Huyện", ward: "Phường/Xã", detailAddress: "Địa chỉ cụ thể",
+};
+const ADDRESS_PROMPT =
+  `Được thôi! Bạn gửi giúp mình thông tin theo đúng mẫu này nhé (giữ nguyên từng dòng, thay số liệu tương ứng):\n` +
+  ADDR_ORDER.map((k) => `${ADDR_LABELS[k]}: ...`).join("\n");
+
+function extractAddressIntent(msg: string): boolean {
+  return /thêm địa chỉ|tạo địa chỉ|địa chỉ (giao hàng )?mới|lưu địa chỉ|thêm (một )?địa chỉ/i.test(msg.toLowerCase());
+}
+
+// Lượt trước Bunny vừa hỏi mẫu địa chỉ (nhận diện qua 2 nhãn đầu — luôn giữ
+// nguyên văn trong ADDRESS_PROMPT nên so khớp lại được chính xác ở lượt sau).
+function isAddressPromptReply(history: any[]): boolean {
+  const last = [...history].reverse().find((h: any) => h.role === "assistant");
+  const content = String(last?.content || "");
+  return content.includes("Tên người nhận:") && content.includes("Số điện thoại:");
+}
+
+function parseAddressFields(msg: string): Partial<Record<AddrKey, string>> {
+  const fields: Partial<Record<AddrKey, string>> = {};
+  const LINE_PATTERNS: [RegExp, AddrKey][] = [
+    [/tên\s*(?:người nhận)?\s*:\s*(.+)/i, "receiverName"],
+    [/(?:sđt|số điện thoại|đt)\s*:\s*(.+)/i, "phone"],
+    [/tỉnh\s*(?:\/\s*thành phố)?\s*:\s*(.+)/i, "province"],
+    [/quận\s*(?:\/\s*huyện)?\s*:\s*(.+)/i, "district"],
+    [/phường\s*(?:\/\s*xã)?\s*:\s*(.+)/i, "ward"],
+    [/địa chỉ\s*(?:cụ thể)?\s*:\s*(.+)/i, "detailAddress"],
+  ];
+  const lines = msg.split(/\n+/).map((l) => l.trim()).filter(Boolean);
+  let labeledCount = 0;
+  for (const line of lines) {
+    for (const [re, key] of LINE_PATTERNS) {
+      const m = line.match(re);
+      if (m) { fields[key] = m[1].trim(); labeledCount++; break; }
+    }
+  }
+  if (labeledCount >= 3) return fields;
+
+  // Không gõ theo mẫu có nhãn — thử tách theo dấu phẩy/xuống dòng, gán theo
+  // ĐÚNG THỨ TỰ cố định (name, phone, tỉnh, quận, phường, địa chỉ cụ thể).
+  const parts = msg.split(/\n|,/).map((p) => p.trim()).filter(Boolean);
+  if (parts.length >= 6) {
+    ADDR_ORDER.forEach((key, i) => { if (!fields[key]) fields[key] = parts[i]; });
+    if (parts.length > 6) fields.detailAddress = parts.slice(5).join(", ");
+  }
+  return fields;
+}
+
+function isValidVNPhone(phone: string): boolean {
+  return /^(0|\+84)\d{9,10}$/.test(phone.replace(/[\s.-]/g, ""));
+}
+
 interface Intent {
   is_product_query: boolean;
   keyword:   string | null;
@@ -414,6 +509,16 @@ KHI TƯ VẤN SẢN PHẨM:
   — không tự ý bịa ra là "đã thêm vào giỏ"/"đã đưa sang thanh toán" khi có ghi
   chú yêu cầu hỏi lại. Không nói khách chờ "nhân viên hỗ trợ" chung chung
 - Đổi trả, khiếu nại một đơn hàng cụ thể đã mua → hướng đến nhân viên hỗ trợ
+- Tin tức/bài viết: khách hỏi "tin tức mới", "bài viết về...", "có gì mới không"
+  → nếu có ghi chú "BÀI VIẾT CÓ THẬT" ở cuối, hệ thống đã tự hiện card bài viết
+  kèm ảnh cho khách bấm vào rồi — chỉ cần nhắc ngắn gọn tự nhiên là có bài liên
+  quan bên dưới, KHÔNG đọc lại từng tên bài, KHÔNG bịa bài viết không có trong
+  ghi chú
+- Thêm địa chỉ giao hàng: khách nói "thêm địa chỉ", "tạo địa chỉ mới" → hệ
+  thống tự hỏi khách mẫu thông tin cần điền (tên, SĐT, tỉnh, quận, phường, địa
+  chỉ cụ thể) và tự lưu thật khi khách điền đủ — bạn chỉ xác nhận ngắn gọn tự
+  nhiên theo đúng ghi chú "[Hệ thống: ...]", KHÔNG tự bịa là đã lưu địa chỉ khi
+  chưa có ghi chú xác nhận
 - So sánh sản phẩm: khách nói "so sánh A và B" → nếu có ghi chú "[Hệ thống: ...
   SO SÁNH ...]" ở cuối, dùng đúng dữ liệu 2 sản phẩm đó để so sánh khách quan
   (giá, đánh giá, tồn kho, và các thông tin THẬT có trong dữ liệu) rồi gợi ý
@@ -1010,9 +1115,24 @@ export async function POST(req: NextRequest) {
 
     const intent = extractIntent(message);
 
+    // ── Tạo địa chỉ giao hàng qua chat — xét TRƯỚC khi tách sản phẩm ──────────
+    // Nhãn "Số điện thoại:" trong mẫu địa chỉ vô tình chứa đúng cụm trigger
+    // "điện thoại" của category Điện thoại, khiến extractIntent() ở trên hiểu
+    // nhầm là khách đang hỏi mua điện thoại và kéo nguyên danh sách iPhone vào
+    // — chặn is_product_query NGAY khi phát hiện đây là lượt đang điền địa chỉ.
+    const addressIntentNow = extractAddressIntent(message);
+    const inAddressFlow = !addressIntentNow && isAddressPromptReply(history);
+    const addressFieldsParsed = inAddressFlow ? parseAddressFields(message) : {};
+    const isAddressSubmission = inAddressFlow && Object.keys(addressFieldsParsed).length > 0;
+    if (addressIntentNow || isAddressSubmission) {
+      intent.is_product_query = false;
+      intent.category = null;
+      intent.keyword = null;
+    }
+
     // Câu hỏi không khớp trigger nào NHƯNG khớp tên sản phẩm vừa hiển thị →
     // vẫn coi là truy vấn sản phẩm, tìm đúng sản phẩm đó thay vì bỏ qua.
-    if (!intent.is_product_query) {
+    if (!intent.is_product_query && !addressIntentNow && !isAddressSubmission) {
       const resolved = resolveKeywordFromHistory(message, history);
       if (resolved) { intent.is_product_query = true; intent.keyword = resolved; }
     }
@@ -1101,7 +1221,55 @@ phẩm chỉ có biến thể theo MÀU SẮC, KHÔNG có các mức dung lượ
       : "";
     const cta = navPage ? { label: `Đến ${navPage.label}`, href: navPage.href } : undefined;
 
-    const system = buildSystemPrompt(productCtx + actionNote + compareNote + navNote);
+    // ── Tin tức / bài viết ─────────────────────────────────────────────────
+    const newsWanted = NEWS_TRIGGERS.test(message.toLowerCase());
+    const articles = newsWanted ? await fetchNews(extractNewsKeyword(message)) : [];
+    const newsNote = newsWanted
+      ? articles.length
+        ? `\n[Hệ thống: khách hỏi tin tức/bài viết — dưới đây là các bài viết THẬT, đã hiện card kèm ảnh cho khách bấm vào rồi, bạn chỉ cần nhắc ngắn gọn tự nhiên là có mấy bài liên quan bên dưới, KHÔNG cần đọc tên từng bài ra.]\nBÀI VIẾT CÓ THẬT:\n${articles.map((a, i) => `${i + 1}. ${a.title}`).join("\n")}`
+        : `\n[Hệ thống: khách hỏi tin tức nhưng chưa tìm thấy bài viết phù hợp — báo thật, không bịa tên bài viết.]`
+      : "";
+
+    // ── Tạo địa chỉ giao hàng qua chat ───────────────────────────────────────
+    // (addressIntentNow/inAddressFlow/addressFieldsParsed đã tính ở đầu handler
+    // để kịp chặn is_product_query trước khi tách sản phẩm — dùng lại ở đây)
+    let addressAction: { type: "create_address"; address: Record<AddrKey, string> } | null = null;
+    let addressReplyOverride = "";
+    if (addressIntentNow) {
+      addressReplyOverride = ADDRESS_PROMPT;
+    } else if (isAddressSubmission) {
+      const fields = addressFieldsParsed;
+      const missing = ADDR_ORDER.filter((k) => !fields[k]);
+      const phoneOk = fields.phone ? isValidVNPhone(fields.phone) : false;
+      if (missing.length === 0 && phoneOk) {
+        const cleanPhone = fields.phone!.replace(/[\s.-]/g, "");
+        addressAction = {
+          type: "create_address",
+          address: {
+            receiverName: fields.receiverName!, phone: cleanPhone,
+            province: fields.province!, district: fields.district!,
+            ward: fields.ward!, detailAddress: fields.detailAddress!,
+          },
+        };
+        addressReplyOverride =
+          `Mình đã lưu địa chỉ mới cho bạn rồi nè 🏠\n${fields.receiverName} - ${cleanPhone}\n` +
+          `${fields.detailAddress}, ${fields.ward}, ${fields.district}, ${fields.province}\n` +
+          `Bạn xem lại hoặc chỉnh sửa trong Tài khoản > Sổ địa chỉ nhé!`;
+      } else if (!missing.includes("phone") && !phoneOk) {
+        addressReplyOverride = `Số điện thoại "${fields.phone}" chưa đúng định dạng, bạn kiểm tra lại giúp mình theo mẫu nhé 😅\n${ADDRESS_PROMPT}`;
+      } else {
+        addressReplyOverride = `Mình còn thiếu: ${missing.map((k) => ADDR_LABELS[k]).join(", ")}. Bạn gửi lại đầy đủ giúp mình theo mẫu nhé:\n${ADDRESS_PROMPT}`;
+      }
+    }
+    // isAddressSubmission false (fields rỗng): khách gõ câu không liên quan tới
+    // địa chỉ giữa chừng luồng này — bỏ qua, để pipeline bình thường xử lý.
+    const addressNote = addressIntentNow
+      ? `\n[Hệ thống: khách muốn thêm địa chỉ giao hàng — hệ thống đã tự hỏi khách mẫu thông tin cần thiết, bạn chỉ cần xác nhận ngắn gọn tự nhiên, KHÔNG tự bịa ra là đã lưu địa chỉ.]`
+      : addressAction
+      ? `\n[Hệ thống: đã lưu địa chỉ mới thành công cho khách — xác nhận ngắn gọn tự nhiên.]`
+      : "";
+
+    const system = buildSystemPrompt(productCtx + actionNote + compareNote + navNote + newsNote + addressNote);
 
     // Thử lần lượt: Claude → Groq → OpenRouter → template
     const aiReplyRaw = await callClaude(system, message, history)
@@ -1140,7 +1308,13 @@ phẩm chỉ có biến thể theo MÀU SẮC, KHÔNG có các mức dung lượ
           : `Xong rồi nè! Mình đã thêm "${action.product.ten}"${colorTxt} vào giỏ hàng cho bạn 🛒\nCần gì thêm thì bạn cứ hỏi mình nha!`;
     }
 
-    return NextResponse.json({ success: true, reply, products, action, cta });
+    // Luồng tạo địa chỉ (hỏi mẫu / thiếu trường / đã lưu) — LUÔN dùng câu chữ cố
+    // định của hệ thống, cùng lý do với action ở trên: câu hỏi mẫu cần giữ
+    // NGUYÊN VĂN để isAddressPromptReply() nhận lại được ở lượt sau, và câu xác
+    // nhận đã lưu không được để AI tự bịa khi có thể chưa thực sự lưu thành công.
+    if (addressReplyOverride) reply = addressReplyOverride;
+
+    return NextResponse.json({ success: true, reply, products, action, cta, articles, addressAction });
   } catch (err: any) {
     console.error("[/api/chat]", err.message);
     return NextResponse.json({ success: false, message: err.message }, { status: 500 });
