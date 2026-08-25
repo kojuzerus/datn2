@@ -654,6 +654,35 @@ async function callOpenRouter(system: string, userMsg: string, history: any[]): 
   }
 }
 
+// ── Fallback CÓ NGỮ CẢNH khi cả 3 AI đều lỗi (hết quota/rate limit/mạng) ──────
+// buildReply() bên dưới hoàn toàn mù ngữ cảnh — chỉ nhìn đúng tin nhắn hiện
+// tại. Khi Bunny vừa hỏi 1 câu tư vấn (VD: "ưu tiên yếu tố nào", "dùng để làm
+// gì") và khách trả lời ngắn gọn (VD: "chơi game", "học tập", "chụp ảnh")
+// nhưng không khớp intent sản phẩm nào, rơi thẳng xuống buildReply() sẽ ra
+// câu "mình chưa hiểu câu hỏi" hoàn toàn không liên quan — trông như hệ
+// thống "mất trí nhớ" dù thực ra chỉ là AI tạm lỗi. Bắt riêng trường hợp này
+// để vẫn trả lời có ngữ cảnh, dùng đúng danh sách sản phẩm vừa gợi ý.
+function buildContextualFallback(msg: string, history: any[]): string | null {
+  const lastAssistant = [...history].reverse().find((h: any) => h.role === "assistant");
+  const rawContent = String(lastAssistant?.content || "");
+  // Bỏ ghi chú nội bộ "[Sản phẩm đã hiển thị: ...]" trước khi xét — nó luôn bị
+  // nhét vào SAU dấu "?", nên endsWith("?") kiểu cũ không bao giờ khớp. Emoji ở
+  // cuối câu cũng vậy — không đòi hỏi "?" là ký tự CUỐI CÙNG tuyệt đối, chỉ cần
+  // nằm trong khoảng vài ký tự cuối (cho phép emoji/khoảng trắng theo sau).
+  const lastContent = rawContent.replace(/\[Sản phẩm đã hiển thị:[^\]]*\]/g, "").trim();
+  const lastQIndex = lastContent.lastIndexOf("?");
+  const endsWithQuestion = lastQIndex >= 0 && lastQIndex >= lastContent.length - 15;
+  const wasAskingPreference =
+    endsWithQuestion && /ưu tiên|dùng để|mục đích|ngân sách|nhu cầu|muốn (dùng|chơi|làm|học)/i.test(lastContent);
+  if (!wasAskingPreference) return null;
+
+  const shownNames = getLastShownNames(history);
+  if (!shownNames.length) return null;
+
+  const list = shownNames.slice(0, 3).join(", ");
+  return `Với nhu cầu "${msg.trim()}" thì trong mấy lựa chọn mình vừa gợi ý (${list}) bạn thấy cái nào hợp hơn, hay để mình tìm thêm lựa chọn khác phù hợp hơn nhé? 😊`;
+}
+
 // ── Template fallback ─────────────────────────────────────────────────────────
 function buildReply(msg: string, intent: Intent, products: any[]): string {
   const lower = msg.toLowerCase().trim();
@@ -1284,7 +1313,7 @@ phẩm chỉ có biến thể theo MÀU SẮC, KHÔNG có các mức dung lượ
     const aiReplyDeduped = aiReplyStripped ? dedupeRepeatedReply(aiReplyStripped) : null;
     const aiReply = aiReplyDeduped ? extractCleanReply(aiReplyDeduped) : null;
 
-    let reply = aiReply || buildReply(message, intent, products);
+    let reply = aiReply || buildContextualFallback(message, history) || buildReply(message, intent, products);
 
     // Câu này là hành động (thêm giỏ/mua ngay) mà CHƯA resolve chắc chắn được
     // (hỏi màu / hết hàng / chưa rõ sản phẩm) → LUÔN dùng câu hỏi cố định của
