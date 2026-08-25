@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Clock, MapPin, XCircle, Check, Star } from 'lucide-react';
 import CancelOrderModal from '../../components/CancelOrderModal';
+import ConfirmReceivedModal from '../../components/ConfirmReceivedModal';
 import { toastError, toastSuccess } from '../../utils/toast';
 import { formatOrderCode } from '../../lib/orderCode';
 
@@ -95,6 +96,7 @@ export default function OrderDetailPage() {
   const [cancelling, setCancelling] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [confirmingReceived, setConfirmingReceived] = useState(false);
+  const [showReceivedModal, setShowReceivedModal] = useState(false);
 
   useEffect(() => {
     const token = getToken();
@@ -178,6 +180,7 @@ export default function OrderDetailPage() {
       toastError('Lỗi kết nối, vui lòng thử lại');
     } finally {
       setConfirmingReceived(false);
+      setShowReceivedModal(false);
     }
   };
 
@@ -295,11 +298,10 @@ export default function OrderDetailPage() {
                       )}
                       {order.trangThai === 'dang_giao' && (
                         <button
-                          onClick={handleConfirmReceived}
-                          disabled={confirmingReceived}
-                          className="px-6 py-2 text-sm font-semibold text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-60 transition"
+                          onClick={() => setShowReceivedModal(true)}
+                          className="px-6 py-2 text-sm font-semibold text-white bg-red-600 rounded-md hover:bg-red-700 transition"
                         >
-                          {confirmingReceived ? 'Đang xác nhận...' : 'Ghi Nhận Hàng'}
+                          Ghi Nhận Hàng
                         </button>
                       )}
                     </div>
@@ -415,6 +417,13 @@ export default function OrderDetailPage() {
         loading={cancelling}
         onConfirm={handleCancel}
         onCancel={() => setShowCancelModal(false)}
+      />
+
+      <ConfirmReceivedModal
+        open={showReceivedModal}
+        loading={confirmingReceived}
+        onConfirm={handleConfirmReceived}
+        onCancel={() => setShowReceivedModal(false)}
       />
     </div>
   );
