@@ -1250,22 +1250,22 @@ export default function NguoiDungPage() {
 
           {/* ── Tab: Ví SmartHub ── */}
           {tab === 'wallet' && (
-            <div className="space-y-4">
-              {/* Số dư */}
-              <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl shadow-sm p-6 text-white">
-                <div className="flex items-center gap-2 text-amber-100 text-sm mb-1">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+              {/* Số dư — bên trái, gọn hơn thay vì chiếm hết chiều ngang */}
+              <div className="lg:col-span-1 bg-gradient-to-br from-indigo-600 to-blue-600 rounded-xl shadow-sm p-6 text-white">
+                <div className="flex items-center gap-2 text-indigo-100 text-sm mb-1">
                   <Wallet className="w-4 h-4" /> Số dư khả dụng
                 </div>
                 <p className="text-3xl font-bold">
                   {new Intl.NumberFormat('vi-VN').format(walletBalance)}đ
                 </p>
-                <p className="text-amber-100 text-xs mt-2">
+                <p className="text-indigo-100 text-xs mt-2">
                   Tiền hoàn từ các đơn đã thanh toán online bị huỷ sẽ tự động cộng vào đây — dùng để thanh toán cho đơn hàng tiếp theo.
                 </p>
               </div>
 
-              {/* Lịch sử giao dịch */}
-              <div className="bg-white rounded-sm shadow-sm border border-gray-100">
+              {/* Lịch sử giao dịch — bên phải */}
+              <div className="lg:col-span-2 bg-white rounded-sm shadow-sm border border-gray-100">
                 <div className="px-6 py-4 border-b border-gray-100">
                   <h1 className="text-base font-bold text-gray-800">Lịch sử giao dịch</h1>
                 </div>
