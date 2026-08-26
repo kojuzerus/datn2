@@ -9,6 +9,7 @@ import {
   LogOut, Camera, Eye, EyeOff, MapPin,
   Plus, Trash2, Star, Home, ShoppingCart,
   Wallet, LayoutGrid, Search, Heart, Coins,
+  ArrowDownLeft, ArrowUpRight, Receipt, Sparkles,
 } from 'lucide-react';
 import SearchableSelect, { SelectOption } from '../../components/SearchableSelect';
 import { useFavorites } from '../../components/favoritesContext';
@@ -1252,22 +1253,40 @@ export default function NguoiDungPage() {
           {tab === 'wallet' && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
               {/* Số dư — bên trái, gọn hơn thay vì chiếm hết chiều ngang */}
-              <div className="lg:col-span-1 bg-gradient-to-br from-indigo-600 to-blue-600 rounded-xl shadow-sm p-6 text-white">
-                <div className="flex items-center gap-2 text-indigo-100 text-sm mb-1">
-                  <Wallet className="w-4 h-4" /> Số dư khả dụng
+              <div className="lg:col-span-1 relative overflow-hidden bg-gradient-to-br from-teal-500 via-emerald-600 to-emerald-700 rounded-2xl shadow-md p-6 text-white">
+                {/* Vòng tròn trang trí mờ phía sau — tạo chiều sâu thay vì mảng màu phẳng lì */}
+                <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-white/10" />
+                <div className="absolute -bottom-14 -left-10 w-36 h-36 rounded-full bg-white/10" />
+
+                <div className="relative">
+                  <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur flex items-center justify-center mb-4">
+                    <Wallet className="w-5 h-5" />
+                  </div>
+                  <p className="text-emerald-50 text-sm mb-1">Số dư khả dụng</p>
+                  <p className="text-4xl font-extrabold tracking-tight">
+                    {new Intl.NumberFormat('vi-VN').format(walletBalance)}
+                    <span className="text-xl font-bold align-top ml-0.5">đ</span>
+                  </p>
+                  <div className="mt-4 pt-4 border-t border-white/20 flex items-start gap-2">
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-100 shrink-0 mt-0.5" />
+                    <p className="text-emerald-50 text-xs leading-relaxed">
+                      Tiền hoàn từ các đơn đã thanh toán online bị huỷ sẽ tự động cộng vào đây — dùng để thanh toán cho đơn hàng tiếp theo.
+                    </p>
+                  </div>
                 </div>
-                <p className="text-3xl font-bold">
-                  {new Intl.NumberFormat('vi-VN').format(walletBalance)}đ
-                </p>
-                <p className="text-indigo-100 text-xs mt-2">
-                  Tiền hoàn từ các đơn đã thanh toán online bị huỷ sẽ tự động cộng vào đây — dùng để thanh toán cho đơn hàng tiếp theo.
-                </p>
               </div>
 
               {/* Lịch sử giao dịch — bên phải */}
-              <div className="lg:col-span-2 bg-white rounded-sm shadow-sm border border-gray-100">
-                <div className="px-6 py-4 border-b border-gray-100">
-                  <h1 className="text-base font-bold text-gray-800">Lịch sử giao dịch</h1>
+              <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                  <h1 className="text-base font-bold text-gray-800 flex items-center gap-2">
+                    <Receipt className="w-4 h-4 text-gray-400" /> Lịch sử giao dịch
+                  </h1>
+                  {walletHistory.length > 0 && (
+                    <span className="text-xs font-medium text-gray-400 bg-gray-50 px-2.5 py-1 rounded-full">
+                      {walletHistory.length} giao dịch
+                    </span>
+                  )}
                 </div>
                 {walletLoading ? (
                   <div className="p-10 text-center text-gray-400 text-sm">Đang tải...</div>
@@ -1278,25 +1297,27 @@ export default function NguoiDungPage() {
                 ) : (
                   <div className="divide-y divide-gray-50">
                     {walletHistory.map((t) => (
-                      <div key={t._id} className="flex items-center gap-3 px-6 py-4">
-                        <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
-                          t.type === 'hoan_tien' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
+                      <div key={t._id} className="flex items-center gap-3.5 px-6 py-4 hover:bg-gray-50/80 transition-colors">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+                          t.type === 'hoan_tien' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'
                         }`}>
-                          <Wallet className="w-4 h-4" />
+                          {t.type === 'hoan_tien'
+                            ? <ArrowDownLeft className="w-4.5 h-4.5" />
+                            : <ArrowUpRight className="w-4.5 h-4.5" />}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-gray-800 truncate">
                             {t.note || (t.type === 'hoan_tien' ? 'Hoàn tiền' : 'Thanh toán bằng ví')}
                           </p>
-                          <p className="text-xs text-gray-400">
+                          <p className="text-xs text-gray-400 mt-0.5">
                             {new Date(t.createdAt).toLocaleString('vi-VN')}
                           </p>
                         </div>
                         <div className="text-right shrink-0">
-                          <p className={`text-sm font-bold ${t.type === 'hoan_tien' ? 'text-green-600' : 'text-red-600'}`}>
+                          <p className={`text-sm font-bold ${t.type === 'hoan_tien' ? 'text-emerald-600' : 'text-red-500'}`}>
                             {t.type === 'hoan_tien' ? '+' : '-'}{new Intl.NumberFormat('vi-VN').format(t.amount)}đ
                           </p>
-                          <p className="text-xs text-gray-400">
+                          <p className="text-xs text-gray-400 mt-0.5">
                             Số dư: {new Intl.NumberFormat('vi-VN').format(t.soDuSau)}đ
                           </p>
                         </div>
