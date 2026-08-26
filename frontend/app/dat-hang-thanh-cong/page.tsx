@@ -9,7 +9,10 @@ import { formatOrderCode } from '../lib/orderCode';
 function SuccessContent() {
   const params  = useSearchParams();
   const orderId = params.get('orderId');
-  const isVnpay = params.get('method') === 'vnpay';
+  const method  = params.get('method');
+  const isVnpay = method === 'vnpay';
+  const isMomo  = method === 'momo';
+  const isOnlinePayment = isVnpay || isMomo;
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
@@ -20,12 +23,14 @@ function SuccessContent() {
         </div>
 
         <h1 className="text-2xl font-bold text-gray-800 mb-2">
-          {isVnpay ? 'Thanh toán thành công!' : 'Đặt hàng thành công!'}
+          {isOnlinePayment ? 'Thanh toán thành công!' : 'Đặt hàng thành công!'}
         </h1>
         <p className="text-gray-500 text-sm mb-6">
           {isVnpay
             ? 'Giao dịch VNPay của bạn đã được xác nhận. Cảm ơn bạn đã mua sắm tại SmartHub.'
-            : 'Cảm ơn bạn đã mua sắm tại SmartHub. Chúng tôi sẽ xử lý và giao hàng sớm nhất có thể.'}
+            : isMomo
+              ? 'Giao dịch MoMo của bạn đã được xác nhận. Cảm ơn bạn đã mua sắm tại SmartHub.'
+              : 'Cảm ơn bạn đã mua sắm tại SmartHub. Chúng tôi sẽ xử lý và giao hàng sớm nhất có thể.'}
         </p>
 
         {orderId && (

@@ -111,6 +111,13 @@ const PAYMENT_METHODS = [
     image: "/payment/vnpay.png",
     bg: "bg-white",
   },
+  {
+    id: "momo",
+    label: "Thanh toán MoMo",
+    desc: "Ví MoMo, quét QR, thẻ ATM/tín dụng",
+    image: "/payment/momo.png",
+    bg: "bg-white",
+  },
 ];
 
 export default function ThanhToanPage() {
@@ -118,7 +125,7 @@ export default function ThanhToanPage() {
   const [items, setItems] = useState<CartItem[]>([]); // chỉ item được chọn
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedAddr, setSelectedAddr] = useState<string>("");
-  const [paymentMethod, setPaymentMethod] = useState<"cod" | "vnpay" | "vi">("cod");
+  const [paymentMethod, setPaymentMethod] = useState<"cod" | "vnpay" | "momo" | "vi">("cod");
   const [walletBalance, setWalletBalance] = useState(0);
   const [ghiChu, setGhiChu] = useState("");
   const [loading, setLoading] = useState(true);
@@ -438,6 +445,21 @@ export default function ThanhToanPage() {
         } else {
           toastError(payData.message || "Lỗi tạo URL VNPAY");
         }
+      } else if (paymentMethod === "momo") {
+        const payRes = await fetch(`${API_URL}/api/momo/create_payment`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ orderId: data.order._id }),
+        });
+        const payData = await payRes.json();
+        if (payData.success && payData.url) {
+          window.location.href = payData.url;
+        } else {
+          toastError(payData.message || "Lỗi tạo URL MoMo");
+        }
       } else {
         router.push(`/dat-hang-thanh-cong?orderId=${data.order._id}`);
       }
@@ -706,7 +728,7 @@ export default function ThanhToanPage() {
                       name="payment"
                       value={id}
                       checked={paymentMethod === id}
-                      onChange={() => setPaymentMethod(id as "cod" | "vnpay" | "vi")}
+                      onChange={() => setPaymentMethod(id as "cod" | "vnpay" | "momo" | "vi")}
                       className="accent-blue-500"
                     />
                     <div
@@ -789,6 +811,23 @@ export default function ThanhToanPage() {
                     </p>
                     <p className="text-xs text-yellow-600 mt-1">
                       Hỗ trợ: QR Code, thẻ tín dụng/ghi nợ, tài khoản ngân hàng
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {paymentMethod === "momo" && (
+                <div className="mt-3 p-4 bg-pink-50 border border-pink-100 rounded-sm">
+                  <p className="font-semibold text-pink-700 text-sm mb-2 flex items-center gap-1.5">
+                    <CreditCard className="w-4 h-4" />
+                    Thanh toán MoMo
+                  </p>
+                  <div className="text-sm text-pink-700 space-y-1">
+                    <p>
+                      Bạn sẽ được chuyển đến MoMo để thanh toán an toàn.
+                    </p>
+                    <p className="text-xs text-pink-600 mt-1">
+                      Hỗ trợ: Ví MoMo, quét mã QR, thẻ ATM nội địa, thẻ tín dụng/ghi nợ
                     </p>
                   </div>
                 </div>
@@ -1047,9 +1086,11 @@ export default function ThanhToanPage() {
                 className={`w-full font-bold py-3.5 rounded-sm transition flex items-center justify-center gap-2 ${
                   paymentMethod === "vnpay"
                     ? "bg-yellow-500 hover:bg-yellow-600 text-white"
-                    : paymentMethod === "vi"
-                      ? "bg-amber-500 hover:bg-amber-600 text-white"
-                      : "bg-red-500 hover:bg-red-600 text-white"
+                    : paymentMethod === "momo"
+                      ? "bg-pink-500 hover:bg-pink-600 text-white"
+                      : paymentMethod === "vi"
+                        ? "bg-amber-500 hover:bg-amber-600 text-white"
+                        : "bg-red-500 hover:bg-red-600 text-white"
                 } disabled:bg-gray-200 disabled:text-gray-400`}
               >
                 {placing ? (
@@ -1059,6 +1100,10 @@ export default function ThanhToanPage() {
                 ) : paymentMethod === "vnpay" ? (
                   <>
                     <CreditCard className="w-4 h-4" /> Thanh toán VNPAY
+                  </>
+                ) : paymentMethod === "momo" ? (
+                  <>
+                    <CreditCard className="w-4 h-4" /> Thanh toán MoMo
                   </>
                 ) : paymentMethod === "vi" ? (
                   <>

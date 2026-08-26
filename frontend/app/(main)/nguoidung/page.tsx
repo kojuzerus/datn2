@@ -62,15 +62,15 @@ interface OrderItem {
 interface Order {
   _id: string; items: OrderItem[]; tongThanhToan: number;
   trangThai: 'cho_xac_nhan' | 'da_xac_nhan' | 'dang_giao' | 'da_giao' | 'da_huy';
-  paymentMethod: 'cod' | 'banking' | 'vnpay' | 'vi';
+  paymentMethod: 'cod' | 'banking' | 'vnpay' | 'vi' | 'momo';
   createdAt: string;
 }
 
-// Đã thanh toán online (VNPAY/Ví) và chưa giao → khách tự huỷ được, tiền hoàn
-// lại vào Ví SmartHub (xem cancelOrder() ở Backend/controllers/orderController.js).
+// Đã thanh toán online (VNPAY/MoMo/Ví) và chưa giao → khách tự huỷ được, tiền
+// hoàn lại vào Ví SmartHub (xem cancelOrder() ở Backend/controllers/orderController.js).
 function coTheHuyDon(o: Order) {
   if (o.trangThai === 'cho_xac_nhan') return true;
-  return (o.paymentMethod === 'vnpay' || o.paymentMethod === 'vi') && o.trangThai === 'da_xac_nhan';
+  return (o.paymentMethod === 'vnpay' || o.paymentMethod === 'vi' || o.paymentMethod === 'momo') && o.trangThai === 'da_xac_nhan';
 }
 
 const ORDER_STATUS_LABEL: Record<Order['trangThai'], string> = {
