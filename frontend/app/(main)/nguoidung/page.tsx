@@ -539,7 +539,7 @@ export default function NguoiDungPage() {
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="max-w-7xl mx-auto pb-12">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-1.5 text-xs text-gray-400 mb-5">
         <Link href="/" className="hover:text-red-500 transition-colors">Trang chủ</Link>
