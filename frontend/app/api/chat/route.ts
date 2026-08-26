@@ -691,6 +691,21 @@ function buildContextualFallback(msg: string, history: any[]): string | null {
   const endsWithQuestion = lastQIndex >= 0 && lastQIndex >= lastContent.length - 15;
   const wasAskingPreference =
     endsWithQuestion && /ưu tiên|dùng để|mục đích|ngân sách|nhu cầu|muốn (dùng|chơi|làm|học)/i.test(lastContent);
+
+  // Chính câu trả lời TRƯỚC ĐÓ cũng do buildContextualFallback() này sinh ra
+  // (nhận diện qua chữ ký cố định "Với nhu cầu ...") — nghĩa là AI đã lỗi 2
+  // lượt LIÊN TIẾP. Nếu cứ để chạy tiếp xuống dưới, nó sẽ hỏi lại ĐÚNG Y HỆT
+  // câu cũ (vì "nhu cầu" cũng khớp luôn regex wasAskingPreference phía trên,
+  // tự lặp vô hạn) — với khách thật, 1 câu lặp lại y nguyên 2-3 lần liền trông
+  // như bot bị đơ/hỏng hẳn. Đổi hướng: thành thật là đang chậm, hướng khách
+  // sang thao tác cụ thể (bấm sản phẩm) thay vì hỏi lại câu tương tự.
+  const isRepeatOfSelf = /^Với nhu cầu "/.test(lastContent);
+  if (isRepeatOfSelf) {
+    const shownNames = getLastShownNames(history);
+    if (!shownNames.length) return null;
+    return `Xin lỗi bạn, hệ thống tư vấn đang phản hồi chậm nên mình chưa gợi ý sát được 😥 Bạn bấm vào 1 trong các sản phẩm bên trên để xem chi tiết đầy đủ nhé, hoặc nhắn lại giúp mình sau ít phút!`;
+  }
+
   if (!wasAskingPreference) return null;
 
   const shownNames = getLastShownNames(history);
