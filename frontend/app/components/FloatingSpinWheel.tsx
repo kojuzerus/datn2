@@ -4,12 +4,10 @@ import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { Gift, X } from "lucide-react";
 import { useSpinEvent } from "./SpinEventProvider";
-import { useHideOverFooter } from "../hooks/useHideOverFooter";
 
 export default function FloatingSpinWheel() {
   const { openBanner } = useSpinEvent();
   const pathname = usePathname();
-  const hideOverFooter = useHideOverFooter();
   // Chỉ ẩn tạm cho lần xem hiện tại — không lưu localStorage, nên tải lại trang
   // (F5 / mở lại) sẽ luôn hiện lại nút vòng quay này.
   const [dismissed, setDismissed] = useState(false);
@@ -19,9 +17,8 @@ export default function FloatingSpinWheel() {
     setDismissed(true);
   };
 
-  // Chỉ hiển thị ở trang chủ, khi khách chưa bấm ẩn, và không đè lên footer
-  // (fixed nên không tự cuộn theo, phải tự ẩn khi footer lọt vào khung nhìn).
-  if (pathname !== "/" || dismissed || hideOverFooter) return null;
+  // Chỉ hiển thị ở trang chủ, và khi khách chưa bấm ẩn trong lần xem này
+  if (pathname !== "/" || dismissed) return null;
 
   return (
     <div className="fixed bottom-40 left-4 z-40 flex flex-col items-center">
