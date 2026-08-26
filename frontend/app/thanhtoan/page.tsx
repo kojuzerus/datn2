@@ -158,14 +158,36 @@ export default function ThanhToanPage() {
       ? localStorage.getItem("smarthub_token")
       : null;
 
+  // Nếu khách bấm "Thanh toán VNPAY/MoMo" rồi rời đi mà không hoàn tất thanh
+  // toán — quay lại đây bằng nút back (cổng thanh toán không gọi callback
+  // nào về), hoặc chính bước tạo URL thanh toán vừa thất bại ngay tại chỗ —
+  // đơn đó kẹt ở "cho_xac_nhan" và sản phẩm đã bị xoá khỏi giỏ từ lúc tạo
+  // đơn nhưng chưa từng được trả lại. Dọn đơn đó (huỷ + trả sp về giỏ) rồi
+  // xoá cờ localStorage, để sản phẩm không "biến mất" oan.
+  const cleanupPendingOrder = async (explicitOrderId?: string) => {
+    const pendingId = explicitOrderId || localStorage.getItem("smarthub_pending_order");
+    if (!pendingId) return;
+    localStorage.removeItem("smarthub_pending_order");
+    try {
+      await fetch(`${API_URL}/api/orders/${pendingId}/cancel-if-pending`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    } catch {
+      // Không sao nếu lỗi mạng — tệ nhất khách chỉ cần tải lại trang, không chặn thao tác
+    }
+  };
+
   useEffect(() => {
     if (!token) {
       setLoading(false);
       return;
     }
-    Promise.all([fetchCart(), fetchAddresses()]).finally(() =>
-      setLoading(false),
-    );
+    cleanupPendingOrder().then(() => {
+      Promise.all([fetchCart(), fetchAddresses()]).finally(() =>
+        setLoading(false),
+      );
+    });
     fetchProvinces();
     fetchAvailablePromos();
     fetchSpinVoucher();
@@ -429,6 +451,15 @@ export default function ThanhToanPage() {
     if (data.success) {
       localStorage.removeItem("smarthub_checkout_ids");
       window.dispatchEvent(new Event("cart-updated"));
+
+      // Ghi lại đơn vừa tạo TRƯỚC khi rời sang cổng thanh toán ngoài — nếu
+      // khách bấm back quay lại /thanhtoan mà không hoàn tất (cổng thanh toán
+      // không gọi callback nào về), lần load /thanhtoan tiếp theo sẽ tự dọn
+      // đơn này + trả sản phẩm về giỏ (xem cleanupPendingOrder() ở useEffect).
+      if (paymentMethod === "vnpay" || paymentMethod === "momo") {
+        localStorage.setItem("smarthub_pending_order", data.order._id);
+      }
+
       // Nếu VNPAY, lấy URL thanh toán và redirect
       if (paymentMethod === "vnpay") {
         const payRes = await fetch(`${API_URL}/api/vnpay/create_payment`, {
@@ -444,6 +475,8 @@ export default function ThanhToanPage() {
           window.location.href = payData.url;
         } else {
           toastError(payData.message || "Lỗi tạo URL VNPAY");
+          await cleanupPendingOrder(data.order._id);
+          fetchCart();
         }
       } else if (paymentMethod === "momo") {
         const payRes = await fetch(`${API_URL}/api/momo/create_payment`, {
@@ -459,6 +492,8 @@ export default function ThanhToanPage() {
           window.location.href = payData.url;
         } else {
           toastError(payData.message || "Lỗi tạo URL MoMo");
+          await cleanupPendingOrder(data.order._id);
+          fetchCart();
         }
       } else {
         router.push(`/dat-hang-thanh-cong?orderId=${data.order._id}`);

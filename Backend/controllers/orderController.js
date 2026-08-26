@@ -290,6 +290,40 @@ exports.cancelOrder = async (req, res) => {
   }
 };
 
+// PUT /api/orders/:id/cancel-if-pending — Tự động huỷ + trả sản phẩm về giỏ
+// hàng khi khách bấm "Thanh toán VNPAY/MoMo" (đơn đã tạo, sản phẩm đã bị xoá
+// khỏi giỏ NGAY lúc đó — xem createOrder) nhưng sau đó KHÔNG hoàn tất thanh
+// toán mà tự quay lại trang /thanhtoan bằng nút back của trình duyệt (chứ
+// không bấm huỷ/hết hạn trên cổng thanh toán) — trường hợp này VNPAY/MoMo
+// không gọi callback return/IPN nào về server cả, nên đơn kẹt mãi ở
+// "cho_xac_nhan" và sản phẩm coi như biến mất khỏi giỏ vĩnh viễn. Frontend
+// gọi endpoint này mỗi khi vào lại /thanhtoan với orderId vừa tạo trước đó
+// (lưu tạm ở localStorage) để dọn dẹp đúng đơn đó. Không làm gì nếu đơn đã
+// được xác nhận thanh toán thành công/thất bại từ trước (idempotent).
+exports.cancelIfPending = async (req, res) => {
+  try {
+    const order = await Order.findOne({ _id: req.params.id, userId: req.userId });
+    if (!order) return res.json({ success: true, cancelled: false });
+
+    const isOnlineMethod = order.paymentMethod === "vnpay" || order.paymentMethod === "momo";
+    if (!isOnlineMethod || order.trangThai !== "cho_xac_nhan") {
+      return res.json({ success: true, cancelled: false });
+    }
+
+    order.trangThai = "da_huy";
+    order.lyDoHuy = "Khách rời khỏi trang thanh toán trước khi hoàn tất";
+    await order.save();
+    await adjustTotalSold(order.items, -1);
+    await adjustStock(order.items, 1);
+    await restoreCartItems(order.userId, order.items);
+
+    res.json({ success: true, cancelled: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Lỗi server" });
+  }
+};
+
 // ── Admin ──────────────────────────────────────────────────────────────────
 
 // GET /api/orders/admin/all — Lấy tất cả đơn hàng (admin)
