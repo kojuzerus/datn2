@@ -8,7 +8,6 @@ import Rabbit3D from "./Rabbit3D";
 import { useCart } from "../hooks/useCart";
 import { toastSuccess, toastError } from "../utils/toast";
 import { isLoggedIn } from "../lib/authPrompt";
-import { useHideOverFooter } from "../hooks/useHideOverFooter";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -233,7 +232,6 @@ export default function AIChatBox() {
 
   const router = useRouter();
   const { addToCart } = useCart();
-  const hideOverFooter = useHideOverFooter();
 
   const endRef    = useRef<HTMLDivElement>(null);
   const inputRef  = useRef<HTMLInputElement>(null);
@@ -468,10 +466,7 @@ export default function AIChatBox() {
 
       {/* ── Cụm nút nổi: Zalo ở dưới, chat AI ở trên ─────────────────────────
            flex-col-reverse: phần tử khai báo TRƯỚC (Zalo) lại nằm DƯỚI CÙNG
-           trong cách hiển thị, phần tử sau (chat) xếp lên trên nó.
-           Ẩn cụm nút khi footer lọt vào khung nhìn (trừ khi đang mở chat) —
-           trước đây fixed nên đè lên nội dung footer khi cuộn tới cuối trang. */}
-      {(!hideOverFooter || open) && (
+           trong cách hiển thị, phần tử sau (chat) xếp lên trên nó. */}
       <div className="fixed bottom-6 right-6 z-50 flex flex-col-reverse items-center gap-3">
         {/* Liên hệ Zalo */}
         <a
@@ -539,7 +534,6 @@ export default function AIChatBox() {
           </button>
         </div>
       </div>
-      )}
 
       {/* ── Chat window ────────────────────────────────────────────────────── */}
       {open && (
