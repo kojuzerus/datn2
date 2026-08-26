@@ -3,11 +3,13 @@
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { ChevronUp } from 'lucide-react';
+import { useHideOverFooter } from '../hooks/useHideOverFooter';
 
 export default function ScrollToTop() {
   const pathname = usePathname();
   const [visible, setVisible]           = useState(false);
   const [panelOpen, setPanelOpen]       = useState(false);
+  const hideOverFooter = useHideOverFooter();
 
   useEffect(() => {
     const onScroll = () => setVisible(window.scrollY > 300);
@@ -21,7 +23,7 @@ export default function ScrollToTop() {
     return () => window.removeEventListener('compare-panel', handler);
   }, []);
 
-  if (!visible || panelOpen || pathname?.startsWith('/admin')) return null;
+  if (!visible || panelOpen || hideOverFooter || pathname?.startsWith('/admin')) return null;
 
   return (
     <button
