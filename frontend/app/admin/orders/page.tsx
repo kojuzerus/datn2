@@ -58,11 +58,17 @@ const STATUS_FLOW = ["cho_xac_nhan", "da_xac_nhan", "dang_giao", "da_giao", "da_
 // Thứ tự tiến của đơn hàng - không cho phép lùi về trạng thái đã qua
 const FORWARD_FLOW = ["cho_xac_nhan", "da_xac_nhan", "dang_giao", "da_giao"] as const;
 
+// TRƯỚC ĐÂY trả về toàn bộ các bước còn lại phía sau (VD: đang ở "chờ xác
+// nhận" thì cho chọn thẳng lên "đã giao"), khiến admin bấm nhảy cóc qua các
+// bước trung gian mà không thực sự xác nhận từng bước đã xảy ra thật (đã giao
+// hàng cho đơn vị vận chuyển, đã giao tới khách...). Giờ chỉ cho phép giữ
+// nguyên hoặc tiến ĐÚNG 1 bước kế tiếp mỗi lần, cộng với lựa chọn hủy đơn.
 function getAvailableStatuses(current: string): string[] {
   if (current === "da_huy" || current === "da_giao") return [current];
   const idx = FORWARD_FLOW.indexOf(current as typeof FORWARD_FLOW[number]);
   if (idx === -1) return [...STATUS_FLOW];
-  return [...FORWARD_FLOW.slice(idx), "da_huy"];
+  const next = FORWARD_FLOW[idx + 1];
+  return next ? [current, next, "da_huy"] : [current, "da_huy"];
 }
 
 const STATUS_STYLE: Record<string, { bg: string; color: string; border: string; dot: string; label: string }> = {
@@ -162,6 +168,7 @@ export default function AdminOrdersPage() {
   const [pendingChange, setPendingChange] = useState<{ orderId: string; from: string; to: string } | null>(null);
   const [page, setPage]   = useState(1);
   const [limit, setLimit] = useState(10);
+  const [sortBy, setSortBy] = useState<"date_desc" | "date_asc" | "name_asc" | "name_desc">("date_desc");
 
   const showToast = useCallback((type: Toast["type"], message: string) => {
     const id = Date.now();
@@ -220,22 +227,32 @@ export default function AdminOrdersPage() {
     }
   };
 
-  const filtered = orders.filter((o) => {
-    if (statusFilter && o.trangThai !== statusFilter) return false;
-    if (paymentFilter && o.paymentMethod !== paymentFilter) return false;
-    if (search) {
-      const q = search.toLowerCase();
-      const hay = `${o._id} ${o.receiverName} ${o.phone}`.toLowerCase();
-      if (!hay.includes(q)) return false;
-    }
-    return true;
-  });
+  const filtered = orders
+    .filter((o) => {
+      if (statusFilter && o.trangThai !== statusFilter) return false;
+      if (paymentFilter && o.paymentMethod !== paymentFilter) return false;
+      if (search) {
+        const q = search.toLowerCase();
+        const hay = `${o._id} ${o.receiverName} ${o.phone}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case "date_asc":  return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        case "name_asc":  return a.receiverName.localeCompare(b.receiverName, "vi");
+        case "name_desc": return b.receiverName.localeCompare(a.receiverName, "vi");
+        case "date_desc":
+        default:          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }
+    });
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / limit));
   const safePage   = Math.min(page, totalPages);
   const displayed  = filtered.slice((safePage - 1) * limit, safePage * limit);
 
-  useEffect(() => { setPage(1); }, [search, statusFilter, paymentFilter, limit]);
+  useEffect(() => { setPage(1); }, [search, statusFilter, paymentFilter, limit, sortBy]);
 
   return (
     <>
@@ -270,7 +287,7 @@ export default function AdminOrdersPage() {
 
       {/* ── Filter box ── */}
       <div className="bg-white border border-gray-200 rounded-2xl p-5 mb-4">
-        <div className="grid gap-3" style={{ gridTemplateColumns: "1fr 1fr 1fr auto" }}>
+        <div className="grid gap-3" style={{ gridTemplateColumns: "1fr 1fr 1fr 1fr auto" }}>
           <div className="flex flex-col gap-1.5">
             <FormLabel>Tìm kiếm</FormLabel>
             <div className="relative">
@@ -301,9 +318,18 @@ export default function AdminOrdersPage() {
               <option value="vnpay">VNPay</option>
             </select>
           </div>
+          <div className="flex flex-col gap-1.5">
+            <FormLabel>Sắp xếp</FormLabel>
+            <select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} className={inputCls}>
+              <option value="date_desc">Ngày đặt: Mới nhất</option>
+              <option value="date_asc">Ngày đặt: Cũ nhất</option>
+              <option value="name_asc">Khách hàng: A - Z</option>
+              <option value="name_desc">Khách hàng: Z - A</option>
+            </select>
+          </div>
           <div className="flex items-end">
             <button
-              onClick={() => { setSearch(""); setStatusFilter(""); setPaymentFilter(""); }}
+              onClick={() => { setSearch(""); setStatusFilter(""); setPaymentFilter(""); setSortBy("date_desc"); }}
               className="flex items-center gap-1.5 border border-gray-200 rounded-xl px-3 h-10 text-[13px] bg-white text-gray-500 hover:bg-gray-50 cursor-pointer transition-colors whitespace-nowrap"
             >
               <RefreshCw size={13} /> Xóa lọc

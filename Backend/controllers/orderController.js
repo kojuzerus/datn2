@@ -195,12 +195,19 @@ exports.cancelOrder = async (req, res) => {
 // GET /api/orders/admin/all — Lấy tất cả đơn hàng (admin)
 exports.getAllOrders = async (req, res) => {
   try {
-    const orders = await Order.find().sort({ createdAt: 1 }).populate("userId", "hoTen soDienThoai email");
+    // Mặc định mới nhất trước — trước đây sort createdAt: 1 (cũ nhất trước)
+    // khiến đơn mới đặt bị chìm xuống cuối danh sách, admin phải cuộn hết mới
+    // thấy. Frontend có thêm nút đảo chiều nên vẫn tự sort lại khi cần.
+    const orders = await Order.find().sort({ createdAt: -1 }).populate("userId", "hoTen soDienThoai email");
     res.json({ success: true, orders });
   } catch (err) {
     res.status(500).json({ success: false, message: "Lỗi server" });
   }
 };
+
+// Thứ tự tiến của đơn hàng — trùng với FORWARD_FLOW phía admin/orders/page.tsx
+// (giữ đồng bộ 2 nơi nếu sau này đổi luồng trạng thái).
+const FORWARD_FLOW = ["cho_xac_nhan", "da_xac_nhan", "dang_giao", "da_giao"];
 
 // PUT /api/orders/admin/:id/status — Cập nhật trạng thái đơn hàng (admin)
 exports.updateOrderStatus = async (req, res) => {
@@ -212,6 +219,31 @@ exports.updateOrderStatus = async (req, res) => {
 
     const existing = await Order.findById(req.params.id);
     if (!existing) return res.status(404).json({ success: false, message: "Không tìm thấy đơn hàng" });
+
+    // TRƯỚC ĐÂY chỉ Frontend giới hạn các lựa chọn hợp lệ trong dropdown — gọi
+    // thẳng API này (Postman, script...) vẫn nhảy cóc được bất kỳ trạng thái
+    // nào. Chặn lại ở đây, nguồn sự thật thật sự: đơn đã ở trạng thái cuối
+    // (đã giao/đã hủy) thì không đổi được nữa; đổi sang bước kế tiếp thì chỉ
+    // được đúng 1 bước liền sau, không được bỏ qua bước trung gian. Hủy đơn
+    // thì cho phép từ bất kỳ bước nào chưa hoàn tất.
+    if (existing.trangThai !== trangThai) {
+      if (existing.trangThai === "da_huy" || existing.trangThai === "da_giao") {
+        return res.status(400).json({
+          success: false,
+          message: "Đơn hàng đã ở trạng thái cuối cùng, không thể thay đổi thêm",
+        });
+      }
+      if (trangThai !== "da_huy") {
+        const curIdx  = FORWARD_FLOW.indexOf(existing.trangThai);
+        const nextIdx = FORWARD_FLOW.indexOf(trangThai);
+        if (curIdx === -1 || nextIdx !== curIdx + 1) {
+          return res.status(400).json({
+            success: false,
+            message: "Không thể bỏ qua bước — phải cập nhật lần lượt từng bước một",
+          });
+        }
+      }
+    }
 
     if (trangThai === "da_huy" && existing.trangThai !== "da_huy") {
       await adjustTotalSold(existing.items, -1);
