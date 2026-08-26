@@ -154,6 +154,23 @@ function extractCompareTerms(msg: string): [string, string] | null {
   return [a, b];
 }
 
+// ── Hỏi "cái mắc nhất/rẻ nhất/tốt nhất" trong DANH SÁCH VỪA HIỂN THỊ ─────────
+// Khác với sort trong extractIntent() (dùng cho 1 lượt TÌM KIẾM MỚI, VD "tìm
+// laptop rẻ nhất" → sort kết quả category mới), hàm này chỉ áp dụng khi câu
+// hỏi KHÔNG tự nêu category/brand/từ khóa riêng — tức khách đang hỏi ngược
+// lại trong số sản phẩm đã thấy ở lượt trước (VD: "cho tôi xem cái mắc nhất",
+// "con nào rẻ nhất trong này"). Trước đây AI vẫn trả lời đúng bằng CHỮ (nhờ
+// đọc lịch sử) nhưng KHÔNG có card sản phẩm đi kèm vì `products` rỗng — card
+// chỉ được đưa vào response khi có 1 lượt fetch/resolve sản phẩm thật, không
+// tự sinh ra từ mỗi câu trả lời bằng chữ của AI.
+function extractSuperlativeRef(msg: string): "price_desc" | "price_asc" | "rating_desc" | null {
+  const lower = msg.toLowerCase();
+  if (/mắc nhất|đắt nhất|giá cao nhất|(?:^|\s)cao nhất/.test(lower)) return "price_desc";
+  if (/rẻ nhất|giá thấp nhất|(?:^|\s)thấp nhất|tiết kiệm nhất/.test(lower)) return "price_asc";
+  if (/đánh giá cao nhất|tốt nhất|ngon nhất|xịn nhất/.test(lower)) return "rating_desc";
+  return null;
+}
+
 // ── Tin tức / bài viết ─────────────────────────────────────────────────────────
 const NEWS_TRIGGERS = /tin tức|bài viết|blog|đọc tin|tin mới|khuyến mãi mới|sự kiện|có gì mới/i;
 
@@ -1188,7 +1205,18 @@ export async function POST(req: NextRequest) {
 
     // ── So sánh sản phẩm ("so sánh A và B") ─────────────────────────────────
     const compareTerms = extractCompareTerms(message);
+    // Chỉ xét cấp so sánh nhất khi câu hỏi tự nó KHÔNG nêu category/brand mới
+    // — nếu có (VD: "tìm laptop rẻ nhất") thì để luồng tìm kiếm mới bên dưới
+    // xử lý bằng sort, không đụng vào ở đây. CHÚ Ý: cố tình KHÔNG dùng
+    // intent.keyword để gate — kwMatch() ở extractIntent() vốn chỉ được thiết
+    // kế cho cụm sau "tìm/mua/xem/muốn/cần", nên câu như "cho tôi xem cái mắc
+    // nhất" bị bắt nhầm luôn cụm "cái mắc nhất" thành keyword (rác, không
+    // phải tên sản phẩm thật) — nếu gate bằng keyword sẽ luôn bị coi là "đã
+    // có ý định cụ thể" và bỏ qua nhánh này oan.
+    const hasFreshSearchIntent = !!(intent.category || intent.brand);
+    const superlativeSort = !compareTerms && !hasFreshSearchIntent ? extractSuperlativeRef(message) : null;
     let compareNote = "";
+    let superlativeNote = "";
     let products: any[];
     if (compareTerms) {
       const [termA, termB] = compareTerms;
@@ -1203,6 +1231,27 @@ export async function POST(req: NextRequest) {
       compareNote = combined.length === 2
         ? `\n[Hệ thống: khách muốn SO SÁNH "${termA}" và "${termB}" — CHỈ dùng đúng dữ liệu giá/đánh giá/tồn kho của 2 sản phẩm bên dưới để so sánh khách quan, không bịa thông số không có trong dữ liệu, kết luận nên chọn sản phẩm nào tuỳ theo nhu cầu khách (giá rẻ hơn, đánh giá cao hơn...).]`
         : `\n[Hệ thống: khách muốn so sánh "${termA}" và "${termB}" nhưng chưa tìm đủ dữ liệu cả 2 sản phẩm trong kho — nói thật là thiếu dữ liệu 1 trong 2, hỏi lại tên chính xác hơn, không bịa so sánh.]`;
+    } else if (superlativeSort) {
+      const shownNames = getLastShownNames(history);
+      const candidates = shownNames.length
+        ? (await Promise.all(shownNames.map((n) => fetchExactProduct(n)))).filter(Boolean)
+        : [];
+      const effectivePrice = (p: any) => p.giaSale ?? p.gia;
+      let best: any = null;
+      if (candidates.length) {
+        if (superlativeSort === "price_desc")
+          best = candidates.reduce((a, b) => (effectivePrice(a) >= effectivePrice(b) ? a : b));
+        else if (superlativeSort === "price_asc")
+          best = candidates.reduce((a, b) => (effectivePrice(a) <= effectivePrice(b) ? a : b));
+        else
+          best = candidates.reduce((a, b) => ((a.danhGia || 0) >= (b.danhGia || 0) ? a : b));
+      }
+      products = best ? [best] : [];
+      intent.is_product_query = true;
+      const label = superlativeSort === "price_desc" ? "giá cao nhất" : superlativeSort === "price_asc" ? "giá rẻ nhất" : "đánh giá cao nhất";
+      superlativeNote = best
+        ? `\n[Hệ thống: khách hỏi sản phẩm có ${label} trong số các sản phẩm vừa hiển thị — đã xác định đúng là "${best.ten}", card sản phẩm đã hiện sẵn bên dưới rồi, chỉ cần xác nhận ngắn gọn theo đúng dữ liệu, không cần liệt kê lại toàn bộ danh sách.]`
+        : `\n[Hệ thống: khách hỏi sản phẩm có ${label} nhưng không xác định được đang nói về danh sách sản phẩm nào — hỏi lại khách đang muốn so sánh trong nhóm sản phẩm nào.]`;
     } else {
       products = intent.is_product_query ? await fetchProducts(intent) : [];
 
@@ -1318,7 +1367,7 @@ phẩm chỉ có biến thể theo MÀU SẮC, KHÔNG có các mức dung lượ
       ? `\n[Hệ thống: đã lưu địa chỉ mới thành công cho khách — xác nhận ngắn gọn tự nhiên.]`
       : "";
 
-    const system = buildSystemPrompt(productCtx + actionNote + compareNote + navNote + newsNote + addressNote);
+    const system = buildSystemPrompt(productCtx + actionNote + compareNote + superlativeNote + navNote + newsNote + addressNote);
 
     // Thử lần lượt: Claude → Groq → OpenRouter → template
     const aiReplyRaw = await callClaude(system, message, history)
