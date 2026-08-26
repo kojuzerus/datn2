@@ -8,6 +8,7 @@ import Rabbit3D from "./Rabbit3D";
 import { useCart } from "../hooks/useCart";
 import { toastSuccess, toastError } from "../utils/toast";
 import { isLoggedIn } from "../lib/authPrompt";
+import { useHideOverFooter } from "../hooks/useHideOverFooter";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -27,11 +28,19 @@ interface Product {
   categoryName: string;
 }
 
+interface Article {
+  title: string;
+  slug: string;
+  thumbnail: string;
+  summary: string;
+}
+
 interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
   products?: Product[];
+  articles?: Article[];
   cta?: { label: string; href: string };
 }
 
@@ -46,6 +55,25 @@ interface ChatAction {
     variant: string | null;
   };
 }
+
+interface AddressAction {
+  type: "create_address";
+  address: {
+    receiverName: string;
+    phone: string;
+    province: string;
+    district: string;
+    ward: string;
+    detailAddress: string;
+  };
+}
+
+// Lưu lịch sử chat vào localStorage để "duy trì ngữ cảnh" — khách đóng tab,
+// tải lại trang hay quay lại sau vẫn thấy đúng đoạn hội thoại vừa nãy, không
+// phải chào lại từ đầu. Chỉ lưu trên máy khách đó (không đồng bộ nhiều thiết
+// bị), giống cách giỏ hàng khách vãng lai đã lưu local.
+const CHAT_HISTORY_KEY = "smarthub_chat_history";
+const MAX_SAVED_MESSAGES = 40;
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const fmt = (n: number) => new Intl.NumberFormat("vi-VN").format(n) + "đ";
@@ -147,6 +175,32 @@ function ChatProductCard({ p }: { p: Product }) {
   );
 }
 
+// ── Mini article card (dùng trong chat) ─────────────────────────────────────
+function ChatArticleCard({ a }: { a: Article }) {
+  return (
+    <Link
+      href={`/tintuc/${a.slug}`}
+      className="relative flex-shrink-0 w-[150px] rounded-xl border border-gray-100 bg-white shadow-sm hover:shadow-md transition-shadow overflow-hidden group"
+    >
+      <div className="relative bg-gray-50 h-[85px] overflow-hidden">
+        {a.thumbnail ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={a.thumbnail}
+            alt={a.title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-gray-300 text-3xl">📰</div>
+        )}
+      </div>
+      <div className="p-2">
+        <p className="text-[11px] font-semibold text-gray-800 leading-tight line-clamp-3">{a.title}</p>
+      </div>
+    </Link>
+  );
+}
+
 // ── Typing indicator ─────────────────────────────────────────────────────────
 function TypingDots() {
   return (
@@ -179,10 +233,32 @@ export default function AIChatBox() {
 
   const router = useRouter();
   const { addToCart } = useCart();
+  const hideOverFooter = useHideOverFooter();
 
   const endRef    = useRef<HTMLDivElement>(null);
   const inputRef  = useRef<HTMLInputElement>(null);
   const bodyRef   = useRef<HTMLDivElement>(null);
+
+  // Khôi phục lịch sử chat đã lưu (nếu có) ngay khi component mount — chỉ chạy
+  // phía client (localStorage không tồn tại lúc SSR) nên đặt trong useEffect
+  // thay vì initializer của useState để tránh lệch hydration.
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(CHAT_HISTORY_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length) setMessages(parsed);
+      }
+    } catch {}
+  }, []);
+
+  // Lưu lại lịch sử mỗi khi có tin mới — giữ ngữ cảnh hội thoại qua các lần
+  // tải lại trang/đóng mở chat, chỉ giữ MAX_SAVED_MESSAGES tin gần nhất.
+  useEffect(() => {
+    try {
+      localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(messages.slice(-MAX_SAVED_MESSAGES)));
+    } catch {}
+  }, [messages]);
 
   // Auto-scroll khi có tin mới
   useEffect(() => {
@@ -198,6 +274,16 @@ export default function AIChatBox() {
       setUnread(false);
     }
   }, [open]);
+
+  // Input bị disabled={loading} lúc đang chờ Bunny trả lời — input bị disable
+  // thì trình duyệt tự rớt focus khỏi nó (hành vi mặc định của thẻ input khi
+  // disabled), nên bấm Enter gửi xong là con trỏ biến mất, phải bấm lại vào ô
+  // mới gõ tiếp được. Trả lời xong (loading tắt) thì tự focus lại ô nhập.
+  useEffect(() => {
+    if (!loading && open) {
+      setTimeout(() => inputRef.current?.focus(), 50);
+    }
+  }, [loading, open]);
 
   const sendMessage = useCallback(async (text?: string) => {
     const msg = (text ?? input).trim();
@@ -245,9 +331,18 @@ export default function AIChatBox() {
       const action: ChatAction | null = data.action || null;
       const needsLogin = action?.type === "buy_now" && !isLoggedIn();
 
+      // Backend đã trả lời như thể địa chỉ SẼ được lưu thật (action không null),
+      // nhưng việc lưu thật chỉ thực thi được ở đây (chỉ trình duyệt mới có
+      // token khách) — nếu chưa đăng nhập thì phải chặn TRƯỚC khi hiển thị tin
+      // nhắn, không để lộ câu "đã lưu địa chỉ" trong khi thực tế chưa lưu gì.
+      const addressAction: AddressAction | null = data.addressAction || null;
+      const addressNeedsLogin = !!addressAction && !isLoggedIn();
+
       // Backend trả lỗi (success: false hoặc không có reply)
       const replyText = needsLogin
         ? `Bạn cần đăng nhập trước để mình chốt đơn "${action!.product.ten}" giúp nhé! 🐰 Bấm vào biểu tượng tài khoản ở góc trên để đăng nhập rồi quay lại đây nha.`
+        : addressNeedsLogin
+        ? `Bạn cần đăng nhập trước để mình lưu địa chỉ này giúp nhé! 🐰 Bấm vào biểu tượng tài khoản ở góc trên để đăng nhập rồi gửi lại thông tin cho mình nha.`
         : data.reply || (data.message ? `⚠️ ${data.message}` : "Xin lỗi, mình gặp sự cố. Thử lại nhé! 🐰");
 
       // AI xác định được hành động thêm giỏ hàng thật (không chỉ chat suông)
@@ -269,6 +364,7 @@ export default function AIChatBox() {
         role:     "assistant",
         content:  replyText,
         products: data.products || [],
+        articles: data.articles || [],
         cta:      data.cta || undefined,
       };
       setMessages((prev) => [...prev, assistantMsg]);
@@ -304,6 +400,24 @@ export default function AIChatBox() {
         });
         if (ok) toastSuccess(`Đã thêm "${action.product.ten}" vào giỏ hàng!`);
         else toastError("Không thêm được vào giỏ hàng, bạn thử bấm vào sản phẩm nhé!");
+      }
+
+      // Backend đã xác nhận đủ thông tin hợp lệ để tạo địa chỉ — lưu thật ngay
+      // tại đây (chỉ trình duyệt có token khách, backend /api/chat không có).
+      if (addressAction?.type === "create_address" && !addressNeedsLogin) {
+        try {
+          const token = localStorage.getItem("smarthub_token");
+          const res = await fetch(`${API_BASE}/api/addresses`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify(addressAction.address),
+          });
+          const json = await res.json();
+          if (json.success) toastSuccess("Đã lưu địa chỉ giao hàng mới!");
+          else toastError(json.message || "Không lưu được địa chỉ, bạn thử lại nhé!");
+        } catch {
+          toastError("Không lưu được địa chỉ, bạn thử lại nhé!");
+        }
       }
     } catch (err) {
       const isOffline = err instanceof TypeError && (err.message.includes("fetch") || err.message.includes("network"));
@@ -354,7 +468,10 @@ export default function AIChatBox() {
 
       {/* ── Cụm nút nổi: Zalo ở dưới, chat AI ở trên ─────────────────────────
            flex-col-reverse: phần tử khai báo TRƯỚC (Zalo) lại nằm DƯỚI CÙNG
-           trong cách hiển thị, phần tử sau (chat) xếp lên trên nó. */}
+           trong cách hiển thị, phần tử sau (chat) xếp lên trên nó.
+           Ẩn cụm nút khi footer lọt vào khung nhìn (trừ khi đang mở chat) —
+           trước đây fixed nên đè lên nội dung footer khi cuộn tới cuối trang. */}
+      {(!hideOverFooter || open) && (
       <div className="fixed bottom-6 right-6 z-50 flex flex-col-reverse items-center gap-3">
         {/* Liên hệ Zalo */}
         <a
@@ -387,9 +504,14 @@ export default function AIChatBox() {
 
         {/* Nút chat AI (con thỏ) */}
         <div className="flex flex-col items-center gap-1">
-          {/* Tooltip nhỏ */}
+          {/* Tooltip nhỏ — chỉ hiện trên desktop (hover), ẩn hẳn trên mobile:
+              di động không có "hover" nên tooltip luôn tự hiện lên (do
+              animation banner-fade-up chạy sau 1.2s) rồi đứng yên mãi mãi,
+              đè lên nội dung khác khi cuộn trang (VD: đè lên nút "Chia sẻ"
+              ở trang chi tiết sản phẩm) — icon con thỏ đã đủ rõ để nhận biết
+              là nút chat, không cần thêm nhãn chữ gây rối trên mobile. */}
           {!open && (
-            <div className="bg-gray-800 text-white text-xs px-2.5 py-1 rounded-full whitespace-nowrap shadow-lg mb-1 opacity-0 group-hover:opacity-100 pointer-events-none select-none"
+            <div className="hidden sm:block bg-gray-800 text-white text-xs px-2.5 py-1 rounded-full whitespace-nowrap shadow-lg mb-1 opacity-0 group-hover:opacity-100 pointer-events-none select-none"
               style={{ animation: "banner-fade-up 0.4s ease both 1.2s" }}>
               Tư vấn AI
             </div>
@@ -417,6 +539,7 @@ export default function AIChatBox() {
           </button>
         </div>
       </div>
+      )}
 
       {/* ── Chat window ────────────────────────────────────────────────────── */}
       {open && (
@@ -497,6 +620,25 @@ export default function AIChatBox() {
                       >
                         <ChevronRight size={12} />
                         Xem tất cả sản phẩm
+                      </Link>
+                    </div>
+                  )}
+
+                  {/* Article cards (horizontal scroll) */}
+                  {msg.articles && msg.articles.length > 0 && (
+                    <div className="w-full">
+                      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin"
+                           style={{ scrollbarWidth: "thin" }}>
+                        {msg.articles.map((a) => (
+                          <ChatArticleCard key={a.slug} a={a} />
+                        ))}
+                      </div>
+                      <Link
+                        href={`/tintuc`}
+                        className="mt-1.5 flex items-center gap-1 text-[11px] text-red-500 hover:text-red-600 font-medium"
+                      >
+                        <ChevronRight size={12} />
+                        Xem tất cả bài viết
                       </Link>
                     </div>
                   )}

@@ -5,7 +5,8 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Clock, MapPin, XCircle, Check, Star } from 'lucide-react';
 import CancelOrderModal from '../../components/CancelOrderModal';
-import { toastError } from '../../utils/toast';
+import ConfirmReceivedModal from '../../components/ConfirmReceivedModal';
+import { toastError, toastSuccess } from '../../utils/toast';
 import { formatOrderCode } from '../../lib/orderCode';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
@@ -58,6 +59,15 @@ const codStatusSteps: StatusStep[] = [
 const getStatusSteps = (paymentMethod: string): StatusStep[] =>
   paymentMethod?.toLowerCase() === 'cod' ? codStatusSteps : onlineStatusSteps;
 
+// Đã thanh toán online (VNPAY/Ví) và chưa giao → khách tự huỷ được, tiền hoàn
+// lại vào Ví SmartHub (xem cancelOrder() ở Backend/controllers/orderController.js
+// — cùng logic đã dùng đúng ở trang tài khoản /nguoidung, trang chi tiết đơn
+// hàng này trước đây chỉ cho huỷ khi 'cho_xac_nhan', thiếu nhánh đã thanh toán).
+function coTheHuyDon(o: Order) {
+  if (o.trangThai === 'cho_xac_nhan') return true;
+  return (o.paymentMethod === 'vnpay' || o.paymentMethod === 'vi') && o.trangThai === 'da_xac_nhan';
+}
+
 const statusLabels: Record<string, string> = {
   cho_xac_nhan: 'Chờ xác nhận',
   da_xac_nhan: 'Đã xác nhận',
@@ -85,6 +95,8 @@ export default function OrderDetailPage() {
   const [error, setError] = useState('');
   const [cancelling, setCancelling] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [confirmingReceived, setConfirmingReceived] = useState(false);
+  const [showReceivedModal, setShowReceivedModal] = useState(false);
 
   useEffect(() => {
     const token = getToken();
@@ -133,6 +145,9 @@ export default function OrderDetailPage() {
       const data = await res.json();
       if (data.success) {
         setOrder(prev => prev ? { ...prev, trangThai: 'da_huy' } : prev);
+        // Backend đã tự soạn đúng câu báo hoàn tiền vào ví (nếu có) — dùng
+        // thẳng data.message thay vì tự viết lại, tránh lệch với thực tế.
+        toastSuccess(data.message || 'Đã hủy đơn hàng');
       } else {
         toastError(data.message || 'Không thể hủy đơn hàng');
       }
@@ -141,6 +156,31 @@ export default function OrderDetailPage() {
     } finally {
       setCancelling(false);
       setShowCancelModal(false);
+    }
+  };
+
+  // "Ghi Nhận Hàng" — khách tự xác nhận đã cầm được hàng khi đơn vị vận
+  // chuyển báo đang giao (dang_giao). Trước đây nút này không gắn onClick gì
+  // cả (bấm vào không làm gì) và backend cũng chưa có endpoint tương ứng.
+  const handleConfirmReceived = async () => {
+    setConfirmingReceived(true);
+    try {
+      const res = await fetch(`${API_URL}/api/orders/${params.id}/confirm-received`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setOrder(prev => prev ? { ...prev, trangThai: 'da_giao' } : prev);
+        toastSuccess(data.message || 'Đã xác nhận nhận hàng');
+      } else {
+        toastError(data.message || 'Không thể xác nhận nhận hàng');
+      }
+    } catch {
+      toastError('Lỗi kết nối, vui lòng thử lại');
+    } finally {
+      setConfirmingReceived(false);
+      setShowReceivedModal(false);
     }
   };
 
@@ -248,7 +288,7 @@ export default function OrderDetailPage() {
                       <span>Ngày nhận hàng dự kiến: <strong className="text-gray-900">22-02-2024</strong></span>
                     </div>
                     <div className="flex items-center gap-3">
-                      {order.trangThai === 'cho_xac_nhan' && (
+                      {coTheHuyDon(order) && (
                         <button
                           onClick={() => setShowCancelModal(true)}
                           className="px-5 py-2 text-sm font-semibold text-red-600 border border-red-300 bg-white rounded-md hover:bg-red-50 transition"
@@ -256,9 +296,14 @@ export default function OrderDetailPage() {
                           Hủy đơn hàng
                         </button>
                       )}
-                      <button className="px-6 py-2 text-sm font-semibold text-white bg-red-600 rounded-md hover:bg-red-700 transition">
-                        Ghi Nhận Hàng
-                      </button>
+                      {order.trangThai === 'dang_giao' && (
+                        <button
+                          onClick={() => setShowReceivedModal(true)}
+                          className="px-6 py-2 text-sm font-semibold text-white bg-red-600 rounded-md hover:bg-red-700 transition"
+                        >
+                          Ghi Nhận Hàng
+                        </button>
+                      )}
                     </div>
                   </div>
                 )}
@@ -372,6 +417,13 @@ export default function OrderDetailPage() {
         loading={cancelling}
         onConfirm={handleCancel}
         onCancel={() => setShowCancelModal(false)}
+      />
+
+      <ConfirmReceivedModal
+        open={showReceivedModal}
+        loading={confirmingReceived}
+        onConfirm={handleConfirmReceived}
+        onCancel={() => setShowReceivedModal(false)}
       />
     </div>
   );

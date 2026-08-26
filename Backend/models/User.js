@@ -16,6 +16,10 @@ const userSchema = new mongoose.Schema({
   role:        { type: String, enum: ["user", "admin"], default: "user" },
   status:      { type: String, enum: ["active", "banned"], default: "active" },
 
+  // Ví SmartHub: nhận tiền hoàn khi huỷ đơn đã thanh toán online (VNPay/ví),
+  // dùng được để thanh toán đơn khác sau này (xem walletController.js).
+  soDuVi:      { type: Number, default: 0, min: 0 },
+
   // Đặt lại mật khẩu qua email: chỉ lưu bản hash của token (không lưu token thô),
   // giống nguyên tắc lưu mật khẩu — để lộ DB cũng không dùng token được.
   resetPasswordTokenHash: { type: String, default: null, select: false },

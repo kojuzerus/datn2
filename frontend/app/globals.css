@@ -10,7 +10,19 @@
   --accent-500: #0ea5a4;
   --accent-600: #0b9a8f;
 }
-
+@keyframes voice-bar {
+  0%,
+  100% {
+    transform: scaleY(0.4);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+.animate-voice-bar {
+  animation: voice-bar 0.9s ease-in-out infinite;
+  transform-origin: bottom;
+}
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -34,157 +46,335 @@ body {
 }
 
 @keyframes ticker {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
 }
 
 /* ── Banner 3D ────────────────────────────────────── */
 @keyframes ken-burns {
-  0%   { transform: scale(1.0) translate(0, 0); }
-  100% { transform: scale(1.14) translate(-1.5%, -1%); }
+  0% {
+    transform: scale(1) translate(0, 0);
+  }
+  100% {
+    transform: scale(1.14) translate(-1.5%, -1%);
+  }
 }
 @keyframes banner-fade-up {
-  from { opacity: 0; transform: translateY(32px); }
-  to   { opacity: 1; transform: translateY(0);    }
+  from {
+    opacity: 0;
+    transform: translateY(32px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 @keyframes banner-line-in {
-  from { transform: scaleX(0); opacity: 0; }
-  to   { transform: scaleX(1); opacity: 1; }
+  from {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+  to {
+    transform: scaleX(1);
+    opacity: 1;
+  }
 }
 @keyframes banner-tag-in {
-  from { opacity: 0; transform: translateX(-16px); }
-  to   { opacity: 1; transform: translateX(0);     }
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 @keyframes slide-indicator-grow {
-  from { width: 0.5rem; }
-  to   { width: 2rem; }
+  from {
+    width: 0.5rem;
+  }
+  to {
+    width: 2rem;
+  }
 }
 @keyframes banner-progress {
-  from { transform: scaleX(0); }
-  to   { transform: scaleX(1); }
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
 }
 /* ── Device/Phone 3D ─────────────────────────────── */
 @keyframes device-float {
-  0%,100% { transform: translateY(0px)   rotate(-0.4deg); }
-  50%      { transform: translateY(-20px) rotate(0.4deg);  }
+  0%,
+  100% {
+    transform: translateY(0px) rotate(-0.4deg);
+  }
+  50% {
+    transform: translateY(-20px) rotate(0.4deg);
+  }
 }
 @keyframes device-entry-next {
-  0%   { opacity:0; transform:translate3d(150px,24px,0) scale(0.76); }
-  100% { opacity:1; transform:translate3d(0,0,0)        scale(1);    }
+  0% {
+    opacity: 0;
+    transform: translate3d(150px, 24px, 0) scale(0.76);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
 }
 @keyframes device-entry-prev {
-  0%   { opacity:0; transform:translate3d(-150px,24px,0) scale(0.76); }
-  100% { opacity:1; transform:translate3d(0,0,0)         scale(1);    }
+  0% {
+    opacity: 0;
+    transform: translate3d(-150px, 24px, 0) scale(0.76);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
 }
 @keyframes banner-text-next {
-  0%   { opacity:0; transform:translateX(52px); }
-  100% { opacity:1; transform:translateX(0);    }
+  0% {
+    opacity: 0;
+    transform: translateX(52px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 @keyframes banner-text-prev {
-  0%   { opacity:0; transform:translateX(-52px); }
-  100% { opacity:1; transform:translateX(0);     }
+  0% {
+    opacity: 0;
+    transform: translateX(-52px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 @keyframes accent-glow {
-  0%,100% { opacity:0.20; transform:scale(1);    }
-  50%      { opacity:0.48; transform:scale(1.10); }
+  0%,
+  100% {
+    opacity: 0.2;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.48;
+    transform: scale(1.1);
+  }
 }
 
 /* ── Flash Sale 3D effects ─────────────────────────── */
 @keyframes fs-bg-flow {
-  0%,100% { background-position: 0%   50%; }
-  50%      { background-position: 100% 50%; }
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
 }
 @keyframes fs-flip {
-  0%   { transform: perspective(320px) rotateX(-90deg); opacity: 0; }
-  60%  { opacity: 1; }
-  100% { transform: perspective(320px) rotateX(0deg);   opacity: 1; }
+  0% {
+    transform: perspective(320px) rotateX(-90deg);
+    opacity: 0;
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    transform: perspective(320px) rotateX(0deg);
+    opacity: 1;
+  }
 }
 @keyframes fs-shine-sweep {
-  0%   { transform: translateX(-180%) skewX(-20deg); }
-  100% { transform: translateX(350%)  skewX(-20deg); }
+  0% {
+    transform: translateX(-180%) skewX(-20deg);
+  }
+  100% {
+    transform: translateX(350%) skewX(-20deg);
+  }
 }
 @keyframes fs-particle {
-  0%   { transform: translateY(0)     scale(1);   opacity: 0;   }
-  15%  { opacity: 0.9; }
-  100% { transform: translateY(-55px) scale(0.2); opacity: 0;   }
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(-55px) scale(0.2);
+    opacity: 0;
+  }
 }
 @keyframes fs-dot-pulse {
-  0%,100% { opacity: 0.35; }
-  50%      { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 /* ── Rabbit mascot ─────────────────────────────────── */
 @keyframes rabbit-jump {
-  0%, 100% { transform: translateY(0) scaleY(1) scaleX(1); }
-  8%       { transform: translateY(3px) scaleY(0.93) scaleX(1.06); }
-  32%      { transform: translateY(-30px) scaleY(1.07) scaleX(0.96); }
-  46%      { transform: translateY(-36px) scaleY(1) scaleX(1); }
-  66%      { transform: translateY(0) scaleY(0.9) scaleX(1.08); }
-  78%      { transform: translateY(-7px) scaleY(1.03) scaleX(0.99); }
-  88%      { transform: translateY(0) scaleY(1) scaleX(1); }
+  0%,
+  100% {
+    transform: translateY(0) scaleY(1) scaleX(1);
+  }
+  8% {
+    transform: translateY(3px) scaleY(0.93) scaleX(1.06);
+  }
+  32% {
+    transform: translateY(-30px) scaleY(1.07) scaleX(0.96);
+  }
+  46% {
+    transform: translateY(-36px) scaleY(1) scaleX(1);
+  }
+  66% {
+    transform: translateY(0) scaleY(0.9) scaleX(1.08);
+  }
+  78% {
+    transform: translateY(-7px) scaleY(1.03) scaleX(0.99);
+  }
+  88% {
+    transform: translateY(0) scaleY(1) scaleX(1);
+  }
 }
 @keyframes rabbit-ear {
-  0%, 100% { transform: rotate(0deg); }
-  50%      { transform: rotate(-6deg); }
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-6deg);
+  }
 }
 
 .fs-flip-digit {
   display: inline-block;
-  animation: fs-flip 0.32s cubic-bezier(0.23,1,0.32,1);
+  animation: fs-flip 0.32s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 .fs-bg-animated {
-  background: linear-gradient(135deg, #7f1d1d, #991b1b, #c81e1e, #b91c1c, #7f1d1d);
+  background: linear-gradient(
+    135deg,
+    #7f1d1d,
+    #991b1b,
+    #c81e1e,
+    #b91c1c,
+    #7f1d1d
+  );
   background-size: 300% 300%;
   animation: fs-bg-flow 7s ease infinite;
 }
 
 /* ── World Cup theme ─────────────────────────── */
 .wc-bg-animated {
-  background: linear-gradient(135deg, #022c22, #064e3b, #065f46, #047857, #064e3b, #022c22);
+  background: linear-gradient(
+    135deg,
+    #022c22,
+    #064e3b,
+    #065f46,
+    #047857,
+    #064e3b,
+    #022c22
+  );
   background-size: 300% 300%;
   animation: fs-bg-flow 9s ease infinite;
 }
 
 @keyframes wc-grass-line {
-  0%, 100% { opacity: 0.04; }
-  50%       { opacity: 0.09; }
+  0%,
+  100% {
+    opacity: 0.04;
+  }
+  50% {
+    opacity: 0.09;
+  }
 }
 
 @keyframes wc-player-kick {
-  0%, 100% { transform: rotate(-3deg) translateY(0px);  }
-  30%       { transform: rotate(1deg)  translateY(-14px); }
-  60%       { transform: rotate(-1deg) translateY(-8px);  }
+  0%,
+  100% {
+    transform: rotate(-3deg) translateY(0px);
+  }
+  30% {
+    transform: rotate(1deg) translateY(-14px);
+  }
+  60% {
+    transform: rotate(-1deg) translateY(-8px);
+  }
 }
 
 @keyframes wc-player-jump {
-  0%, 100% { transform: translateY(0px)   rotate(2deg)  scale(1);    }
-  45%       { transform: translateY(-18px) rotate(-1deg) scale(1.03); }
+  0%,
+  100% {
+    transform: translateY(0px) rotate(2deg) scale(1);
+  }
+  45% {
+    transform: translateY(-18px) rotate(-1deg) scale(1.03);
+  }
 }
 
 .fs-shine-bar::after {
-  content: '';
+  content: "";
   position: absolute;
-  top: 0; left: -80%; width: 55%; height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent);
+  top: 0;
+  left: -80%;
+  width: 55%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.45),
+    transparent
+  );
   animation: fs-shine-sweep 2.4s ease-in-out infinite;
   border-radius: inherit;
 }
 
 @keyframes fadeInScale {
-  from { opacity: 0; transform: scale(0.92); }
-  to   { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(24px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ── Hero video banner ──────────────────────────── */
 @keyframes hero-fade-in {
-  0%   { opacity: 0; transform: translateY(32px); }
-  100% { opacity: 1; transform: translateY(0); }
+  0% {
+    opacity: 0;
+    transform: translateY(32px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .hero-content-enter {
@@ -193,41 +383,90 @@ body {
 
 /* ── Hero iPhone banner ─────────────────────────── */
 @keyframes hero-phone-float {
-  0%, 100% { transform: translateY(0px) rotate(-0.3deg); }
-  50%       { transform: translateY(-18px) rotate(0.3deg); }
+  0%,
+  100% {
+    transform: translateY(0px) rotate(-0.3deg);
+  }
+  50% {
+    transform: translateY(-18px) rotate(0.3deg);
+  }
 }
 @keyframes hero-ring-cw {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 @keyframes hero-ring-ccw {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(-360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(-360deg);
+  }
 }
 @keyframes hero-orb-a {
-  0%, 100% { opacity: 0.75; transform: scale(1); }
-  50%       { opacity: 1;    transform: scale(1.10); }
+  0%,
+  100% {
+    opacity: 0.75;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
 }
 @keyframes hero-orb-b {
-  0%, 100% { opacity: 0.6;  transform: scale(1) translate(0, 0); }
-  50%       { opacity: 0.95; transform: scale(1.08) translate(-12px, 10px); }
+  0%,
+  100% {
+    opacity: 0.6;
+    transform: scale(1) translate(0, 0);
+  }
+  50% {
+    opacity: 0.95;
+    transform: scale(1.08) translate(-12px, 10px);
+  }
 }
 @keyframes hero-badge-a {
-  0%, 100% { transform: translateY(0px) rotate(-1.5deg) scale(1); }
-  50%       { transform: translateY(-11px) rotate(1deg) scale(1.02); }
+  0%,
+  100% {
+    transform: translateY(0px) rotate(-1.5deg) scale(1);
+  }
+  50% {
+    transform: translateY(-11px) rotate(1deg) scale(1.02);
+  }
 }
 @keyframes hero-badge-b {
-  0%, 100% { transform: translateY(0px) rotate(1deg) scale(1); }
-  50%       { transform: translateY(-9px) rotate(-1deg) scale(1.02); }
+  0%,
+  100% {
+    transform: translateY(0px) rotate(1deg) scale(1);
+  }
+  50% {
+    transform: translateY(-9px) rotate(-1deg) scale(1.02);
+  }
 }
 @keyframes hero-callout-in {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes hero-slide-in {
-  from { opacity: 0; transform: translateX(28px) scale(0.96); }
-  to   { opacity: 1; transform: translateX(0)    scale(1); }
+  from {
+    opacity: 0;
+    transform: translateX(28px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
 }
 
 .animate-ticker {
@@ -310,4 +549,3 @@ html.dark input::placeholder,
 html.dark textarea::placeholder {
   color: #64748b;
 }
-

@@ -351,6 +351,12 @@ function ProductsContent() {
   const [loadingBrands, setLoadingBrands] = useState(false);
   const [openDropdown,  setOpenDropdown]  = useState<DropdownKey>("");
   const [isSticky,      setIsSticky]      = useState(false);
+  // Chiều cao header thật (đo động, không hard-code 108px) — header có thể cao
+  // khác nhau tuỳ độ rộng màn hình/nội dung banner trên cùng, hard-code cứng dễ
+  // lệch làm toolbar dính sai vị trí (từng khiến header như "biến mất" khi cuộn
+  // do 2 phần tử sticky độc lập tính lệch nhau). Đo lại mỗi khi resize/nội dung
+  // header đổi (ResizeObserver) để luôn khớp thật, không phụ thuộc giả định.
+  const [headerHeight, setHeaderHeight] = useState(108);
   const toolbarRef = useRef<HTMLDivElement>(null);
 
   /* ── push URL ── */
@@ -381,10 +387,25 @@ function ProductsContent() {
   useEffect(() => {
     const onScroll = () => {
       if (!toolbarRef.current) return;
-      setIsSticky(toolbarRef.current.getBoundingClientRect().top <= 109);
+      setIsSticky(toolbarRef.current.getBoundingClientRect().top <= headerHeight + 1);
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
+  }, [headerHeight]);
+
+  /* ── Đo chiều cao header thật, tự cập nhật khi đổi (resize, banner thêm/bớt) ── */
+  useEffect(() => {
+    const header = document.querySelector("header");
+    if (!header) return;
+    const measure = () => setHeaderHeight(header.getBoundingClientRect().height);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(header);
+    window.addEventListener("resize", measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", measure);
+    };
   }, []);
 
   /* ── Fetch categories (once) ── */
@@ -533,7 +554,11 @@ function ProductsContent() {
       </div>{/* end top container */}
 
       {/* ── Sticky toolbar — full viewport width ── */}
-      <div ref={toolbarRef} className={`sticky top-[108px] z-20 mb-4 transition-all duration-200 ${isSticky ? "bg-white/95 backdrop-blur-sm shadow-[0_2px_16px_rgba(0,0,0,0.07)]" : ""}`}>
+      <div
+        ref={toolbarRef}
+        style={{ top: headerHeight }}
+        className={`sticky z-20 mb-4 transition-all duration-200 ${isSticky ? "bg-white/95 backdrop-blur-sm shadow-[0_2px_16px_rgba(0,0,0,0.07)]" : ""}`}
+      >
         <div ref={toolbarInnerRef} className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 relative">
 
         {/* ── Hàng 1: Bộ lọc ── */}

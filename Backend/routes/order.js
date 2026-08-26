@@ -9,6 +9,7 @@ router.post("/",           auth, ctrl.createOrder);
 router.get("/",            auth, ctrl.getMyOrders);
 router.get("/:id",         auth, ctrl.getOrderById);
 router.put("/:id/cancel",  auth, ctrl.cancelOrder);
+router.put("/:id/confirm-received", auth, ctrl.confirmReceived);
 
 // Admin routes
 router.get("/admin/all",           adminAuth, ctrl.getAllOrders);

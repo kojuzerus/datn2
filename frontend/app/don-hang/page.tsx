@@ -135,7 +135,7 @@ export default function DonHangPage() {
             <Link href="/" className="inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">
               <Package className="h-4 w-4" /> Mua sắm tiếp
             </Link>
-            <Link href="/dat-hang-thanh-cong" className="inline-flex items-center gap-2 rounded-md bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600">
+            <Link href="/sanpham" className="inline-flex items-center gap-2 rounded-md bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600">
               <ChevronRight className="h-4 w-4" /> Đơn hàng mới
             </Link>
           </div>

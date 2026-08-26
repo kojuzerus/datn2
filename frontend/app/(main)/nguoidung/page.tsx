@@ -8,11 +8,12 @@ import {
   Edit3, Check, X, ChevronRight, Package,
   LogOut, Camera, Eye, EyeOff, MapPin,
   Plus, Trash2, Star, Home, ShoppingCart,
-  Wallet, LayoutGrid, Search, Heart,
+  Wallet, LayoutGrid, Search, Heart, Coins,
+  ArrowDownLeft, ArrowUpRight, Receipt, Sparkles,
 } from 'lucide-react';
 import SearchableSelect, { SelectOption } from '../../components/SearchableSelect';
 import { useFavorites } from '../../components/favoritesContext';
-import { toastError, toastWarning } from '../../utils/toast';
+import { toastError, toastWarning, toastSuccess } from '../../utils/toast';
 import CancelOrderModal from '../../components/CancelOrderModal';
 
 const API_URL  = process.env.NEXT_PUBLIC_API_URL  || 'http://localhost:5000';
@@ -44,7 +45,16 @@ const EMPTY_FORM: AddrForm = {
   detailAddress: '', isDefault: false,
 };
 
-type Tab = 'overview' | 'info' | 'address' | 'password' | 'orders';
+type Tab = 'overview' | 'info' | 'address' | 'password' | 'orders' | 'wallet';
+
+interface WalletTransaction {
+  _id: string;
+  type: 'hoan_tien' | 'thanh_toan';
+  amount: number;
+  soDuSau: number;
+  note: string;
+  createdAt: string;
+}
 
 interface OrderItem {
   productId: string; tenSanPham: string; hinhAnh: string; gia: number; soLuong: number; variant?: string;
@@ -52,7 +62,15 @@ interface OrderItem {
 interface Order {
   _id: string; items: OrderItem[]; tongThanhToan: number;
   trangThai: 'cho_xac_nhan' | 'da_xac_nhan' | 'dang_giao' | 'da_giao' | 'da_huy';
+  paymentMethod: 'cod' | 'banking' | 'vnpay' | 'vi';
   createdAt: string;
+}
+
+// Đã thanh toán online (VNPAY/Ví) và chưa giao → khách tự huỷ được, tiền hoàn
+// lại vào Ví SmartHub (xem cancelOrder() ở Backend/controllers/orderController.js).
+function coTheHuyDon(o: Order) {
+  if (o.trangThai === 'cho_xac_nhan') return true;
+  return (o.paymentMethod === 'vnpay' || o.paymentMethod === 'vi') && o.trangThai === 'da_xac_nhan';
 }
 
 const ORDER_STATUS_LABEL: Record<Order['trangThai'], string> = {
@@ -98,6 +116,11 @@ export default function NguoiDungPage() {
   const [orderRange, setOrderRange]        = useState<'all' | 'day' | 'week' | 'month' | 'year'>('all');
   const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
+
+  // ── Ví SmartHub ──
+  const [walletBalance, setWalletBalance]           = useState(0);
+  const [walletHistory, setWalletHistory]           = useState<WalletTransaction[]>([]);
+  const [walletLoading, setWalletLoading]            = useState(false);
 
   // ── Profile edit ──
   const [editing, setEditing]   = useState(false);
@@ -219,6 +242,27 @@ export default function NguoiDungPage() {
     if ((tab === 'overview' || tab === 'orders') && user) fetchOrders();
   }, [tab, user, fetchOrders]);
 
+  const fetchWallet = useCallback(async () => {
+    setWalletLoading(true);
+    try {
+      const r = await fetch(`${API_URL}/api/wallet`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      const d = await r.json();
+      if (d.success) {
+        setWalletBalance(d.soDu || 0);
+        setWalletHistory(d.transactions || []);
+      }
+    } finally { setWalletLoading(false); }
+  }, []);
+
+  // Cũng fetch ở tab 'overview' (không chỉ 'wallet') — số dư ví giờ hiện
+  // luôn ở khối tóm tắt đầu trang (xem "Summary header"), không đợi khách
+  // bấm vào tab Ví SmartHub mới thấy.
+  useEffect(() => {
+    if ((tab === 'wallet' || tab === 'overview') && user) fetchWallet();
+  }, [tab, user, fetchWallet]);
+
   const handleCancelOrder = async (lyDoHuy: string) => {
     if (!confirmCancelId) return;
     setCancellingOrderId(confirmCancelId);
@@ -231,6 +275,10 @@ export default function NguoiDungPage() {
       const d = await r.json();
       if (d.success) {
         setOrders(prev => prev.map(o => o._id === confirmCancelId ? { ...o, trangThai: 'da_huy' } : o));
+        toastSuccess(d.message || 'Đã hủy đơn hàng');
+        // Đơn đã thanh toán online được hoàn tiền vào ví ngay khi huỷ — nạp lại
+        // số dư/lịch sử để nếu khách đang mở tab Ví thì thấy cập nhật luôn.
+        if (d.refunded) fetchWallet();
       } else {
         toastError(d.message || 'Không thể hủy đơn hàng');
       }
@@ -558,9 +606,27 @@ export default function NguoiDungPage() {
 
         <div className="hidden sm:block w-px h-12 bg-gray-100" />
 
-        <div className="flex items-center gap-3">
+        {/* Số dư Ví SmartHub — bấm vào nhảy thẳng qua tab "Ví SmartHub" bên
+            dưới, giống hệt cách stat "Đơn hàng" đã làm. Trước đây số dư ví
+            CHỈ fetch khi khách tự bấm vào tab Ví, nên không hiện được ở đây
+            — đã đổi fetchWallet() gọi luôn cùng lúc với tab overview. */}
+        <button onClick={() => setTab('wallet')} className="flex items-center gap-3 text-left hover:opacity-80 transition-opacity">
           <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center shrink-0">
-            <Wallet className="w-5 h-5 text-amber-500" />
+            <Coins className="w-5 h-5 text-amber-500" />
+          </div>
+          <div>
+            <p className="font-bold text-gray-800 text-lg leading-none">
+              {walletLoading ? '—' : new Intl.NumberFormat('vi-VN').format(walletBalance) + 'đ'}
+            </p>
+            <p className="text-xs text-gray-400 mt-1">Số dư Ví SmartHub</p>
+          </div>
+        </button>
+
+        <div className="hidden sm:block w-px h-12 bg-gray-100" />
+
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center shrink-0">
+            <Wallet className="w-5 h-5 text-purple-500" />
           </div>
           <div>
             <p className="font-bold text-gray-800 text-lg leading-none">
@@ -583,6 +649,7 @@ export default function NguoiDungPage() {
                 { key: 'info',     icon: User,    label: 'Thông tin cá nhân' },
                 { key: 'address',  icon: MapPin,  label: 'Địa chỉ của tôi' },
                 { key: 'orders',   icon: Package, label: 'Đơn hàng của tôi' },
+                { key: 'wallet',   icon: Wallet,  label: 'Ví SmartHub' },
                 { key: 'password', icon: Lock,    label: 'Đổi mật khẩu', hide: !hasPassword },
               ] as { key: Tab; icon: React.ElementType; label: string; hide?: boolean }[])
                 .filter(i => !i.hide)
@@ -1159,7 +1226,7 @@ export default function NguoiDungPage() {
                       </div>
                       <div className="flex items-center justify-between gap-2 mt-3 pt-3 border-t border-dashed border-gray-100">
                         <div>
-                          {o.trangThai === 'cho_xac_nhan' && (
+                          {coTheHuyDon(o) && (
                             <button
                               onClick={() => setConfirmCancelId(o._id)}
                               className="px-3.5 py-1.5 rounded-full text-[12.5px] font-medium border border-gray-300 text-gray-600 hover:border-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
@@ -1179,6 +1246,86 @@ export default function NguoiDungPage() {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* ── Tab: Ví SmartHub ── */}
+          {tab === 'wallet' && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+              {/* Số dư — bên trái, gọn hơn thay vì chiếm hết chiều ngang */}
+              <div className="lg:col-span-1 relative overflow-hidden bg-gradient-to-br from-teal-500 via-emerald-600 to-emerald-700 rounded-2xl shadow-md p-6 text-white">
+                {/* Vòng tròn trang trí mờ phía sau — tạo chiều sâu thay vì mảng màu phẳng lì */}
+                <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-white/10" />
+                <div className="absolute -bottom-14 -left-10 w-36 h-36 rounded-full bg-white/10" />
+
+                <div className="relative">
+                  <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur flex items-center justify-center mb-4">
+                    <Wallet className="w-5 h-5" />
+                  </div>
+                  <p className="text-emerald-50 text-sm mb-1">Số dư khả dụng</p>
+                  <p className="text-4xl font-extrabold tracking-tight">
+                    {new Intl.NumberFormat('vi-VN').format(walletBalance)}
+                    <span className="text-xl font-bold align-top ml-0.5">đ</span>
+                  </p>
+                  <div className="mt-4 pt-4 border-t border-white/20 flex items-start gap-2">
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-100 shrink-0 mt-0.5" />
+                    <p className="text-emerald-50 text-xs leading-relaxed">
+                      Tiền hoàn từ các đơn đã thanh toán online bị huỷ sẽ tự động cộng vào đây — dùng để thanh toán cho đơn hàng tiếp theo.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Lịch sử giao dịch — bên phải */}
+              <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                  <h1 className="text-base font-bold text-gray-800 flex items-center gap-2">
+                    <Receipt className="w-4 h-4 text-gray-400" /> Lịch sử giao dịch
+                  </h1>
+                  {walletHistory.length > 0 && (
+                    <span className="text-xs font-medium text-gray-400 bg-gray-50 px-2.5 py-1 rounded-full">
+                      {walletHistory.length} giao dịch
+                    </span>
+                  )}
+                </div>
+                {walletLoading ? (
+                  <div className="p-10 text-center text-gray-400 text-sm">Đang tải...</div>
+                ) : walletHistory.length === 0 ? (
+                  <div className="p-10 text-center text-gray-400 text-sm">
+                    Chưa có giao dịch nào trong ví.
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-50 max-h-[420px] overflow-y-auto">
+                    {walletHistory.map((t) => (
+                      <div key={t._id} className="flex items-center gap-3.5 px-6 py-4 hover:bg-gray-50/80 transition-colors">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+                          t.type === 'hoan_tien' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'
+                        }`}>
+                          {t.type === 'hoan_tien'
+                            ? <ArrowDownLeft className="w-4.5 h-4.5" />
+                            : <ArrowUpRight className="w-4.5 h-4.5" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-800 truncate">
+                            {t.note || (t.type === 'hoan_tien' ? 'Hoàn tiền' : 'Thanh toán bằng ví')}
+                          </p>
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            {new Date(t.createdAt).toLocaleString('vi-VN')}
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className={`text-sm font-bold ${t.type === 'hoan_tien' ? 'text-emerald-600' : 'text-red-500'}`}>
+                            {t.type === 'hoan_tien' ? '+' : '-'}{new Intl.NumberFormat('vi-VN').format(t.amount)}đ
+                          </p>
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            Số dư: {new Intl.NumberFormat('vi-VN').format(t.soDuSau)}đ
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

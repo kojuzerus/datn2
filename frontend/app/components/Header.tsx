@@ -21,6 +21,7 @@ import {
   Newspaper,
   Heart,
   Package,
+  Mic,
 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -87,6 +88,140 @@ const fmtPrice = (n: number) =>
     n,
   );
 
+// ─── HOOK GIỌNG NÓI (thêm mới) ────────────────────────────────────────────────
+// Bọc Web Speech API của trình duyệt. Chỉ chạy trên HTTPS hoặc http://localhost.
+// Firefox chưa hỗ trợ — khi đó isSupported = false và nút mic tự ẩn.
+
+type SpeechRecognitionInstance = {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  maxAlternatives: number;
+  start: () => void;
+  stop: () => void;
+  abort: () => void;
+  onstart: (() => void) | null;
+  onend: (() => void) | null;
+  onerror: ((event: { error: string }) => void) | null;
+  onresult: ((event: SpeechResultEvent) => void) | null;
+};
+
+type SpeechResultEvent = {
+  resultIndex: number;
+  results: ArrayLike<ArrayLike<{ transcript: string }> & { isFinal: boolean }>;
+};
+
+const VOICE_ERRORS: Record<string, string> = {
+  "not-allowed":
+    "Trình duyệt đang chặn micro. Mở khoá micro ở thanh địa chỉ rồi thử lại.",
+  "service-not-allowed":
+    "Trình duyệt đang chặn micro. Mở khoá micro ở thanh địa chỉ rồi thử lại.",
+  "audio-capture": "Không tìm thấy micro. Kiểm tra lại thiết bị thu âm.",
+  "no-speech": "Không nghe thấy gì. Bấm micro và nói lại gần thiết bị hơn.",
+  network:
+    "Mất kết nối tới dịch vụ nhận diện giọng nói. Kiểm tra mạng rồi thử lại.",
+};
+
+function useSpeechRecognition({
+  lang = "vi-VN",
+  onFinalResult,
+}: {
+  lang?: string;
+  onFinalResult?: (text: string) => void;
+} = {}) {
+  const [isSupported, setIsSupported] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [interimTranscript, setInterimTranscript] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
+  const onFinalResultRef = useRef(onFinalResult);
+  onFinalResultRef.current = onFinalResult;
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const Ctor =
+      (window as unknown as Record<string, unknown>).SpeechRecognition ??
+      (window as unknown as Record<string, unknown>).webkitSpeechRecognition;
+
+    if (!Ctor) {
+      setIsSupported(false);
+      return;
+    }
+    setIsSupported(true);
+
+    const recognition = new (Ctor as new () => SpeechRecognitionInstance)();
+    recognition.lang = lang;
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      setError(null);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+      setInterimTranscript("");
+    };
+
+    recognition.onerror = (event) => {
+      if (event.error === "aborted") return; // do mình chủ động dừng
+      setError(
+        VOICE_ERRORS[event.error] ??
+          "Không nhận diện được giọng nói. Thử lại nhé.",
+      );
+      setIsListening(false);
+    };
+
+    recognition.onresult = (event) => {
+      let finalText = "";
+      let interimText = "";
+      for (let i = event.resultIndex; i < event.results.length; i += 1) {
+        const result = event.results[i];
+        const text = result[0].transcript;
+        if (result.isFinal) finalText += text;
+        else interimText += text;
+      }
+      setInterimTranscript(interimText);
+      if (finalText) {
+        setInterimTranscript("");
+        onFinalResultRef.current?.(finalText.trim());
+      }
+    };
+
+    recognitionRef.current = recognition;
+
+    return () => {
+      recognition.onstart = null;
+      recognition.onend = null;
+      recognition.onerror = null;
+      recognition.onresult = null;
+      recognition.abort();
+      recognitionRef.current = null;
+    };
+  }, [lang]);
+
+  const toggle = useCallback(() => {
+    const recognition = recognitionRef.current;
+    if (!recognition) return;
+    if (isListening) {
+      recognition.stop();
+      return;
+    }
+    setInterimTranscript("");
+    setError(null);
+    try {
+      recognition.start();
+    } catch {
+      /* start() ném lỗi nếu đang chạy sẵn */
+    }
+  }, [isListening]);
+
+  return { isSupported, isListening, interimTranscript, error, toggle };
+}
 // ─── COMPONENT ────────────────────────────────────────────────────────────────
 
 export default function Header() {
@@ -121,11 +256,18 @@ export default function Header() {
   // ── Fetch sản phẩm bán chạy thật cho thanh "HOT" ──
   useEffect(() => {
     const ctrl = new AbortController();
-    fetch(`${apiUrl}/api/products/best-selling?limit=8`, { signal: ctrl.signal })
+    fetch(`${apiUrl}/api/products/best-selling?limit=8`, {
+      signal: ctrl.signal,
+    })
       .then((r) => r.json())
       .then((json) => {
         if (json?.success && Array.isArray(json.data)) {
-          setHotProducts(json.data.map((p: { ten: string; slug: string }) => ({ ten: p.ten, slug: p.slug })));
+          setHotProducts(
+            json.data.map((p: { ten: string; slug: string }) => ({
+              ten: p.ten,
+              slug: p.slug,
+            })),
+          );
         }
       })
       .catch(() => {});
@@ -330,6 +472,40 @@ export default function Header() {
     router.push(`/sanpham/${p.slug}`);
   };
 
+  // ── Tìm kiếm bằng giọng nói (thêm mới) ──
+  // Làm sạch câu nói: bỏ dấu câu cuối, cắt từ đệm như "tìm", "mua", "cho tôi"...
+  const normalizeVoiceQuery = (raw: string) =>
+    raw
+      .trim()
+      .replace(/[.,!?;:]+$/g, "")
+      .replace(/^(tìm kiếm|tìm|mua|cho tôi|tôi muốn|xem)\s+/i, "")
+      .replace(/\s+/g, " ")
+      .trim();
+
+  const handleVoiceResult = useCallback(
+    (text: string) => {
+      const q = normalizeVoiceQuery(text);
+      if (!q) return;
+      setSearchInput(q);
+      setSuggestOpen(false);
+      setInputFocused(false);
+      router.push(`/sanpham?tu-khoa=${encodeURIComponent(q)}`);
+    },
+    [router],
+  );
+
+  const {
+    isSupported: voiceSupported,
+    isListening,
+    interimTranscript,
+    error: voiceError,
+    toggle: toggleVoice,
+  } = useSpeechRecognition({ lang: "vi-VN", onFinalResult: handleVoiceResult });
+
+  // Đổ chữ đang nghe được vào ô để người dùng thấy máy nghe đúng chưa.
+  useEffect(() => {
+    if (interimTranscript) setSearchInput(interimTranscript);
+  }, [interimTranscript]);
   const handleLogout = () => {
     localStorage.removeItem("smarthub_token");
     localStorage.removeItem("smarthub_user");
@@ -377,7 +553,9 @@ export default function Header() {
                 <Heart className="w-3 h-3" />
                 Yêu thích
                 {favoriteItems.length > 0 && (
-                  <span className="ml-0.5 text-yellow-300 font-semibold">({favoriteItems.length})</span>
+                  <span className="ml-0.5 text-yellow-300 font-semibold">
+                    ({favoriteItems.length})
+                  </span>
                 )}
               </Link>
               <span className="text-red-600 text-xs">|</span>
@@ -408,9 +586,33 @@ export default function Header() {
                   onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
                   onFocus={() => setInputFocused(true)}
-                  className="w-full bg-gray-50 dark:bg-slate-800 text-gray-800 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 pl-4 pr-12 py-2.5 rounded-xl text-sm outline-none border border-gray-200 dark:border-slate-600 focus:border-red-400 focus:bg-white dark:focus:bg-slate-700 transition-all"
+                  className="w-full bg-gray-50 dark:bg-slate-800 text-gray-800 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 pl-4 pr-[5.25rem] py-2.5 rounded-xl text-sm outline-none border border-gray-200 dark:border-slate-600 focus:border-red-400 focus:bg-white dark:focus:bg-slate-700 transition-all"
                   autoComplete="off"
                 />
+                {/* Nút tìm bằng giọng nói (thêm mới) */}
+                {voiceSupported && (
+                  <button
+                    type="button"
+                    onClick={toggleVoice}
+                    title={
+                      isListening ? "Dừng ghi âm" : "Tìm kiếm bằng giọng nói"
+                    }
+                    aria-label={
+                      isListening ? "Dừng ghi âm" : "Tìm kiếm bằng giọng nói"
+                    }
+                    aria-pressed={isListening}
+                    className={`absolute right-[2.9rem] top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${
+                      isListening
+                        ? "bg-red-600 text-white"
+                        : "text-gray-400 hover:text-red-600 hover:bg-red-50"
+                    }`}
+                  >
+                    {isListening && (
+                      <span className="absolute inset-0 rounded-lg bg-red-400 opacity-60 animate-ping motion-reduce:hidden" />
+                    )}
+                    <Mic className="w-4 h-4 relative" />
+                  </button>
+                )}
                 <button
                   type="submit"
                   className="absolute right-0 top-0 bottom-0 w-11 flex items-center justify-center rounded-r-xl bg-red-600 hover:bg-red-700 transition-colors text-white"
@@ -418,6 +620,26 @@ export default function Header() {
                   <Search className="w-4 h-4" />
                 </button>
               </form>
+              {/* Trạng thái ghi âm / lỗi micro (thêm mới) */}
+              {(isListening || voiceError) && (
+                <div
+                  className={`absolute top-[calc(100%+6px)] left-0 right-0 z-[60] flex items-center gap-2 px-4 py-2.5 rounded-xl border shadow-lg text-[13px] bg-white dark:bg-slate-800 ${
+                    voiceError
+                      ? "border-red-200 text-red-600"
+                      : "border-red-100 text-gray-600 dark:text-slate-300"
+                  }`}
+                  role={voiceError ? "alert" : "status"}
+                >
+                  {!voiceError && (
+                    <span className="flex items-end gap-0.5 h-4 shrink-0">
+                      <span className="w-1 h-2 bg-red-500 rounded-full animate-voice-bar" />
+                      <span className="w-1 h-4 bg-red-500 rounded-full animate-voice-bar [animation-delay:150ms]" />
+                      <span className="w-1 h-3 bg-red-500 rounded-full animate-voice-bar [animation-delay:300ms]" />
+                    </span>
+                  )}
+                  {voiceError ?? "Đang nghe — nói tên sản phẩm bạn muốn tìm."}
+                </div>
+              )}
 
               {/* Suggestions / Trending dropdown */}
               {showDropdown && (
@@ -666,6 +888,26 @@ export default function Header() {
                   className="text-gray-400 hover:text-gray-600"
                 >
                   <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+              {voiceSupported && (
+                <button
+                  type="button"
+                  onClick={toggleVoice}
+                  aria-label={
+                    isListening ? "Dừng ghi âm" : "Tìm kiếm bằng giọng nói"
+                  }
+                  aria-pressed={isListening}
+                  className={`relative shrink-0 w-7 h-7 flex items-center justify-center rounded-lg transition-colors ${
+                    isListening
+                      ? "bg-red-600 text-white"
+                      : "text-gray-400 hover:text-red-600"
+                  }`}
+                >
+                  {isListening && (
+                    <span className="absolute inset-0 rounded-lg bg-red-400 opacity-60 animate-ping motion-reduce:hidden" />
+                  )}
+                  <Mic className="w-4 h-4 relative" />
                 </button>
               )}
             </form>

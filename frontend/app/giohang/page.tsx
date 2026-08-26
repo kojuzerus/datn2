@@ -36,6 +36,12 @@ export default function GioHangPage() {
   const [updating, setUpdating]   = useState<string | null>(null);
   const [selected, setSelected]   = useState<Set<string>>(new Set());
   const [confirmClear, setConfirmClear] = useState(false);
+  // Số lượng đang gõ dở cho từng item — trước đây ô số lượng chỉ là <span>
+  // tĩnh, khách CHỈ bấm được nút +/- từng đơn vị, không gõ thẳng số lượng lớn
+  // được. Giá trị gõ dở lưu riêng ở đây (không ghi thẳng vào item.soLuong)
+  // để khách xoá trắng/gõ nháp thoải mái, chỉ thật sự cập nhật khi rời ô
+  // (blur) hoặc bấm Enter — tránh gọi API dồn dập theo từng phím gõ.
+  const [qtyDraft, setQtyDraft] = useState<Record<string, string>>({});
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('smarthub_token') : null;
 
@@ -102,6 +108,22 @@ export default function GioHangPage() {
       }
     } catch {}
     setUpdating(null);
+  };
+
+  // Chốt số lượng vừa gõ khi khách rời ô nhập (blur) hoặc bấm Enter — bỏ qua
+  // nếu gõ trống/không phải số dương (input tự hiện lại số lượng cũ vì
+  // qtyDraft bị xoá, không có gì để hiển thị khác ngoài item.soLuong).
+  const commitQtyDraft = (item: CartItem) => {
+    const raw = qtyDraft[item._id];
+    if (raw === undefined) return;
+    setQtyDraft((prev) => {
+      const next = { ...prev };
+      delete next[item._id];
+      return next;
+    });
+    const parsed = parseInt(raw, 10);
+    if (!Number.isFinite(parsed) || parsed < 1 || parsed === item.soLuong) return;
+    updateQty(item._id, parsed);
   };
 
   const removeItem = async (itemId: string) => {
@@ -291,9 +313,20 @@ export default function GioHangPage() {
                         >
                           <Minus className="w-3.5 h-3.5" />
                         </button>
-                        <span className="w-9 text-center text-sm font-semibold text-gray-800 border-x border-gray-200">
-                          {item.soLuong}
-                        </span>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          value={qtyDraft[item._id] ?? String(item.soLuong)}
+                          disabled={updating === item._id}
+                          onChange={(e) => {
+                            const digitsOnly = e.target.value.replace(/[^0-9]/g, '').slice(0, 4);
+                            setQtyDraft((prev) => ({ ...prev, [item._id]: digitsOnly }));
+                          }}
+                          onBlur={() => commitQtyDraft(item)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+                          className="w-9 text-center text-sm font-semibold text-gray-800 border-x border-gray-200 bg-transparent focus:outline-none focus:bg-red-50 disabled:opacity-50"
+                        />
                         <button
                           onClick={() => updateQty(item._id, item.soLuong + 1)}
                           disabled={updating === item._id}

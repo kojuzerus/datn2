@@ -30,6 +30,7 @@ const chatRoutes = require("./routes/chat");
 
 const siteSettingRoutes = require("./routes/siteSetting");
 const newsletterRoutes = require("./routes/newsletter");
+const walletRoutes = require("./routes/wallet");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -50,8 +51,14 @@ app.use(
     credentials: true,
   }),
 );
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Mặc định express.json() chỉ nhận tối đa 100kb — avatar (frontend cho phép
+// tới 2MB) gửi lên dạng base64 (phình ~37%) + JSON overhead nên dễ dàng vượt
+// mốc này, bị từ chối thẳng ở tầng body-parser (PayloadTooLargeError) TRƯỚC
+// khi vào tới route. Route vẫn trả 200 kiểu khác hoặc lỗi chung chung "Lỗi
+// server" khiến FE tưởng đã lưu (preview vẫn hiện tạm ở client) nhưng thực ra
+// chưa lưu gì — tải lại trang là ảnh "biến mất" vì DB chưa từng có gì.
+app.use(express.json({ limit: "5mb" }));
+app.use(express.urlencoded({ extended: true, limit: "5mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 app.use(passport.initialize());
 
@@ -75,6 +82,7 @@ app.use("/api/reviews", reviewRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/settings", siteSettingRoutes);
 app.use("/api/newsletter", newsletterRoutes);
+app.use("/api/wallet", walletRoutes);
 
 /* ─── Routes admin ─── */
 app.use("/api/admin/stats", statsRoutes);

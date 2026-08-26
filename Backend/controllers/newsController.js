@@ -76,11 +76,17 @@ exports.getPublished = async (req, res) => {
 // ── [GET] /api/news/:slug — public: chi tiết bài viết + tăng lượt xem ───────
 exports.getBySlug = async (req, res) => {
   try {
-    const news = await News.findOneAndUpdate(
-      { slug: req.params.slug, status: "published" },
-      { $inc: { views: 1 } },
-      { new: true }
-    ).lean();
+    // ?meta=1: dùng cho generateMetadata() (SEO) ở Next.js — chỉ cần đọc dữ
+    // liệu để dựng title/description/JSON-LD, KHÔNG tính là 1 lượt xem thật
+    // (khác với lượt xem thật của trang tintuc/[slug]/page.tsx phía client).
+    const skipViewCount = req.query.meta === "1";
+    const news = skipViewCount
+      ? await News.findOne({ slug: req.params.slug, status: "published" }).lean()
+      : await News.findOneAndUpdate(
+          { slug: req.params.slug, status: "published" },
+          { $inc: { views: 1 } },
+          { new: true }
+        ).lean();
     if (!news) return res.status(404).json({ success: false, message: "Không tìm thấy bài viết" });
 
     // 4 bài viết khác mới nhất để gợi ý đọc thêm

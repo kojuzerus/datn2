@@ -115,11 +115,15 @@ Trả về JSON (không thêm field khác, không giải thích):
         signal: controller.signal,
         headers: { "Authorization": `Bearer ${groqKey}`, "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "llama-3.3-70b-versatile",
+          // llama-3.3-70b-versatile đã bị Groq gỡ bỏ (404 model_not_found) — cùng
+          // lỗi đã gặp và sửa ở chatController.js. openai/gpt-oss-120b có bước
+          // "suy nghĩ" ngầm trước khi trả lời nên cần max_tokens dư dả hơn.
+          model: "openai/gpt-oss-120b",
           messages: [{ role: "user", content: prompt }],
           response_format: { type: "json_object" },
           temperature: 0.3,
-          max_tokens: 1024,
+          max_tokens: 1536,
+          reasoning_effort: "low",
         }),
       });
       const data = await response.json();

@@ -29,6 +29,243 @@ const BRANDS = [
   "logitech","razer","corsair","gigabyte","baseus","ugreen",
 ];
 
+// ── Sửa lỗi chính tả nhẹ trước khi tách intent ────────────────────────────────
+// Khách gõ sai/thiếu dấu/viết tách rời tên hãng rất phổ biến (VD: "sam sung",
+// "sasung", "iphonr", "xiomi"). Model AI (Claude/Groq) tự hiểu tốt các lỗi này
+// khi trò chuyện tự do, nhưng extractIntent() ở trên chạy bằng regex CỐ ĐỊNH
+// nên chỉ 1-2 ký tự sai là trượt luôn — sửa trước bằng so khớp gần đúng
+// (Levenshtein) trên một từ điển nhỏ (hãng + dòng máy hay gặp) để cả tách
+// intent lẫn AI đều nhận đúng ý khách, không cần khách gõ lại.
+function levenshtein(a: string, b: string): number {
+  const m = a.length, n = b.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
+  const dp = Array.from({ length: m + 1 }, (_, i) => [i, ...Array(n).fill(0)]);
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      dp[i][j] = a[i - 1] === b[j - 1]
+        ? dp[i - 1][j - 1]
+        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+    }
+  }
+  return dp[m][n];
+}
+
+// Từ điển sửa lỗi — CHỈ gồm từ tiếng Anh/tên riêng viết liền không dấu (hãng,
+// dòng máy). Không đưa từ tiếng Việt có dấu vào đây vì bản thân việc bỏ dấu để
+// so khớp gần đúng đã đủ rủi ro nhầm lẫn giữa các từ tiếng Việt ngắn.
+const TYPO_VOCAB = [
+  ...BRANDS,
+  "iphone", "samsung", "galaxy", "macbook", "redmi", "poco", "vivobook",
+  "zenbook", "ideapad", "airpod", "earbud", "tablet", "watch", "note",
+  "pro", "plus", "max", "ultra", "mini",
+];
+
+function correctTypos(msg: string): string {
+  const tokens = msg.split(/(\s+)/); // giữ nguyên khoảng trắng để ghép lại đúng
+  const wordIdx: number[] = [];
+  tokens.forEach((t, i) => { if (!/^\s+$/.test(t) && t.length > 0) wordIdx.push(i); });
+
+  // 1) Ghép 2 từ liền kề bị gõ tách rời (VD: "sam" + "sung" → "samsung")
+  for (let k = 0; k < wordIdx.length - 1; k++) {
+    const i1 = wordIdx[k], i2 = wordIdx[k + 1];
+    const w1 = tokens[i1], w2 = tokens[i2];
+    if (!/^[a-zA-ZÀ-ỹ]{2,}$/.test(w1) || !/^[a-zA-ZÀ-ỹ]{2,}$/.test(w2)) continue;
+    const merged = (w1 + w2).toLowerCase();
+    for (const vocab of TYPO_VOCAB) {
+      if (vocab.length < 5) continue; // từ ngắn ghép lại dễ trùng ngẫu nhiên
+      if (levenshtein(merged, vocab) <= 1) {
+        tokens[i1] = vocab;
+        tokens[i2] = "";
+        // xoá khoảng trắng thừa giữa 2 từ vừa gộp
+        if (i1 + 1 < i2 && /^\s+$/.test(tokens[i1 + 1])) tokens[i1 + 1] = "";
+        break;
+      }
+    }
+  }
+
+  // 2) Sửa từng từ đơn gõ sai 1-2 ký tự so với từ điển
+  for (const i of wordIdx) {
+    const raw = tokens[i];
+    if (!raw || !/^[a-zA-Z]{4,}$/.test(raw)) continue; // chỉ xét từ thuần chữ cái, đủ dài
+    const lower = raw.toLowerCase();
+    if (TYPO_VOCAB.includes(lower)) continue; // đã đúng, khỏi sửa
+    let best: string | null = null, bestDist = Infinity;
+    for (const vocab of TYPO_VOCAB) {
+      if (Math.abs(vocab.length - lower.length) > 2) continue;
+      const dist = levenshtein(lower, vocab);
+      if (dist < bestDist) { bestDist = dist; best = vocab; }
+    }
+    const threshold = lower.length <= 5 ? 1 : 2;
+    if (best && bestDist <= threshold) tokens[i] = best;
+  }
+
+  return tokens.join("").replace(/\s{2,}/g, " ");
+}
+
+// ── Danh mục trang trên web (để dẫn khách đi đúng trang khi được hỏi) ─────────
+// Lấy đúng theo cấu trúc route thật trong app/ (đã kiểm tra qua thư mục dự án)
+// — không suy đoán/bịa đường dẫn để tránh dẫn khách vào link 404.
+const SITE_PAGES: { keywords: RegExp; label: string; href: string }[] = [
+  [/trang chủ|home page|về (?:lại )?trang đầu/i,                              "Trang chủ",                "/"],
+  [/(?:tất cả |toàn bộ |danh sách )?sản phẩm|danh mục sản phẩm/i,             "Tất cả sản phẩm",          "/sanpham"],
+  [/giỏ hàng/i,                                                               "Giỏ hàng",                 "/giohang"],
+  [/thanh toán|checkout|đặt hàng/i,                                          "Thanh toán",                "/thanhtoan"],
+  [/tra cứu đơn hàng|kiểm tra đơn hàng|theo dõi đơn hàng/i,                  "Tra cứu đơn hàng",          "/tra-cuu-don-hang"],
+  [/đơn hàng (?:của (?:tôi|mình)|đã (?:mua|đặt))|lịch sử (?:mua|đơn) hàng/i, "Đơn hàng của tôi",          "/don-hang"],
+  [/tài khoản|thông tin cá nhân|hồ sơ (?:của (?:tôi|mình))?/i,               "Tài khoản của tôi",         "/nguoidung"],
+  [/yêu thích|wishlist|đã lưu|đã thích/i,                                    "Sản phẩm yêu thích",        "/yeu-thich"],
+  [/so sánh sản phẩm|trang so sánh|danh sách so sánh/i,                      "So sánh sản phẩm",          "/sosanh"],
+  [/tin tức|blog|bài viết|khuyến mãi mới/i,                                  "Tin tức",                   "/tintuc"],
+  [/giới thiệu|về (?:chúng tôi|smarthub|shop|cửa hàng)(?! ở đâu)/i,          "Giới thiệu",                "/gioi-thieu"],
+  [/liên hệ|contact|hotline|số điện thoại (?:shop|cửa hàng|hỗ trợ)/i,       "Liên hệ",                   "/lien-he"],
+  [/hệ thống cửa hàng|cửa hàng (?:ở đâu|gần|chi nhánh)|showroom/i,          "Hệ thống cửa hàng",         "/he-thong-cua-hang"],
+  [/hướng dẫn mua hàng|cách (?:mua|đặt) hàng/i,                             "Hướng dẫn mua hàng",        "/huong-dan-mua-hang"],
+  [/tuyển dụng|việc làm|career/i,                                            "Tuyển dụng",                "/tuyen-dung"],
+  [/đối tác/i,                                                               "Đối tác",                   "/doi-tac"],
+  [/(?:chính sách )?bảo hành/i,                                              "Chính sách bảo hành",       "/chinh-sach-bao-hanh"],
+  [/(?:chính sách )?bảo mật|privacy/i,                                       "Chính sách bảo mật",        "/chinh-sach-bao-mat"],
+  [/(?:chính sách )?đổi trả|hoàn tiền|hoàn trả/i,                           "Chính sách đổi trả",        "/chinh-sach-doi-tra"],
+  [/(?:chính sách )?vận chuyển|giao hàng/i,                                  "Chính sách vận chuyển",     "/chinh-sach-van-chuyen"],
+  [/thương hiệu|brand/i,                                                     "Thương hiệu",               "/thuonghieu"],
+  [/đăng nhập|login/i,                                                       "Đăng nhập",                 "/login"],
+  [/đăng ký|tạo tài khoản|sign up/i,                                         "Đăng ký",                   "/dangky"],
+].map(([keywords, label, href]) => ({ keywords: keywords as RegExp, label: label as string, href: href as string }));
+
+// Chỉ coi là muốn ĐIỀU HƯỚNG (cần nút bấm dẫn đi) khi câu có cụm hỏi đường/vị
+// trí rõ ràng — tránh trùng với câu hỏi nội dung bình thường có chứa cùng từ
+// khoá (VD: "sản phẩm này bảo hành bao lâu" không phải đang hỏi TRANG bảo hành).
+const NAV_TRIGGERS = /trang nào|ở đâu|link (?:trang|của)|vào trang|xem trang|mở trang|chuyển (?:đến|tới|sang)|đi (?:đến|tới|sang)|tìm trang|đường dẫn|dẫn (?:tôi|mình|em) (?:đến|tới|sang)|đưa (?:tôi|mình|em) (?:đến|tới|sang)/i;
+
+function resolveNavPage(msg: string): { label: string; href: string } | null {
+  const lower = msg.toLowerCase();
+  if (!NAV_TRIGGERS.test(lower)) return null;
+  for (const page of SITE_PAGES) if (page.keywords.test(lower)) return { label: page.label, href: page.href };
+  return null;
+}
+
+// ── So sánh sản phẩm ("so sánh A và B") ───────────────────────────────────────
+function extractCompareTerms(msg: string): [string, string] | null {
+  const m = msg.match(/so sánh\s+(.+?)\s+(?:và|với|so với|vs\.?)\s+(.+?)(?:[?.!]|$)/i);
+  if (!m) return null;
+  const a = m[1].trim(), b = m[2].trim();
+  if (!a || !b || a.length < 2 || b.length < 2) return null;
+  return [a, b];
+}
+
+// ── Hỏi "cái mắc nhất/rẻ nhất/tốt nhất" trong DANH SÁCH VỪA HIỂN THỊ ─────────
+// Khác với sort trong extractIntent() (dùng cho 1 lượt TÌM KIẾM MỚI, VD "tìm
+// laptop rẻ nhất" → sort kết quả category mới), hàm này chỉ áp dụng khi câu
+// hỏi KHÔNG tự nêu category/brand/từ khóa riêng — tức khách đang hỏi ngược
+// lại trong số sản phẩm đã thấy ở lượt trước (VD: "cho tôi xem cái mắc nhất",
+// "con nào rẻ nhất trong này"). Trước đây AI vẫn trả lời đúng bằng CHỮ (nhờ
+// đọc lịch sử) nhưng KHÔNG có card sản phẩm đi kèm vì `products` rỗng — card
+// chỉ được đưa vào response khi có 1 lượt fetch/resolve sản phẩm thật, không
+// tự sinh ra từ mỗi câu trả lời bằng chữ của AI.
+function extractSuperlativeRef(msg: string): "price_desc" | "price_asc" | "rating_desc" | null {
+  const lower = msg.toLowerCase();
+  if (/mắc nhất|đắt nhất|giá cao nhất|(?:^|\s)cao nhất/.test(lower)) return "price_desc";
+  if (/rẻ nhất|giá thấp nhất|(?:^|\s)thấp nhất|tiết kiệm nhất/.test(lower)) return "price_asc";
+  if (/đánh giá cao nhất|tốt nhất|ngon nhất|xịn nhất/.test(lower)) return "rating_desc";
+  return null;
+}
+
+// ── Tin tức / bài viết ─────────────────────────────────────────────────────────
+const NEWS_TRIGGERS = /tin tức|bài viết|blog|đọc tin|tin mới|khuyến mãi mới|sự kiện|có gì mới/i;
+
+function extractNewsKeyword(msg: string): string | null {
+  // Bắt buộc có từ nối "về/liên quan/nói về" mới coi là có chủ đề cụ thể — nếu
+  // không, các câu chung chung như "tin tức mới nhất" sẽ bị nuốt nhầm "mới
+  // nhất" làm từ khóa tìm kiếm, khiến search ra 0 kết quả dù thực sự có bài.
+  // Không có từ nối → trả null để fetchNews() lấy thẳng bài mới nhất, không lọc.
+  const m = msg.match(/(?:tin tức|bài viết|blog)\s+(?:về|liên quan|nói về)\s+(.+?)(?:[?.!]|$)/i);
+  const kw = m?.[1]?.trim();
+  return kw && kw.length > 1 ? kw : null;
+}
+
+interface NewsArticle {
+  title: string;
+  slug: string;
+  thumbnail: string;
+  summary: string;
+}
+
+async function fetchNews(keyword: string | null): Promise<NewsArticle[]> {
+  const p = new URLSearchParams({ limit: "4" });
+  if (keyword) p.set("search", keyword);
+  try {
+    const res = await fetch(`${BACKEND}/api/news?${p}`, { next: { revalidate: 0 } });
+    if (!res.ok) { console.error("[chat] fetchNews HTTP", res.status); return []; }
+    const data = await res.json();
+    return (data.data || []).map((n: any) => ({
+      title: n.title, slug: n.slug, thumbnail: n.thumbnail || "", summary: n.summary || "",
+    }));
+  } catch (e: any) { console.error("[chat] fetchNews threw:", e?.message); return []; }
+}
+
+// ── Tạo địa chỉ giao hàng qua chat ───────────────────────────────────────────
+// Khách nói "thêm địa chỉ" → hỏi đủ 6 trường theo MẪU CỐ ĐỊNH (giữ nguyên chữ
+// để lượt sau nhận diện lại đang ở giữa luồng nhập địa chỉ, giống cơ chế
+// resolvePendingColorChoice ở trên) → lượt kế tiếp bóc tách theo nhãn hoặc theo
+// thứ tự cố định nếu khách gõ liền một dòng → đủ + hợp lệ thì trả action thật
+// để FE tạo địa chỉ (chỉ trình duyệt mới có token khách, giống add-to-cart).
+type AddrKey = "receiverName" | "phone" | "province" | "district" | "ward" | "detailAddress";
+const ADDR_ORDER: AddrKey[] = ["receiverName", "phone", "province", "district", "ward", "detailAddress"];
+const ADDR_LABELS: Record<AddrKey, string> = {
+  receiverName: "Tên người nhận", phone: "Số điện thoại", province: "Tỉnh/Thành phố",
+  district: "Quận/Huyện", ward: "Phường/Xã", detailAddress: "Địa chỉ cụ thể",
+};
+const ADDRESS_PROMPT =
+  `Được thôi! Bạn gửi giúp mình thông tin theo đúng mẫu này nhé (giữ nguyên từng dòng, thay số liệu tương ứng):\n` +
+  ADDR_ORDER.map((k) => `${ADDR_LABELS[k]}: ...`).join("\n");
+
+function extractAddressIntent(msg: string): boolean {
+  return /thêm địa chỉ|tạo địa chỉ|địa chỉ (giao hàng )?mới|lưu địa chỉ|thêm (một )?địa chỉ/i.test(msg.toLowerCase());
+}
+
+// Lượt trước Bunny vừa hỏi mẫu địa chỉ (nhận diện qua 2 nhãn đầu — luôn giữ
+// nguyên văn trong ADDRESS_PROMPT nên so khớp lại được chính xác ở lượt sau).
+function isAddressPromptReply(history: any[]): boolean {
+  const last = [...history].reverse().find((h: any) => h.role === "assistant");
+  const content = String(last?.content || "");
+  return content.includes("Tên người nhận:") && content.includes("Số điện thoại:");
+}
+
+function parseAddressFields(msg: string): Partial<Record<AddrKey, string>> {
+  const fields: Partial<Record<AddrKey, string>> = {};
+  const LINE_PATTERNS: [RegExp, AddrKey][] = [
+    [/tên\s*(?:người nhận)?\s*:\s*(.+)/i, "receiverName"],
+    [/(?:sđt|số điện thoại|đt)\s*:\s*(.+)/i, "phone"],
+    [/tỉnh\s*(?:\/\s*thành phố)?\s*:\s*(.+)/i, "province"],
+    [/quận\s*(?:\/\s*huyện)?\s*:\s*(.+)/i, "district"],
+    [/phường\s*(?:\/\s*xã)?\s*:\s*(.+)/i, "ward"],
+    [/địa chỉ\s*(?:cụ thể)?\s*:\s*(.+)/i, "detailAddress"],
+  ];
+  const lines = msg.split(/\n+/).map((l) => l.trim()).filter(Boolean);
+  let labeledCount = 0;
+  for (const line of lines) {
+    for (const [re, key] of LINE_PATTERNS) {
+      const m = line.match(re);
+      if (m) { fields[key] = m[1].trim(); labeledCount++; break; }
+    }
+  }
+  if (labeledCount >= 3) return fields;
+
+  // Không gõ theo mẫu có nhãn — thử tách theo dấu phẩy/xuống dòng, gán theo
+  // ĐÚNG THỨ TỰ cố định (name, phone, tỉnh, quận, phường, địa chỉ cụ thể).
+  const parts = msg.split(/\n|,/).map((p) => p.trim()).filter(Boolean);
+  if (parts.length >= 6) {
+    ADDR_ORDER.forEach((key, i) => { if (!fields[key]) fields[key] = parts[i]; });
+    if (parts.length > 6) fields.detailAddress = parts.slice(5).join(", ");
+  }
+  return fields;
+}
+
+function isValidVNPhone(phone: string): boolean {
+  return /^(0|\+84)\d{9,10}$/.test(phone.replace(/[\s.-]/g, ""));
+}
+
 interface Intent {
   is_product_query: boolean;
   keyword:   string | null;
@@ -105,6 +342,11 @@ function extractIntent(msg: string): Intent {
     "xem","sao","mà","nhé","nhỉ","à","đi","vậy","thế","này","đó","luôn",
     "cho","tôi","giúp","dùm","nha","nhá","ơi","thử","nào","ạ","ha",
     "hả","hử","đây","kìa","ừ","ừm","đấy","hen",
+    // Cụm hành động giỏ hàng/mua ngay hay đi kèm ngay sau tên sản phẩm (VD:
+    // "thêm iphone 16e vào giỏ hàng", "mua samsung s26 ngay") — không chặn thì
+    // bị nuốt luôn vào keyword tìm kiếm ("iphone 16e vào giỏ"), khiến search ra
+    // 0 kết quả vì "vào"/"giỏ"/"hàng" không nằm trong tên sản phẩm nào.
+    "vào","giỏ","hàng","thêm","ngay","chốt","đặt",
   ];
   const stopLookahead = KEYWORD_STOP_WORDS.join("|");
   const m2 = msg.match(
@@ -243,6 +485,10 @@ CÁCH NÓI CHUYỆN (bắt buộc):
   "máy nào mạnh", "cái nào đáng tiền", "con này ổn không", "còn màu đen
   không", "so con này với con kia", "có sale không" — đều là hỏi về sản phẩm,
   xử lý bình thường như câu hỏi chuẩn
+- Khách có thể gõ sai chính tả, thiếu dấu, viết tắt, gõ tách rời tên hãng
+  (VD: "sam sung", "iphonr", "kh mua dc")... TUYỆT ĐỐI KHÔNG chê, sửa lỗi hay
+  hỏi lại vì lý do chính tả — luôn cố đoán đúng ý khách muốn nói và trả lời
+  thẳng vào ý đó như thể khách gõ đúng hoàn toàn
 - Có thể trò chuyện ngoài lề (chào hỏi, than vãn, hỏi linh tinh) một cách tự
   nhiên, không biến mọi câu nói thành cơ hội quảng cáo. Nếu hợp lý thì mới nhẹ
   nhàng gợi ý sản phẩm, không gượng ép
@@ -280,6 +526,29 @@ KHI TƯ VẤN SẢN PHẨM:
   — không tự ý bịa ra là "đã thêm vào giỏ"/"đã đưa sang thanh toán" khi có ghi
   chú yêu cầu hỏi lại. Không nói khách chờ "nhân viên hỗ trợ" chung chung
 - Đổi trả, khiếu nại một đơn hàng cụ thể đã mua → hướng đến nhân viên hỗ trợ
+- Tin tức/bài viết: khách hỏi "tin tức mới", "bài viết về...", "có gì mới không"
+  → nếu có ghi chú "BÀI VIẾT CÓ THẬT" ở cuối, hệ thống đã tự hiện card bài viết
+  kèm ảnh cho khách bấm vào rồi — chỉ cần nhắc ngắn gọn tự nhiên là có bài liên
+  quan bên dưới, KHÔNG đọc lại từng tên bài, KHÔNG bịa bài viết không có trong
+  ghi chú
+- Thêm địa chỉ giao hàng: khách nói "thêm địa chỉ", "tạo địa chỉ mới" → hệ
+  thống tự hỏi khách mẫu thông tin cần điền (tên, SĐT, tỉnh, quận, phường, địa
+  chỉ cụ thể) và tự lưu thật khi khách điền đủ — bạn chỉ xác nhận ngắn gọn tự
+  nhiên theo đúng ghi chú "[Hệ thống: ...]", KHÔNG tự bịa là đã lưu địa chỉ khi
+  chưa có ghi chú xác nhận
+- So sánh sản phẩm: khách nói "so sánh A và B" → nếu có ghi chú "[Hệ thống: ...
+  SO SÁNH ...]" ở cuối, dùng đúng dữ liệu 2 sản phẩm đó để so sánh khách quan
+  (giá, đánh giá, tồn kho, và các thông tin THẬT có trong dữ liệu) rồi gợi ý
+  chọn con nào theo nhu cầu — không tự bịa thông số kỹ thuật không có trong dữ
+  liệu shop
+- Điều hướng trang web: SmartHub có đầy đủ các trang — trang chủ, tất cả sản
+  phẩm, giỏ hàng, thanh toán, tra cứu đơn hàng, đơn hàng của tôi, tài khoản,
+  yêu thích, so sánh sản phẩm, tin tức, giới thiệu, liên hệ, hệ thống cửa
+  hàng, hướng dẫn mua hàng, tuyển dụng, đối tác, các trang chính sách (bảo
+  hành/bảo mật/đổi trả/vận chuyển), thương hiệu, đăng nhập, đăng ký. Khách hỏi
+  đường tới trang nào đó, nếu có ghi chú "[Hệ thống: ... đang hỏi đường tới
+  trang ...]" ở cuối thì có nghĩa hệ thống đã tự thêm nút bấm dẫn thẳng tới đó
+  — chỉ cần xác nhận ngắn gọn tự nhiên, KHÔNG cần đọc hay gõ đường link ra
 
 ĐỊNH DẠNG TRẢ LỜI (bắt buộc — khung chat rất nhỏ, không hiển thị markdown):
 - Chỉ dùng văn bản thuần, xuống dòng thường và emoji để nhấn mạnh (được dùng
@@ -336,17 +605,26 @@ async function callGroq(system: string, userMsg: string, history: any[]): Promis
       method: "POST", signal: controller.signal,
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
+        // "llama-3.3-70b-versatile" đã bị Groq gỡ bỏ (404 model_not_found) — dùng
+        // model hiện hành. Model reasoning này "nghĩ" trước khi trả lời và có thể
+        // ngốn hết max_tokens vào phần suy luận ẩn nếu không giới hạn, khiến content
+        // trả về rỗng — hạ reasoning_effort xuống thấp nhất và nâng max_tokens.
+        model: "openai/gpt-oss-120b",
+        reasoning_effort: "low",
         messages: [
           { role: "system", content: system },
           ...history.slice(-10),
           { role: "user", content: userMsg },
         ],
-        temperature: 0.7, max_tokens: 600,
+        temperature: 0.7, max_tokens: 900,
       }),
     });
     clearTimeout(t);
-    if (!res.ok) return null;
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => "");
+      console.error("[chat] Groq HTTP", res.status, errBody.slice(0, 500));
+      return null;
+    }
     const data = await res.json();
     return data.choices?.[0]?.message?.content || null;
   } catch { return null; }
@@ -391,6 +669,35 @@ async function callOpenRouter(system: string, userMsg: string, history: any[]): 
     console.error("[chat] OpenRouter fetch threw:", e?.name, e?.message);
     return null;
   }
+}
+
+// ── Fallback CÓ NGỮ CẢNH khi cả 3 AI đều lỗi (hết quota/rate limit/mạng) ──────
+// buildReply() bên dưới hoàn toàn mù ngữ cảnh — chỉ nhìn đúng tin nhắn hiện
+// tại. Khi Bunny vừa hỏi 1 câu tư vấn (VD: "ưu tiên yếu tố nào", "dùng để làm
+// gì") và khách trả lời ngắn gọn (VD: "chơi game", "học tập", "chụp ảnh")
+// nhưng không khớp intent sản phẩm nào, rơi thẳng xuống buildReply() sẽ ra
+// câu "mình chưa hiểu câu hỏi" hoàn toàn không liên quan — trông như hệ
+// thống "mất trí nhớ" dù thực ra chỉ là AI tạm lỗi. Bắt riêng trường hợp này
+// để vẫn trả lời có ngữ cảnh, dùng đúng danh sách sản phẩm vừa gợi ý.
+function buildContextualFallback(msg: string, history: any[]): string | null {
+  const lastAssistant = [...history].reverse().find((h: any) => h.role === "assistant");
+  const rawContent = String(lastAssistant?.content || "");
+  // Bỏ ghi chú nội bộ "[Sản phẩm đã hiển thị: ...]" trước khi xét — nó luôn bị
+  // nhét vào SAU dấu "?", nên endsWith("?") kiểu cũ không bao giờ khớp. Emoji ở
+  // cuối câu cũng vậy — không đòi hỏi "?" là ký tự CUỐI CÙNG tuyệt đối, chỉ cần
+  // nằm trong khoảng vài ký tự cuối (cho phép emoji/khoảng trắng theo sau).
+  const lastContent = rawContent.replace(/\[Sản phẩm đã hiển thị:[^\]]*\]/g, "").trim();
+  const lastQIndex = lastContent.lastIndexOf("?");
+  const endsWithQuestion = lastQIndex >= 0 && lastQIndex >= lastContent.length - 15;
+  const wasAskingPreference =
+    endsWithQuestion && /ưu tiên|dùng để|mục đích|ngân sách|nhu cầu|muốn (dùng|chơi|làm|học)/i.test(lastContent);
+  if (!wasAskingPreference) return null;
+
+  const shownNames = getLastShownNames(history);
+  if (!shownNames.length) return null;
+
+  const list = shownNames.slice(0, 3).join(", ");
+  return `Với nhu cầu "${msg.trim()}" thì trong mấy lựa chọn mình vừa gợi ý (${list}) bạn thấy cái nào hợp hơn, hay để mình tìm thêm lựa chọn khác phù hợp hơn nhé? 😊`;
 }
 
 // ── Template fallback ─────────────────────────────────────────────────────────
@@ -553,6 +860,13 @@ function extractCleanReply(raw: string): string | null {
 const FILLER_WORDS = new Set([
   "di", "nhe", "nha", "a", "ne", "luon", "do", "nay", "vay", "thoi",
   "oi", "ban", "minh", "cho", "toi", "voi", "duoc", "khong",
+  // Cụm hành động giỏ hàng + đại từ trỏ chung ("nó") hay đi cùng câu ra lệnh
+  // ngắn (VD: "thêm nó vào giỏ hàng i") — cùng lỗi với KEYWORD_STOP_WORDS ở
+  // trên: thiếu các từ này khiến phép so khớp "MỌI từ phải khớp" luôn thất
+  // bại (không sản phẩm nào có chữ "vào"/"giỏ"/"hàng" trong tên), nên dù chỉ
+  // còn "nó" là từ thật sự vô nghĩa để đối chiếu, cả câu vẫn bị coi là không
+  // khớp sản phẩm nào — trong khi thực ra khách đang nói về ĐÚNG 1 sản phẩm.
+  "them", "vao", "gio", "hang", "bo", "no", "i",
 ]);
 
 // Tách riêng để dùng chung cho cả resolveKeywordFromHistory lẫn resolveAction
@@ -590,15 +904,34 @@ function resolveKeywordFromHistory(message: string, history: any[]): string | nu
 // ý thêm hàng khi khách chỉ đang hỏi han bình thường.
 function extractActionIntent(msg: string): "add_to_cart" | "buy_now" | null {
   const lower = msg.toLowerCase().trim();
-  if (/mua (luôn|ngay)|đặt (hàng|mua)( ngay| luôn)?|chốt đơn|chốt luôn|xuống tiền|lấy (con|cái|mẫu) này( luôn)?/.test(lower))
+  if (
+    /mua (luôn|ngay)|đặt (hàng|mua)( ngay| luôn)?|chốt đơn|chốt luôn|xuống tiền|lấy (con|cái|mẫu) này( luôn)?/.test(lower) ||
+    // "mua"/"ngay"/"luôn" có thể cách nhau bởi tên sản phẩm chen giữa (VD: "mua
+    // iphone 16e ngay đi", "mua con samsung s26 này luôn nhé") — 2 pattern cố
+    // định trên chỉ khớp khi 2 từ đứng NGAY SÁT nhau nên bỏ sót các câu này.
+    // Vẫn đòi hỏi có "ngay"/"luôn" đi kèm để không tự kích hoạt mua ngay chỉ vì
+    // câu có chữ "mua" chung chung (VD: "mình muốn mua điện thoại" phải hỏi
+    // thêm, không chốt đơn ngay).
+    (/\bmua\b/.test(lower) && /\b(ngay|luôn)\b/.test(lower))
+  )
     return "buy_now";
+
+  // Khách đang HỎI/XEM giỏ hàng (không phải ý định thêm) → không phải add_to_cart
+  if (/xem giỏ|kiểm tra giỏ|giỏ hàng (của )?(tôi|mình) có|trong giỏ (của )?(tôi|mình)|giỏ hàng (ở đâu|thế nào|bao nhiêu)/.test(lower))
+    return null;
+
   if (
     /thêm (vào |)giỏ( hàng)?|cho vào giỏ|bỏ vào giỏ/.test(lower) ||
     // Câu ra lệnh ngắn không kèm chữ "giỏ" nhưng rõ ràng đang tiếp nối một thao
     // tác vừa nói tới (VD: "thêm đi", "lấy giúp mình", "thêm cái này luôn") —
     // bắt buộc có động từ hành động NGAY ĐẦU câu để tránh dính câu bình thường
     // khác chứa "thêm" ở giữa (VD: "thêm sản phẩm khác đi").
-    /^(thêm|lấy|cho)(\s+(nó|cái này|con này|cái đó|con đó))?\s+(đi|dùm|giúp|nhé|luôn)$/.test(lower)
+    /^(thêm|lấy|cho)(\s+(nó|cái này|con này|cái đó|con đó))?\s+(đi|dùm|giúp|nhé|luôn)$/.test(lower) ||
+    // "giỏ (hàng)" xuất hiện CÙNG với 1 động từ thêm/cho/bỏ ở bất kỳ đâu trong
+    // câu — khách hay chèn tên sản phẩm ở giữa (VD: "thêm iphone 16e vào giỏ
+    // hàng", "cho con samsung s26 vào giỏ giúp mình") khiến pattern đầu tiên
+    // (đòi "thêm"/"cho"/"bỏ" đứng NGAY SÁT "giỏ") không khớp.
+    (/giỏ(?: hàng)?\b/.test(lower) && /\bthêm\b|\bcho\b|\bbỏ\b/.test(lower))
   )
     return "add_to_cart";
   return null;
@@ -716,6 +1049,19 @@ async function resolveAction(
     target = await fetchExactProduct(shownNames[0]);
   }
 
+  // 4.5. shownNames có nhiều sản phẩm (VD: 4 mẫu loa từ 1 lượt tìm kiếm cũ),
+  // nhưng cuộc trò chuyện đã thu hẹp lại còn nói về ĐÚNG 1 trong số đó ở câu
+  // trả lời GẦN NHẤT của chính Bunny (dù câu đó không kèm card sản phẩm, nên
+  // không có ghi chú "[Sản phẩm đã hiển thị: ...]" mới hơn) — khách nói "thêm
+  // nó/cái này vào giỏ" ngay sau đó gần như chắc chắn đang nói về sản phẩm đó,
+  // không phải hỏi lại cả danh sách cũ đã lỗi thời so với trọng tâm hiện tại.
+  if (!target && shownNames.length > 1) {
+    const lastAssistant = [...history].reverse().find((h: any) => h.role === "assistant");
+    const lastText = String(lastAssistant?.content || "").toLowerCase();
+    const mentioned = shownNames.filter((name) => lastText.includes(name.toLowerCase()));
+    if (mentioned.length === 1) target = await fetchExactProduct(mentioned[0]);
+  }
+
   if (!target) {
     const options = shownNames.length > 1 ? ` (${shownNames.slice(0, 4).join(", ")})` : "";
     return {
@@ -823,29 +1169,100 @@ async function resolvePendingColorAction(pc: {
 export async function POST(req: NextRequest) {
   try {
     const body    = await req.json();
-    const message: string = body.message?.trim() || "";
+    const rawMessage: string = body.message?.trim() || "";
     const history: any[]  = Array.isArray(body.history) ? body.history : [];
 
-    if (!message) return NextResponse.json({ success: false, message: "Thiếu nội dung" }, { status: 400 });
+    if (!rawMessage) return NextResponse.json({ success: false, message: "Thiếu nội dung" }, { status: 400 });
+
+    // Sửa lỗi chính tả/gõ tách rời nhẹ TRƯỚC khi tách intent lẫn gửi cho AI —
+    // dùng bản đã sửa xuyên suốt từ đây (khách gõ sai vẫn được hiểu đúng ý mà
+    // không cần gõ lại, và AI cũng nhận được câu đã chuẩn hoá).
+    const message = correctTypos(rawMessage);
 
     const intent = extractIntent(message);
 
+    // ── Tạo địa chỉ giao hàng qua chat — xét TRƯỚC khi tách sản phẩm ──────────
+    // Nhãn "Số điện thoại:" trong mẫu địa chỉ vô tình chứa đúng cụm trigger
+    // "điện thoại" của category Điện thoại, khiến extractIntent() ở trên hiểu
+    // nhầm là khách đang hỏi mua điện thoại và kéo nguyên danh sách iPhone vào
+    // — chặn is_product_query NGAY khi phát hiện đây là lượt đang điền địa chỉ.
+    const addressIntentNow = extractAddressIntent(message);
+    const inAddressFlow = !addressIntentNow && isAddressPromptReply(history);
+    const addressFieldsParsed = inAddressFlow ? parseAddressFields(message) : {};
+    const isAddressSubmission = inAddressFlow && Object.keys(addressFieldsParsed).length > 0;
+    if (addressIntentNow || isAddressSubmission) {
+      intent.is_product_query = false;
+      intent.category = null;
+      intent.keyword = null;
+    }
+
     // Câu hỏi không khớp trigger nào NHƯNG khớp tên sản phẩm vừa hiển thị →
     // vẫn coi là truy vấn sản phẩm, tìm đúng sản phẩm đó thay vì bỏ qua.
-    if (!intent.is_product_query) {
+    if (!intent.is_product_query && !addressIntentNow && !isAddressSubmission) {
       const resolved = resolveKeywordFromHistory(message, history);
       if (resolved) { intent.is_product_query = true; intent.keyword = resolved; }
     }
 
-    let products = intent.is_product_query ? await fetchProducts(intent) : [];
+    // ── So sánh sản phẩm ("so sánh A và B") ─────────────────────────────────
+    const compareTerms = extractCompareTerms(message);
+    // Chỉ xét cấp so sánh nhất khi câu hỏi tự nó KHÔNG nêu category/brand mới
+    // — nếu có (VD: "tìm laptop rẻ nhất") thì để luồng tìm kiếm mới bên dưới
+    // xử lý bằng sort, không đụng vào ở đây. CHÚ Ý: cố tình KHÔNG dùng
+    // intent.keyword để gate — kwMatch() ở extractIntent() vốn chỉ được thiết
+    // kế cho cụm sau "tìm/mua/xem/muốn/cần", nên câu như "cho tôi xem cái mắc
+    // nhất" bị bắt nhầm luôn cụm "cái mắc nhất" thành keyword (rác, không
+    // phải tên sản phẩm thật) — nếu gate bằng keyword sẽ luôn bị coi là "đã
+    // có ý định cụ thể" và bỏ qua nhánh này oan.
+    const hasFreshSearchIntent = !!(intent.category || intent.brand);
+    const superlativeSort = !compareTerms && !hasFreshSearchIntent ? extractSuperlativeRef(message) : null;
+    let compareNote = "";
+    let superlativeNote = "";
+    let products: any[];
+    if (compareTerms) {
+      const [termA, termB] = compareTerms;
+      intent.is_product_query = true;
+      const cmpIntent = (kw: string): Intent => ({
+        is_product_query: true, keyword: kw, category: null, brand: null,
+        price_min: null, price_max: null, sort: "newest",
+      });
+      const [prodA, prodB] = await Promise.all([fetchProducts(cmpIntent(termA)), fetchProducts(cmpIntent(termB))]);
+      const combined = [prodA[0], prodB[0]].filter(Boolean);
+      products = combined;
+      compareNote = combined.length === 2
+        ? `\n[Hệ thống: khách muốn SO SÁNH "${termA}" và "${termB}" — CHỈ dùng đúng dữ liệu giá/đánh giá/tồn kho của 2 sản phẩm bên dưới để so sánh khách quan, không bịa thông số không có trong dữ liệu, kết luận nên chọn sản phẩm nào tuỳ theo nhu cầu khách (giá rẻ hơn, đánh giá cao hơn...).]`
+        : `\n[Hệ thống: khách muốn so sánh "${termA}" và "${termB}" nhưng chưa tìm đủ dữ liệu cả 2 sản phẩm trong kho — nói thật là thiếu dữ liệu 1 trong 2, hỏi lại tên chính xác hơn, không bịa so sánh.]`;
+    } else if (superlativeSort) {
+      const shownNames = getLastShownNames(history);
+      const candidates = shownNames.length
+        ? (await Promise.all(shownNames.map((n) => fetchExactProduct(n)))).filter(Boolean)
+        : [];
+      const effectivePrice = (p: any) => p.giaSale ?? p.gia;
+      let best: any = null;
+      if (candidates.length) {
+        if (superlativeSort === "price_desc")
+          best = candidates.reduce((a, b) => (effectivePrice(a) >= effectivePrice(b) ? a : b));
+        else if (superlativeSort === "price_asc")
+          best = candidates.reduce((a, b) => (effectivePrice(a) <= effectivePrice(b) ? a : b));
+        else
+          best = candidates.reduce((a, b) => ((a.danhGia || 0) >= (b.danhGia || 0) ? a : b));
+      }
+      products = best ? [best] : [];
+      intent.is_product_query = true;
+      const label = superlativeSort === "price_desc" ? "giá cao nhất" : superlativeSort === "price_asc" ? "giá rẻ nhất" : "đánh giá cao nhất";
+      superlativeNote = best
+        ? `\n[Hệ thống: khách hỏi sản phẩm có ${label} trong số các sản phẩm vừa hiển thị — đã xác định đúng là "${best.ten}", card sản phẩm đã hiện sẵn bên dưới rồi, chỉ cần xác nhận ngắn gọn theo đúng dữ liệu, không cần liệt kê lại toàn bộ danh sách.]`
+        : `\n[Hệ thống: khách hỏi sản phẩm có ${label} nhưng không xác định được đang nói về danh sách sản phẩm nào — hỏi lại khách đang muốn so sánh trong nhóm sản phẩm nào.]`;
+    } else {
+      products = intent.is_product_query ? await fetchProducts(intent) : [];
 
-    // Từ khóa gốc không ra kết quả nào — thử lại bằng tên sản phẩm đã hiển thị
-    // trước đó (trường hợp trigger có khớp nhưng từ khóa trích ra bị lệch).
-    if (intent.is_product_query && products.length === 0) {
-      const resolved = resolveKeywordFromHistory(message, history);
-      if (resolved && resolved.toLowerCase() !== (intent.keyword || "").toLowerCase()) {
-        intent.keyword = resolved;
-        products = await fetchProducts(intent);
+      // Từ khóa gốc không ra kết quả nào — thử lại bằng tên sản phẩm đã hiển thị
+      // trước đó (trường hợp trigger có khớp nhưng từ khóa trích ra bị lệch).
+      if (intent.is_product_query && products.length === 0) {
+        const resolved = resolveKeywordFromHistory(message, history);
+        if (resolved && resolved.toLowerCase() !== (intent.keyword || "").toLowerCase()) {
+          intent.keyword = resolved;
+          products = await fetchProducts(intent);
+        }
       }
     }
 
@@ -893,7 +1310,64 @@ phẩm chỉ có biến thể theo MÀU SẮC, KHÔNG có các mức dung lượ
       }
     }
 
-    const system = buildSystemPrompt(productCtx + actionNote);
+    // ── Điều hướng trang web ────────────────────────────────────────────────
+    // Chỉ xét khi không có hành động giỏ hàng/màu đang xử lý ở lượt này, tránh
+    // 2 CTA (nút hành động ngầm định + nút điều hướng) chồng lên nhau.
+    const navPage = !actionTypeFromMsg && !pendingColor ? resolveNavPage(message) : null;
+    const navNote = navPage
+      ? `\n[Hệ thống: khách đang hỏi đường tới trang "${navPage.label}" — xác nhận ngắn gọn, tự nhiên rằng có nút bên dưới sẽ đưa họ tới đó luôn, KHÔNG cần đọc hay gõ lại đường link.]`
+      : "";
+    const cta = navPage ? { label: `Đến ${navPage.label}`, href: navPage.href } : undefined;
+
+    // ── Tin tức / bài viết ─────────────────────────────────────────────────
+    const newsWanted = NEWS_TRIGGERS.test(message.toLowerCase());
+    const articles = newsWanted ? await fetchNews(extractNewsKeyword(message)) : [];
+    const newsNote = newsWanted
+      ? articles.length
+        ? `\n[Hệ thống: khách hỏi tin tức/bài viết — dưới đây là các bài viết THẬT, đã hiện card kèm ảnh cho khách bấm vào rồi, bạn chỉ cần nhắc ngắn gọn tự nhiên là có mấy bài liên quan bên dưới, KHÔNG cần đọc tên từng bài ra.]\nBÀI VIẾT CÓ THẬT:\n${articles.map((a, i) => `${i + 1}. ${a.title}`).join("\n")}`
+        : `\n[Hệ thống: khách hỏi tin tức nhưng chưa tìm thấy bài viết phù hợp — báo thật, không bịa tên bài viết.]`
+      : "";
+
+    // ── Tạo địa chỉ giao hàng qua chat ───────────────────────────────────────
+    // (addressIntentNow/inAddressFlow/addressFieldsParsed đã tính ở đầu handler
+    // để kịp chặn is_product_query trước khi tách sản phẩm — dùng lại ở đây)
+    let addressAction: { type: "create_address"; address: Record<AddrKey, string> } | null = null;
+    let addressReplyOverride = "";
+    if (addressIntentNow) {
+      addressReplyOverride = ADDRESS_PROMPT;
+    } else if (isAddressSubmission) {
+      const fields = addressFieldsParsed;
+      const missing = ADDR_ORDER.filter((k) => !fields[k]);
+      const phoneOk = fields.phone ? isValidVNPhone(fields.phone) : false;
+      if (missing.length === 0 && phoneOk) {
+        const cleanPhone = fields.phone!.replace(/[\s.-]/g, "");
+        addressAction = {
+          type: "create_address",
+          address: {
+            receiverName: fields.receiverName!, phone: cleanPhone,
+            province: fields.province!, district: fields.district!,
+            ward: fields.ward!, detailAddress: fields.detailAddress!,
+          },
+        };
+        addressReplyOverride =
+          `Mình đã lưu địa chỉ mới cho bạn rồi nè 🏠\n${fields.receiverName} - ${cleanPhone}\n` +
+          `${fields.detailAddress}, ${fields.ward}, ${fields.district}, ${fields.province}\n` +
+          `Bạn xem lại hoặc chỉnh sửa trong Tài khoản > Sổ địa chỉ nhé!`;
+      } else if (!missing.includes("phone") && !phoneOk) {
+        addressReplyOverride = `Số điện thoại "${fields.phone}" chưa đúng định dạng, bạn kiểm tra lại giúp mình theo mẫu nhé 😅\n${ADDRESS_PROMPT}`;
+      } else {
+        addressReplyOverride = `Mình còn thiếu: ${missing.map((k) => ADDR_LABELS[k]).join(", ")}. Bạn gửi lại đầy đủ giúp mình theo mẫu nhé:\n${ADDRESS_PROMPT}`;
+      }
+    }
+    // isAddressSubmission false (fields rỗng): khách gõ câu không liên quan tới
+    // địa chỉ giữa chừng luồng này — bỏ qua, để pipeline bình thường xử lý.
+    const addressNote = addressIntentNow
+      ? `\n[Hệ thống: khách muốn thêm địa chỉ giao hàng — hệ thống đã tự hỏi khách mẫu thông tin cần thiết, bạn chỉ cần xác nhận ngắn gọn tự nhiên, KHÔNG tự bịa ra là đã lưu địa chỉ.]`
+      : addressAction
+      ? `\n[Hệ thống: đã lưu địa chỉ mới thành công cho khách — xác nhận ngắn gọn tự nhiên.]`
+      : "";
+
+    const system = buildSystemPrompt(productCtx + actionNote + compareNote + superlativeNote + navNote + newsNote + addressNote);
 
     // Thử lần lượt: Claude → Groq → OpenRouter → template
     const aiReplyRaw = await callClaude(system, message, history)
@@ -908,7 +1382,7 @@ phẩm chỉ có biến thể theo MÀU SẮC, KHÔNG có các mức dung lượ
     const aiReplyDeduped = aiReplyStripped ? dedupeRepeatedReply(aiReplyStripped) : null;
     const aiReply = aiReplyDeduped ? extractCleanReply(aiReplyDeduped) : null;
 
-    let reply = aiReply || buildReply(message, intent, products);
+    let reply = aiReply || buildContextualFallback(message, history) || buildReply(message, intent, products);
 
     // Câu này là hành động (thêm giỏ/mua ngay) mà CHƯA resolve chắc chắn được
     // (hỏi màu / hết hàng / chưa rõ sản phẩm) → LUÔN dùng câu hỏi cố định của
@@ -932,7 +1406,13 @@ phẩm chỉ có biến thể theo MÀU SẮC, KHÔNG có các mức dung lượ
           : `Xong rồi nè! Mình đã thêm "${action.product.ten}"${colorTxt} vào giỏ hàng cho bạn 🛒\nCần gì thêm thì bạn cứ hỏi mình nha!`;
     }
 
-    return NextResponse.json({ success: true, reply, products, action });
+    // Luồng tạo địa chỉ (hỏi mẫu / thiếu trường / đã lưu) — LUÔN dùng câu chữ cố
+    // định của hệ thống, cùng lý do với action ở trên: câu hỏi mẫu cần giữ
+    // NGUYÊN VĂN để isAddressPromptReply() nhận lại được ở lượt sau, và câu xác
+    // nhận đã lưu không được để AI tự bịa khi có thể chưa thực sự lưu thành công.
+    if (addressReplyOverride) reply = addressReplyOverride;
+
+    return NextResponse.json({ success: true, reply, products, action, cta, articles, addressAction });
   } catch (err: any) {
     console.error("[/api/chat]", err.message);
     return NextResponse.json({ success: false, message: err.message }, { status: 500 });
