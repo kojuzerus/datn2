@@ -36,7 +36,7 @@ interface Order {
   district: string;
   ward: string;
   detailAddress: string;
-  paymentMethod: "cod" | "banking" | "vnpay";
+  paymentMethod: "cod" | "banking" | "vnpay" | "vi" | "momo";
   tongTien: number;
   phiGiaoHang: number;
   maGiamGia?: string;
@@ -83,6 +83,8 @@ const PAYMENT_LABEL: Record<string, string> = {
   cod: "Tiền mặt (COD)",
   banking: "Chuyển khoản",
   vnpay: "VNPay",
+  momo: "MoMo",
+  vi: "Ví SmartHub",
 };
 
 const vnd = (n?: number) => (n ?? 0).toLocaleString("vi-VN") + "đ";
@@ -316,6 +318,8 @@ export default function AdminOrdersPage() {
               <option value="cod">Tiền mặt (COD)</option>
               <option value="banking">Chuyển khoản</option>
               <option value="vnpay">VNPay</option>
+              <option value="momo">MoMo</option>
+              <option value="vi">Ví SmartHub</option>
             </select>
           </div>
           <div className="flex flex-col gap-1.5">

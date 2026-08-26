@@ -59,13 +59,13 @@ const codStatusSteps: StatusStep[] = [
 const getStatusSteps = (paymentMethod: string): StatusStep[] =>
   paymentMethod?.toLowerCase() === 'cod' ? codStatusSteps : onlineStatusSteps;
 
-// Đã thanh toán online (VNPAY/Ví) và chưa giao → khách tự huỷ được, tiền hoàn
-// lại vào Ví SmartHub (xem cancelOrder() ở Backend/controllers/orderController.js
+// Đã thanh toán online (VNPAY/MoMo/Ví) và chưa giao → khách tự huỷ được, tiền
+// hoàn lại vào Ví SmartHub (xem cancelOrder() ở Backend/controllers/orderController.js
 // — cùng logic đã dùng đúng ở trang tài khoản /nguoidung, trang chi tiết đơn
 // hàng này trước đây chỉ cho huỷ khi 'cho_xac_nhan', thiếu nhánh đã thanh toán).
 function coTheHuyDon(o: Order) {
   if (o.trangThai === 'cho_xac_nhan') return true;
-  return (o.paymentMethod === 'vnpay' || o.paymentMethod === 'vi') && o.trangThai === 'da_xac_nhan';
+  return (o.paymentMethod === 'vnpay' || o.paymentMethod === 'vi' || o.paymentMethod === 'momo') && o.trangThai === 'da_xac_nhan';
 }
 
 const statusLabels: Record<string, string> = {

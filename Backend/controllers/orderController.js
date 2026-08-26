@@ -80,7 +80,7 @@ exports.restoreCartItems = restoreCartItems;
 // "da_xac_nhan" ngay khi thanh toán thành công — không dừng ở "cho_xac_nhan"
 // như COD) — dùng để quyết định có hoàn tiền vào ví khi đơn bị huỷ hay không.
 function daThanhToanOnline(order) {
-  return (order.paymentMethod === "vnpay" || order.paymentMethod === "vi") && order.trangThai !== "cho_xac_nhan";
+  return (order.paymentMethod === "vnpay" || order.paymentMethod === "vi" || order.paymentMethod === "momo") && order.trangThai !== "cho_xac_nhan";
 }
 
 // POST /api/orders — Tạo đơn hàng từ giỏ hàng
