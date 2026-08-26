@@ -103,19 +103,21 @@ function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4">
-      <div className="bg-white rounded-sm shadow-xl w-full max-w-sm p-8 text-center relative">
+    <div className="min-h-screen bg-gradient-to-b from-red-50 via-gray-50 to-gray-100 flex items-center justify-center px-4">
+      <div className="bg-white rounded-2xl shadow-xl shadow-gray-200/60 ring-1 ring-gray-100 w-full max-w-sm p-8 text-center relative">
         {/* Nút đóng */}
         <button
           onClick={() => router.push("/")}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg transition"
         >
           ✕
         </button>
 
         {/* Logo */}
-        <h2 className="text-2xl font-bold text-red-500 mb-2">SMARTHUB</h2>
-        <div className="flex justify-center mb-3">
+        <h2 className="text-2xl font-extrabold text-red-500 mb-2 tracking-tight">
+          SMARTHUB
+        </h2>
+        <div className="flex justify-center mb-3 drop-shadow-sm">
           <Mascot />
         </div>
         <p className="text-gray-500 text-sm mb-6">
@@ -132,7 +134,7 @@ function LoginForm() {
             value={soDienThoai}
             onChange={(e) => setSoDienThoai(e.target.value)}
             required
-            className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-red-400 focus:ring-1 focus:ring-red-200 transition"
+            className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-red-400 focus:ring-4 focus:ring-red-50 transition"
           />
 
           <div className="relative">
@@ -142,7 +144,7 @@ function LoginForm() {
               value={matKhau}
               onChange={(e) => setMatKhau(e.target.value)}
               required
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-red-400 focus:ring-1 focus:ring-red-200 transition pr-10"
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-red-400 focus:ring-4 focus:ring-red-50 transition pr-10"
             />
             <button
               type="button"
@@ -178,7 +180,7 @@ function LoginForm() {
           </div>
 
           {error && (
-            <p className="text-red-500 text-xs text-center bg-red-50 py-2 rounded-sm">
+            <p className="text-red-500 text-xs text-center bg-red-50 border border-red-100 py-2 rounded-xl">
               {error}
             </p>
           )}
@@ -186,7 +188,7 @@ function LoginForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-3 rounded-xl transition disabled:opacity-60 text-sm"
+            className="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-3 rounded-xl shadow-sm hover:shadow-md transition disabled:opacity-60 text-sm"
           >
             {loading ? "Đang đăng nhập..." : "Đăng nhập"}
           </button>
@@ -209,7 +211,7 @@ function LoginForm() {
           {/* Google OAuth - hoạt động */}
           <a
             href={`${API_URL}/api/auth/google`}
-            className="flex items-center gap-2 border border-gray-300 rounded-xl px-5 py-2.5 text-sm hover:bg-gray-50 transition"
+            className="flex items-center gap-2 border border-gray-200 rounded-full px-5 py-2.5 text-sm font-medium shadow-sm hover:shadow-md hover:border-gray-300 transition"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24">
               <path
@@ -235,7 +237,7 @@ function LoginForm() {
           {/* Facebook OAuth - hoạt động */}
           <a
             href={`${API_URL}/api/auth/facebook`}
-            className="flex items-center gap-2 border border-gray-300 rounded-xl px-5 py-2.5 text-sm hover:bg-gray-50 transition"
+            className="flex items-center gap-2 border border-gray-200 rounded-full px-5 py-2.5 text-sm font-medium shadow-sm hover:shadow-md hover:border-gray-300 transition"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24">
               <path
@@ -251,7 +253,7 @@ function LoginForm() {
         <div className="flex gap-3">
           <Link
             href="/dangky"
-            className="flex-1 border-2 border-red-400 text-red-500 font-semibold py-3 rounded-xl text-sm hover:bg-red-50 transition text-center"
+            className="flex-1 border-2 border-red-400 text-red-500 font-semibold py-3 rounded-xl text-sm hover:bg-red-50 hover:shadow-sm transition text-center"
           >
             Đăng ký
           </Link>

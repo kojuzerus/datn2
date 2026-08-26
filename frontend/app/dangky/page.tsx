@@ -67,32 +67,6 @@ function Mascot() {
   );
 }
 
-function Toggle({
-  checked,
-  onChange,
-}: {
-  checked: boolean;
-  onChange: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onChange}
-      className={
-        "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors " +
-        (checked ? "bg-red-500" : "bg-gray-200")
-      }
-    >
-      <span
-        className={
-          "inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform " +
-          (checked ? "translate-x-5" : "translate-x-0.5")
-        }
-      />
-    </button>
-  );
-}
-
 export default function DangKyPage() {
   const router = useRouter();
   const [form, setForm] = useState({
@@ -102,9 +76,6 @@ export default function DangKyPage() {
     email: "",
     matKhau: "",
     xacNhan: "",
-    isStudent: false,
-    isEnterprise: false,
-    subscribeNews: false,
   });
   const [showPass, setShowPass] = useState(false);
   const [showPass2, setShowPass2] = useState(false);
@@ -183,13 +154,13 @@ export default function DangKyPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 py-10 px-4">
+    <div className="min-h-screen bg-gradient-to-b from-red-50 via-gray-50 to-gray-50 py-10 px-4">
       <div className="max-w-lg mx-auto">
         <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-red-500 mb-4">
+          <h1 className="text-3xl font-extrabold text-red-500 mb-4 tracking-tight">
             Đăng ký trở thành SMARTHUB
           </h1>
-          <div className="flex justify-center mb-3">
+          <div className="flex justify-center mb-3 drop-shadow-sm">
             <Mascot />
           </div>
           <p className="text-sm text-gray-500 mb-3">
@@ -200,7 +171,7 @@ export default function DangKyPage() {
             {/* Google OAuth - hoạt động */}
             <a
               href={`${API_URL}/api/auth/google`}
-              className="flex items-center gap-2 border border-gray-300 rounded-xl px-5 py-2.5 text-sm hover:bg-gray-50 transition"
+              className="flex items-center gap-2 bg-white border border-gray-200 rounded-full px-5 py-2.5 text-sm font-medium shadow-sm hover:shadow-md hover:border-gray-300 transition"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24">
                 <path
@@ -226,7 +197,7 @@ export default function DangKyPage() {
             {/* Facebook OAuth - hoạt động */}
             <a
               href={`${API_URL}/api/auth/facebook`}
-              className="flex items-center gap-2 border border-gray-300 rounded-xl px-5 py-2.5 text-sm hover:bg-gray-50 transition"
+              className="flex items-center gap-2 bg-white border border-gray-200 rounded-full px-5 py-2.5 text-sm font-medium shadow-sm hover:shadow-md hover:border-gray-300 transition"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24">
                 <path
@@ -240,16 +211,21 @@ export default function DangKyPage() {
 
           <div className="flex items-center gap-3 mt-4">
             <div className="flex-1 h-px bg-gray-200" />
-            <span className="text-xs text-black">Hoặc điền thông tin sau</span>
+            <span className="text-xs text-gray-400 font-medium uppercase tracking-wide">
+              Hoặc điền thông tin sau
+            </span>
             <div className="flex-1 h-px bg-gray-200" />
           </div>
         </div>
 
         <form
           onSubmit={handleSubmit}
-          className="bg-white rounded-sm shadow-sm p-8 space-y-4"
+          className="bg-white rounded-2xl shadow-xl shadow-gray-200/60 ring-1 ring-gray-100 p-8 space-y-5"
         >
-          <h2 className="font-semibold text-black">Thông tin cá nhân</h2>
+          <h2 className="font-semibold text-black flex items-center gap-2">
+            <span className="w-1.5 h-4 rounded-full bg-red-500" />
+            Thông tin cá nhân
+          </h2>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -261,7 +237,7 @@ export default function DangKyPage() {
                 value={form.hoTen}
                 onChange={handleChange}
                 required
-                className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm text-black placeholder:text-gray-500 focus:outline-none focus:border-red-400 transition"
+                className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm text-black placeholder:text-gray-500 focus:outline-none focus:border-red-400 focus:ring-4 focus:ring-red-50 transition"
               />
             </div>
             <div>
@@ -271,7 +247,7 @@ export default function DangKyPage() {
                 type="date"
                 value={form.ngaySinh}
                 onChange={handleChange}
-                className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm text-black focus:outline-none focus:border-red-400 transition"
+                className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm text-black focus:outline-none focus:border-red-400 focus:ring-4 focus:ring-red-50 transition"
               />
             </div>
           </div>
@@ -290,16 +266,18 @@ export default function DangKyPage() {
                 value={form.soDienThoai}
                 onChange={handleChange}
                 required
-                className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm text-black placeholder:text-gray-500 focus:outline-none focus:border-red-400 transition"
+                className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm text-black placeholder:text-gray-500 focus:outline-none focus:border-red-400 focus:ring-4 focus:ring-red-50 transition"
               />
-              <p className="text-xs text-black mt-1">
+              <p className="text-xs text-gray-400 mt-1">
                 Chỉ nhập số, từ 9-11 chữ số
               </p>
             </div>
             <div>
               <label className="block text-sm text-black mb-1">
                 Email{" "}
-                <span className="text-gray-600 text-xs">(Không bắt buộc)</span>
+                <span className="text-gray-400 text-xs font-normal">
+                  (Không bắt buộc)
+                </span>
               </label>
               <input
                 name="email"
@@ -307,7 +285,7 @@ export default function DangKyPage() {
                 placeholder="Nhập email"
                 value={form.email}
                 onChange={handleChange}
-                className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm text-black placeholder:text-gray-500 focus:outline-none focus:border-red-400 transition"
+                className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm text-black placeholder:text-gray-500 focus:outline-none focus:border-red-400 focus:ring-4 focus:ring-red-50 transition"
               />
               {form.email && (
                 <p className="text-xs text-green-600 mt-1">
@@ -317,7 +295,10 @@ export default function DangKyPage() {
             </div>
           </div>
 
-          <h2 className="font-semibold text-black pt-1">Tạo mật khẩu</h2>
+          <h2 className="font-semibold text-black pt-1 flex items-center gap-2">
+            <span className="w-1.5 h-4 rounded-full bg-red-500" />
+            Tạo mật khẩu
+          </h2>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -330,12 +311,12 @@ export default function DangKyPage() {
                   value={form.matKhau}
                   onChange={handleChange}
                   required
-                  className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm text-black placeholder:text-gray-500 focus:outline-none focus:border-red-400 transition pr-10"
+                  className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm text-black placeholder:text-gray-500 focus:outline-none focus:border-red-400 focus:ring-4 focus:ring-red-50 transition pr-10"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPass(!showPass)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition"
                 >
                   {showPass ? eyeOff : eyeOpen}
                 </button>
@@ -353,12 +334,12 @@ export default function DangKyPage() {
                   value={form.xacNhan}
                   onChange={handleChange}
                   required
-                  className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm text-black placeholder:text-gray-500 focus:outline-none focus:border-red-400 transition pr-10"
+                  className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm text-black placeholder:text-gray-500 focus:outline-none focus:border-red-400 focus:ring-4 focus:ring-red-50 transition pr-10"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPass2(!showPass2)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition"
                 >
                   {showPass2 ? eyeOff : eyeOpen}
                 </button>
@@ -369,84 +350,13 @@ export default function DangKyPage() {
             ℹ️ Mật khẩu tối thiểu 6 ký tự, có ít nhất 1 chữ số và 1 số
           </p>
 
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              name="subscribeNews"
-              checked={form.subscribeNews}
-              onChange={handleChange}
-              className="w-4 h-4 accent-red-500"
-            />
-            <span className="text-sm text-gray-600">
-              Đăng ký nhận tin khuyến mãi từ SmartHub
-            </span>
-          </label>
-
-          <p className="text-xs text-gray-500">
-            Bằng việc Đăng ký, bạn đã đọc và đồng ý với{" "}
-            <a href="#" className="text-red-500 hover:underline">
-              Điều khoản sử dụng
-            </a>{" "}
-            và{" "}
-            <a href="#" className="text-red-500 hover:underline">
-              Chính sách bảo mật của SmartHub
-            </a>
-            .
-          </p>
-
-          <hr className="border-dashed border-gray-200" />
-
-          <div className="border border-gray-100 rounded-xl p-4">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-sm font-medium text-gray-700">
-                  Tôi là Học sinh - sinh viên / Giáo viên - giảng viên
-                </p>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  🎁 Nhận thêm ưu đãi tới{" "}
-                  <span className="text-red-500 font-medium">
-                    700k/sản phẩm
-                  </span>
-                </p>
-              </div>
-              <Toggle
-                checked={form.isStudent}
-                onChange={() =>
-                  setForm((p) => ({ ...p, isStudent: !p.isStudent }))
-                }
-              />
-            </div>
-          </div>
-
-          <div className="border border-gray-100 rounded-xl p-4">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-sm font-medium text-gray-700">
-                  Tôi là Khách hàng Doanh nghiệp
-                </p>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  🎁 Nhận quyền lợi hấp dẫn lên đến{" "}
-                  <span className="text-red-500 font-medium">
-                    1 triệu/đơn hàng
-                  </span>
-                </p>
-              </div>
-              <Toggle
-                checked={form.isEnterprise}
-                onChange={() =>
-                  setForm((p) => ({ ...p, isEnterprise: !p.isEnterprise }))
-                }
-              />
-            </div>
-          </div>
-
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-xl p-3">
               <p className="text-red-600 text-sm text-center">{error}</p>
             </div>
           )}
 
-          <div className="flex gap-3 pt-1">
+          <div className="flex gap-3 pt-2">
             <Link
               href="/login"
               className="flex-1 border border-gray-300 text-gray-600 font-medium py-3 rounded-xl text-sm hover:bg-gray-50 transition text-center"
@@ -456,7 +366,7 @@ export default function DangKyPage() {
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold py-3 rounded-xl transition disabled:opacity-60 text-sm"
+              className="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold py-3 rounded-xl shadow-sm hover:shadow-md transition disabled:opacity-60 text-sm"
             >
               {loading ? "Đang xử lý..." : "Hoàn tất đăng ký"}
             </button>
