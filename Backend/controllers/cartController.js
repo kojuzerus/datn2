@@ -27,6 +27,7 @@ async function getAvailableStock(productId, variant) {
     : variants[0];
   return match ? (match.stock_quantity ?? 0) : null;
 }
+exports.getAvailableStock = getAvailableStock;
 
 // Lấy giỏ hàng
 exports.getCart = async (req, res) => {
@@ -73,6 +74,10 @@ exports.addToCart = async (req, res) => {
     }
 
     if (idx > -1) {
+      // Flash Sale phải thay giá hiện tại của item; nếu giữ giá cũ thì
+      // mua từ thẻ sale sau khi đã có item thường trong giỏ sẽ thanh toán
+      // sai giá và không được gắn đúng đợt sale.
+      if (Number(gia) < cart.items[idx].gia) cart.items[idx].gia = gia;
       cart.items[idx].soLuong += addQty;
     } else {
       cart.items.push({ productId, tenSanPham, hinhAnh, gia, soLuong: addQty, variant });

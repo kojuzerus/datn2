@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 const Order = require('../models/orderModel');
-const { adjustTotalSold, adjustStock, adjustFlashSaleQuantity, restoreCartItems } = require('./orderController');
+const { adjustTotalSold, adjustStock, adjustFlashSaleQuantity, adjustFlashSaleSold, restoreCartItems } = require('./orderController');
 
 // Hàm encode theo chuẩn VNPAY
 const vnpayEncode = (value) => {
@@ -138,9 +138,13 @@ exports.returnHandler = async (req, res) => {
           await adjustTotalSold(order.items, -1);
           await adjustStock(order.items, 1);
           await adjustFlashSaleQuantity(order.items, 1);
+          if (trangThaiCu === 'da_xac_nhan') await adjustFlashSaleSold(order.items, -1);
           await restoreCartItems(order.userId, order.items);
         }
 
+        if (trangThaiCu !== 'da_xac_nhan' && order.trangThai === 'da_xac_nhan') {
+          await adjustFlashSaleSold(order.items, 1);
+        }
         await order.save();
       }
 

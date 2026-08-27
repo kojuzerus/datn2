@@ -16,6 +16,7 @@ interface FlashSaleRow {
   sale_price: number;
   quantity: number;
   remaining_quantity: number;
+  sold_quantity: number;
   start_time: string;
   end_time: string;
   status: "active" | "inactive";
@@ -425,7 +426,7 @@ export default function AdminFlashSalePage() {
                   const st = saleState(f);
                   const originalPrice = f.variant?.price ?? null;
                   const discountPct = originalPrice ? Math.round((1 - f.sale_price / originalPrice) * 100) : null;
-                  const sold = f.quantity - f.remaining_quantity;
+                  const sold = f.sold_quantity || 0;
                   const soldPct = f.quantity > 0 ? Math.min(100, Math.round((sold / f.quantity) * 100)) : 0;
                   return (
                     <tr key={f._id} className={`hover:bg-gray-50/50 transition-colors ${f.status === "inactive" ? "opacity-60" : ""}`}>

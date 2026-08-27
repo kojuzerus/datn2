@@ -43,6 +43,7 @@ interface FlashSaleActiveItem {
   sale_price: number;
   quantity: number;
   remaining_quantity: number;
+  sold_quantity: number;
   start_time: string;
   end_time: string;
   variant: { _id: string; color: string; price: number; sku: string; stock_quantity: number } | null;
@@ -468,7 +469,7 @@ function FlashSaleProductCard({ f, locked = false }: { f: FlashSaleActiveItem; l
     : 0;
   const chips = specChips(product.specification);
 
-  const soldSlots  = f.quantity - f.remaining_quantity;
+  const soldSlots  = f.sold_quantity || 0;
   const totalSlots = f.quantity;
   const soldOut    = f.remaining_quantity <= 0;
   const soldPct    = totalSlots > 0 ? Math.max((soldSlots / totalSlots) * 100, soldSlots > 0 ? 4 : 0) : 0;

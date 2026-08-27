@@ -10,6 +10,7 @@ const flashSaleSchema = new mongoose.Schema(
     sale_price:         { type: Number, required: true, min: 0 },
     quantity:           { type: Number, required: true, min: 1 },
     remaining_quantity: { type: Number, required: true, min: 0 },
+    sold_quantity:      { type: Number, default: 0, min: 0 },
 
     start_time:         { type: Date, required: true },
     end_time:            { type: Date, required: true },

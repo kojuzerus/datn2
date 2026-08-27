@@ -19,6 +19,7 @@ async function enrichFlashSales(flashSales) {
     const product = variant ? productMap[variant.product_id] || null : null;
     return {
       ...f,
+      sold_quantity: f.sold_quantity ?? Math.max(0, f.quantity - f.remaining_quantity),
       variant: variant
         ? {
             _id: variant._id,

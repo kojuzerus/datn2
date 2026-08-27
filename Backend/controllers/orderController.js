@@ -7,6 +7,7 @@ const FlashSale = require("../models/flashSaleModel");
 const { checkPromo } = require("./promotionController");
 const { markVoucherUsed } = require("./voucherController");
 const { refundToWallet, chargeWallet, getBalance } = require("./walletController");
+const { getAvailableStock } = require("./cartController");
 
 // Cộng/trừ lượt bán thật theo số lượng từng sản phẩm trong đơn (delta: 1 khi đặt, -1 khi hủy)
 async function adjustTotalSold(items, delta) {
@@ -80,6 +81,17 @@ async function adjustFlashSaleQuantity(items, delta) {
   }
 }
 exports.adjustFlashSaleQuantity = adjustFlashSaleQuantity;
+
+async function adjustFlashSaleSold(items, delta) {
+  await Promise.all((items || []).map((item) => {
+    if (!item.flashSaleId) return null;
+    return FlashSale.updateOne(
+      { _id: item.flashSaleId },
+      { $inc: { sold_quantity: delta * item.soLuong } }
+    );
+  }));
+}
+exports.adjustFlashSaleSold = adjustFlashSaleSold;
 
 async function attachFlashSaleIds(items) {
   const now = new Date();
@@ -157,7 +169,36 @@ exports.createOrder = async (req, res) => {
     if (orderItems.length === 0)
       return res.status(400).json({ success: false, message: "Không có sản phẩm nào được chọn" });
 
-    const tongTien    = orderItems.reduce((s, i) => s + i.gia * i.soLuong, 0);
+    const normalizedItems = orderItems.map((item) => ({
+      ...item.toObject(),
+      productId: item.productId || item.product_id,
+      tenSanPham: item.tenSanPham || item.product_name,
+      hinhAnh: item.hinhAnh || item.thumbnail || "",
+      gia: item.gia ?? item.price,
+      soLuong: item.soLuong ?? item.quantity,
+      variant: item.variant || "",
+    }));
+    const invalidItem = normalizedItems.find((item) =>
+      !item.productId || !item.tenSanPham || item.gia == null || item.soLuong == null
+    );
+    if (invalidItem)
+      return res.status(400).json({ success: false, message: "Sản phẩm trong giỏ hàng không hợp lệ, vui lòng thêm lại sản phẩm" });
+
+    // Giỏ có thể chứa sản phẩm sale đã hết hàng từ lần truy cập trước. Kiểm
+    // tra lại ngay trước khi tạo đơn để không tạo đơn rồi mới lỗi khi trừ kho.
+    for (const item of normalizedItems) {
+      const stock = await getAvailableStock(item.productId, item.variant);
+      if (stock != null && item.soLuong > stock) {
+        return res.status(400).json({
+          success: false,
+          message: stock > 0
+            ? `Sản phẩm "${item.tenSanPham}" chỉ còn ${stock} sản phẩm trong kho`
+            : `Sản phẩm "${item.tenSanPham}" đã hết hàng, vui lòng xóa khỏi giỏ hàng`,
+        });
+      }
+    }
+
+    const tongTien    = normalizedItems.reduce((s, i) => s + i.gia * i.soLuong, 0);
     const phiGiaoHang = tongTien >= 500000 ? 0 : 30000;
 
     // Áp mã giảm giá (validate lại phía server, không tin số liệu từ client)
@@ -190,7 +231,7 @@ exports.createOrder = async (req, res) => {
         return res.status(400).json({ success: false, message: "Số dư ví không đủ để thanh toán đơn hàng này" });
     }
 
-    const orderItemsWithFlashSale = await attachFlashSaleIds(orderItems);
+    const orderItemsWithFlashSale = await attachFlashSaleIds(normalizedItems);
     const order = await Order.create({
       userId: req.userId,
       items: orderItemsWithFlashSale.map(i => ({
@@ -246,6 +287,7 @@ exports.createOrder = async (req, res) => {
       try {
         await chargeWallet(req.userId, tongThanhToan, order._id, "Thanh toán đơn hàng bằng Ví SmartHub");
         order.trangThai = "da_xac_nhan";
+        await adjustFlashSaleSold(order.items, 1);
         await order.save();
       } catch (walletErr) {
         order.trangThai = "da_huy";
@@ -254,6 +296,7 @@ exports.createOrder = async (req, res) => {
         await adjustTotalSold(order.items, -1);
         await adjustStock(order.items, 1);
         await adjustFlashSaleQuantity(order.items, 1);
+        await adjustFlashSaleSold(order.items, -1);
         await restoreCartItems(req.userId, order.items);
         return res.status(400).json({ success: false, message: walletErr.message });
       }
@@ -261,8 +304,13 @@ exports.createOrder = async (req, res) => {
 
     res.status(201).json({ success: true, message: "Đặt hàng thành công", order });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: "Lỗi server" });
+    console.error("[orders create]", err);
+    res.status(500).json({
+      success: false,
+      message: process.env.NODE_ENV === "production"
+        ? "Lỗi server"
+        : `Lỗi server: ${err.message}`,
+    });
   }
 };
 
@@ -328,6 +376,7 @@ exports.cancelOrder = async (req, res) => {
     await adjustTotalSold(order.items, -1);
     await adjustStock(order.items, 1);
     await adjustFlashSaleQuantity(order.items, 1);
+    if (coTheHoanTien) await adjustFlashSaleSold(order.items, -1);
 
     let refunded = 0;
     if (coTheHoanTien) {
@@ -411,6 +460,7 @@ exports.updateOrderStatus = async (req, res) => {
       await adjustTotalSold(existing.items, -1);
       await adjustStock(existing.items, 1);
       await adjustFlashSaleQuantity(existing.items, 1);
+      if (existing.trangThai !== "cho_xac_nhan") await adjustFlashSaleSold(existing.items, -1);
       if (canHoanTien) {
         await refundToWallet(
           existing.userId, existing.tongThanhToan, existing._id,
@@ -419,6 +469,9 @@ exports.updateOrderStatus = async (req, res) => {
       }
     }
 
+    if (existing.trangThai !== "da_xac_nhan" && trangThai === "da_xac_nhan") {
+      await adjustFlashSaleSold(existing.items, 1);
+    }
     existing.trangThai = trangThai;
     await existing.save();
     res.json({ success: true, order: existing });

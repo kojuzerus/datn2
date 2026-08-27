@@ -397,26 +397,31 @@ export default function ThanhToanPage() {
     if (!addr) return;
 
     setPlacing(true);
-    const res = await fetch(`${API_URL}/api/orders`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        receiverName: addr.receiverName,
-        phone: addr.phone,
-        province: addr.province,
-        district: addr.district,
-        ward: addr.ward,
-        detailAddress: addr.detailAddress,
-        paymentMethod,
-        ghiChu,
-        itemIds: items.map((i) => i._id),
-        promoCode: appliedPromo?.code || undefined,
-      }),
-    });
-    const data = await res.json();
+    let data;
+    try {
+      const res = await fetch(`${API_URL}/api/orders`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          receiverName: addr.receiverName,
+          phone: addr.phone,
+          province: addr.province,
+          district: addr.district,
+          ward: addr.ward,
+          detailAddress: addr.detailAddress,
+          paymentMethod,
+          ghiChu,
+          itemIds: items.map((i) => i._id),
+          promoCode: appliedPromo?.code || undefined,
+        }),
+      });
+      data = await res.json();
+    } catch {
+      data = { success: false, message: "Không thể kết nối máy chủ, vui lòng thử lại" };
+    }
     setPlacing(false);
 
     if (data.success) {
@@ -424,19 +429,23 @@ export default function ThanhToanPage() {
       window.dispatchEvent(new Event("cart-updated"));
       // Nếu VNPAY, lấy URL thanh toán và redirect
       if (paymentMethod === "vnpay") {
-        const payRes = await fetch(`${API_URL}/api/vnpay/create_payment`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ orderId: data.order._id }),
-        });
-        const payData = await payRes.json();
-        if (payData.success && payData.url) {
-          window.location.href = payData.url;
-        } else {
-          toastError(payData.message || "Lỗi tạo URL VNPAY");
+        try {
+          const payRes = await fetch(`${API_URL}/api/vnpay/create_payment`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ orderId: data.order._id }),
+          });
+          const payData = await payRes.json();
+          if (payData.success && payData.url) {
+            window.location.href = payData.url;
+          } else {
+            toastError(payData.message || "Lỗi tạo URL VNPAY");
+          }
+        } catch {
+          toastError("Không thể kết nối máy chủ thanh toán VNPAY");
         }
       } else {
         router.push(`/dat-hang-thanh-cong?orderId=${data.order._id}`);
