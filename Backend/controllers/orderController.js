@@ -3,6 +3,7 @@ const Cart      = require("../models/cartModel");
 const Product   = require("../models/productModel");
 const Variant   = require("../models/variantModel");
 const Promotion = require("../models/promotionModel");
+const FlashSale = require("../models/flashSaleModel");
 const { checkPromo } = require("./promotionController");
 const { markVoucherUsed } = require("./voucherController");
 const { refundToWallet, chargeWallet, getBalance } = require("./walletController");
@@ -53,6 +54,53 @@ async function adjustStock(items, delta) {
   );
 }
 exports.adjustStock = adjustStock;
+
+// Trừ/hoàn quota Flash Sale theo từng item. flashSaleId được lưu trong order
+// để các đơn cũ hoặc các đợt đã hết thời gian vẫn hoàn đúng quota khi hủy.
+async function adjustFlashSaleQuantity(items, delta) {
+  const changed = [];
+  try {
+    for (const item of items || []) {
+      if (!item.flashSaleId) continue;
+      const quantity = Math.max(0, Number(item.soLuong) || 0);
+      if (!quantity) continue;
+
+      const filter = delta < 0
+        ? { _id: item.flashSaleId, remaining_quantity: { $gte: quantity } }
+        : { _id: item.flashSaleId };
+      const result = await FlashSale.updateOne(filter, { $inc: { remaining_quantity: delta * quantity } });
+      if (result.modifiedCount !== 1) throw new Error("Số lượng Flash Sale không còn đủ");
+      changed.push({ id: item.flashSaleId, quantity });
+    }
+  } catch (err) {
+    await Promise.all(changed.map((item) =>
+      FlashSale.updateOne({ _id: item.id }, { $inc: { remaining_quantity: -delta * item.quantity } })
+    ));
+    throw err;
+  }
+}
+exports.adjustFlashSaleQuantity = adjustFlashSaleQuantity;
+
+async function attachFlashSaleIds(items) {
+  const now = new Date();
+  return Promise.all((items || []).map(async (item) => {
+    const productId = parseInt(item.productId);
+    if (isNaN(productId)) return item;
+
+    const variant = await Variant.findOne({ product_id: productId, color: item.variant || "" }).select("_id").lean();
+    if (!variant) return item;
+
+    const sale = await FlashSale.findOne({
+      variant_id: variant._id,
+      sale_price: item.gia,
+      status: "active",
+      start_time: { $lte: now },
+      end_time: { $gte: now },
+      remaining_quantity: { $gt: 0 },
+    }).select("_id").lean();
+    return sale ? { ...item, flashSaleId: sale._id } : item;
+  }));
+}
 
 // Trả lại các item của đơn (đã bị xoá khỏi giỏ lúc tạo đơn) về giỏ hàng thật
 // của khách — dùng khi đơn bị huỷ do thanh toán thất bại (VNPAY/Ví), để sản
@@ -142,15 +190,17 @@ exports.createOrder = async (req, res) => {
         return res.status(400).json({ success: false, message: "Số dư ví không đủ để thanh toán đơn hàng này" });
     }
 
+    const orderItemsWithFlashSale = await attachFlashSaleIds(orderItems);
     const order = await Order.create({
       userId: req.userId,
-      items: orderItems.map(i => ({
+      items: orderItemsWithFlashSale.map(i => ({
         productId:  i.productId,
         tenSanPham: i.tenSanPham,
         hinhAnh:    i.hinhAnh,
         gia:        i.gia,
         soLuong:    i.soLuong,
         variant:    i.variant,
+        flashSaleId: i.flashSaleId || null,
       })),
       receiverName, phone, province, district, ward, detailAddress,
       paymentMethod,
@@ -172,6 +222,13 @@ exports.createOrder = async (req, res) => {
       } else {
         await Promotion.updateOne({ code: maGiamGia }, { $inc: { used_count: 1 } });
       }
+    }
+
+    try {
+      await adjustFlashSaleQuantity(order.items, -1);
+    } catch (flashSaleErr) {
+      await Order.deleteOne({ _id: order._id });
+      return res.status(400).json({ success: false, message: flashSaleErr.message });
     }
 
     // Chỉ xóa những item đã đặt khỏi giỏ hàng
@@ -196,6 +253,7 @@ exports.createOrder = async (req, res) => {
         await order.save();
         await adjustTotalSold(order.items, -1);
         await adjustStock(order.items, 1);
+        await adjustFlashSaleQuantity(order.items, 1);
         await restoreCartItems(req.userId, order.items);
         return res.status(400).json({ success: false, message: walletErr.message });
       }
@@ -269,6 +327,7 @@ exports.cancelOrder = async (req, res) => {
     await order.save();
     await adjustTotalSold(order.items, -1);
     await adjustStock(order.items, 1);
+    await adjustFlashSaleQuantity(order.items, 1);
 
     let refunded = 0;
     if (coTheHoanTien) {
@@ -351,6 +410,7 @@ exports.updateOrderStatus = async (req, res) => {
       const canHoanTien = daThanhToanOnline(existing);
       await adjustTotalSold(existing.items, -1);
       await adjustStock(existing.items, 1);
+      await adjustFlashSaleQuantity(existing.items, 1);
       if (canHoanTien) {
         await refundToWallet(
           existing.userId, existing.tongThanhToan, existing._id,

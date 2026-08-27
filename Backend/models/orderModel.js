@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 
 const orderItemSchema = new mongoose.Schema({
   productId:  { type: String, required: true },
+  flashSaleId: { type: mongoose.Schema.Types.ObjectId, ref: "FlashSale", default: null },
   tenSanPham: { type: String, required: true },
   hinhAnh:    { type: String, default: "" },
   gia:        { type: Number, required: true },
