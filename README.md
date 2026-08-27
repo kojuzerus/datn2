@@ -28,6 +28,12 @@ làm trang profile cập nhật địa chit người dùng(Phước)
 
 Backend:
 
+Quên mật khẩu qua email:
+
+- Backend dùng Brevo HTTP API để gửi liên kết đặt lại mật khẩu (token hết hạn sau 15 phút).
+- Cấu hình các biến môi trường `BREVO_API_KEY`, `BREVO_SENDER_EMAIL`, `BREVO_SENDER_NAME` và `FRONTEND_URL` trên môi trường chạy backend.
+- `BREVO_SENDER_EMAIL` phải là địa chỉ email đã được xác thực trên Brevo.
+
 Backend/controllers/productController.js: lưu ảnh riêng cho từng biến thể vào bảng product_images (đã có sẵn, gắn theo variant_id). Khi tạo/sửa sản phẩm, xóa ảnh biến thể cũ và lưu ảnh mới tương ứng. formatProduct trả về variant.image cho từng biến thể.
 Admin form (frontend/app/admin/products/page.tsx):
 
