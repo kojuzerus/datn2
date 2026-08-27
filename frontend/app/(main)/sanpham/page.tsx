@@ -351,6 +351,7 @@ function ProductsContent() {
   const [loadingBrands, setLoadingBrands] = useState(false);
   const [openDropdown,  setOpenDropdown]  = useState<DropdownKey>("");
   const [isSticky,      setIsSticky]      = useState(false);
+  const [isHeaderHidden, setIsHeaderHidden] = useState(false);
   // Chiều cao header thật (đo động, không hard-code 108px) — header có thể cao
   // khác nhau tuỳ độ rộng màn hình/nội dung banner trên cùng, hard-code cứng dễ
   // lệch làm toolbar dính sai vị trí (từng khiến header như "biến mất" khi cuộn
@@ -387,6 +388,7 @@ function ProductsContent() {
   useEffect(() => {
     const onScroll = () => {
       if (!toolbarRef.current) return;
+      setIsHeaderHidden(window.scrollY > 72);
       setIsSticky(toolbarRef.current.getBoundingClientRect().top <= headerHeight + 1);
     };
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -556,7 +558,7 @@ function ProductsContent() {
       {/* ── Sticky toolbar — full viewport width ── */}
       <div
         ref={toolbarRef}
-        style={{ top: headerHeight }}
+        style={{ top: isHeaderHidden ? 0 : headerHeight }}
         className={`sticky z-20 mb-4 transition-all duration-200 ${isSticky ? "bg-white/95 backdrop-blur-sm shadow-[0_2px_16px_rgba(0,0,0,0.07)]" : ""}`}
       >
         <div ref={toolbarInnerRef} className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 relative">

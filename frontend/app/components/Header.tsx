@@ -24,7 +24,7 @@ import {
   Mic,
 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Logo from "./Logo";
 import MegaMenuButton from "./Megamenu";
 import { useComparison } from "./comparisonContext";
@@ -225,6 +225,8 @@ function useSpeechRecognition({
 // ─── COMPONENT ────────────────────────────────────────────────────────────────
 
 export default function Header() {
+  const pathname = usePathname();
+  const [isProductHeaderHidden, setIsProductHeaderHidden] = useState(false);
   const [cartCount, setCartCount] = useState(0);
   const { items: compareItems } = useComparison();
   const { items: favoriteItems } = useFavorites();
@@ -252,6 +254,18 @@ export default function Header() {
   );
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
+  useEffect(() => {
+    if (pathname !== "/sanpham") {
+      setIsProductHeaderHidden(false);
+      return;
+    }
+
+    const handleScroll = () => setIsProductHeaderHidden(window.scrollY > 72);
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [pathname]);
 
   // ── Fetch sản phẩm bán chạy thật cho thanh "HOT" ──
   useEffect(() => {
@@ -523,7 +537,11 @@ export default function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 w-full bg-white dark:bg-slate-900 shadow-sm dark:shadow-slate-900/50">
+      <header
+        className={`sticky top-0 z-50 w-full bg-white dark:bg-slate-900 shadow-sm dark:shadow-slate-900/50 transition-transform duration-200 ${
+          isProductHeaderHidden ? "-translate-y-full" : "translate-y-0"
+        }`}
+      >
         {/* ── Top bar ── */}
         <div
           className="hidden sm:block"
