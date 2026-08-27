@@ -232,21 +232,21 @@ export default function AdminOrdersPage() {
       if (statusFilter && o.trangThai !== statusFilter) return false;
       if (paymentFilter && o.paymentMethod !== paymentFilter) return false;
       if (search) {
-        const q = search.toLowerCase();
-        const hay = `${o._id} ${o.receiverName} ${o.phone}`.toLowerCase();
-        if (!hay.includes(q)) return false;
-      }
+  const q = search.toLowerCase();
+  const hay = `${o._id} ${o.receiverName ?? ""} ${o.phone ?? ""}`.toLowerCase();
+  if (!hay.includes(q)) return false;
+}
       return true;
     })
     .sort((a, b) => {
-      switch (sortBy) {
-        case "date_asc":  return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-        case "name_asc":  return a.receiverName.localeCompare(b.receiverName, "vi");
-        case "name_desc": return b.receiverName.localeCompare(a.receiverName, "vi");
-        case "date_desc":
-        default:          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      }
-    });
+  switch (sortBy) {
+    case "date_asc":  return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    case "name_asc":  return (a.receiverName ?? "").localeCompare(b.receiverName ?? "", "vi");
+    case "name_desc": return (b.receiverName ?? "").localeCompare(a.receiverName ?? "", "vi");
+    case "date_desc":
+    default:          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  }
+});
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / limit));
   const safePage   = Math.min(page, totalPages);
