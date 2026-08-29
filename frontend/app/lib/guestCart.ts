@@ -9,6 +9,7 @@ export interface GuestCartItem {
   _id: string;
   productId: string;
   tenSanPham: string;
+  slug?: string;
   hinhAnh: string;
   gia: number;
   soLuong: number;
@@ -45,6 +46,7 @@ export function guestCartCount(): number {
 export function addGuestCartItem(item: {
   productId: string;
   tenSanPham: string;
+  slug?: string;
   hinhAnh?: string;
   gia: number;
   soLuong?: number;
@@ -70,6 +72,7 @@ export function addGuestCartItem(item: {
       _id: id,
       productId: item.productId,
       tenSanPham: item.tenSanPham,
+      slug: item.slug || '',
       hinhAnh: item.hinhAnh || '',
       gia: item.gia,
       soLuong: addQty,
@@ -105,6 +108,7 @@ export async function mergeGuestCartToServer(token: string) {
         body: JSON.stringify({
           productId: item.productId,
           tenSanPham: item.tenSanPham,
+          slug: item.slug || '',
           hinhAnh: item.hinhAnh,
           gia: item.gia,
           soLuong: item.soLuong,

@@ -6,6 +6,7 @@ const cartItemSchema = new mongoose.Schema({
   product_id: { type: String },
   tenSanPham: { type: String, required: true },
   product_name: { type: String },
+  slug:       { type: String, default: "" },
   hinhAnh:    { type: String, default: "" },
   thumbnail:  { type: String },
   gia:        { type: Number, required: true },

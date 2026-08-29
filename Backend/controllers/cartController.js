@@ -43,7 +43,7 @@ exports.getCart = async (req, res) => {
 // Thêm sản phẩm vào giỏ
 exports.addToCart = async (req, res) => {
   try {
-    const { productId, tenSanPham, hinhAnh, gia, soLuong = 1, variant = "" } = req.body;
+    const { productId, tenSanPham, hinhAnh, gia, soLuong = 1, variant = "", slug = "" } = req.body;
     if (!productId || !tenSanPham || !gia)
       return res.status(400).json({ success: false, message: "Thiếu thông tin sản phẩm" });
 
@@ -78,9 +78,10 @@ exports.addToCart = async (req, res) => {
       // mua từ thẻ sale sau khi đã có item thường trong giỏ sẽ thanh toán
       // sai giá và không được gắn đúng đợt sale.
       if (Number(gia) < cart.items[idx].gia) cart.items[idx].gia = gia;
+      if (slug) cart.items[idx].slug = slug;
       cart.items[idx].soLuong += addQty;
     } else {
-      cart.items.push({ productId, tenSanPham, hinhAnh, gia, soLuong: addQty, variant });
+      cart.items.push({ productId, tenSanPham, hinhAnh, gia, soLuong: addQty, variant, slug });
     }
 
     await cart.save();

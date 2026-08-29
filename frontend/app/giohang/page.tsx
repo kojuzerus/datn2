@@ -8,6 +8,7 @@ import {
   Package, ShieldCheck, RotateCcw, BadgeCheck, Zap,
 } from 'lucide-react';
 import { requireLogin } from '../lib/authPrompt';
+import { setCheckoutItemIds } from '../lib/checkoutSelection';
 import { toastWarning } from '../utils/toast';
 import {
   getGuestCart, updateGuestCartItem, removeGuestCartItem, clearGuestCart,
@@ -19,6 +20,7 @@ interface CartItem {
   _id: string;
   productId: string;
   tenSanPham: string;
+  slug?: string;
   hinhAnh: string;
   gia: number;
   soLuong: number;
@@ -81,7 +83,11 @@ export default function GioHangPage() {
   const toggleItem = (id: string) => {
     setSelected(prev => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
       return next;
     });
   };
@@ -185,9 +191,11 @@ export default function GioHangPage() {
       requireLogin('Vui lòng đăng nhập để tiến hành thanh toán.');
       return;
     }
-    localStorage.setItem('smarthub_checkout_ids', JSON.stringify([...selected]));
+    setCheckoutItemIds([...selected]);
     router.push('/thanhtoan');
   };
+
+  const getProductLink = (item: CartItem) => item.slug ? `/sanpham/${item.slug}` : '/sanpham';
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -237,7 +245,11 @@ export default function GioHangPage() {
                   <input
                     type="checkbox"
                     checked={allChecked}
-                    ref={el => { if (el) el.indeterminate = someChecked; }}
+                    ref={(el) => {
+                      if (el) {
+                        el.indeterminate = someChecked;
+                      }
+                    }}
                     onChange={toggleAll}
                     className="w-4 h-4 accent-red-500 cursor-pointer"
                   />
@@ -275,18 +287,20 @@ export default function GioHangPage() {
                     </div>
 
                     {/* Ảnh */}
-                    <div className="w-20 h-20 rounded-sm overflow-hidden bg-gray-100 shrink-0 flex items-center justify-center">
+                    <Link href={getProductLink(item)} className="w-20 h-20 rounded-sm overflow-hidden bg-gray-100 shrink-0 flex items-center justify-center hover:opacity-90 transition">
                       {item.hinhAnh
                         ? <img src={item.hinhAnh} alt={item.tenSanPham} className="w-full h-full object-cover" />
                         : <Package className="w-8 h-8 text-gray-300" />
                       }
-                    </div>
+                    </Link>
 
                     {/* Thông tin */}
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-800 text-sm line-clamp-2 mb-1">
-                        {item.tenSanPham}
-                      </h3>
+                      <Link href={getProductLink(item)} className="block hover:text-red-500 transition">
+                        <h3 className="font-semibold text-gray-800 text-sm line-clamp-2 mb-1">
+                          {item.tenSanPham}
+                        </h3>
+                      </Link>
                       {item.variant && (
                         <p className="text-xs text-gray-400 mb-2">Phân loại: {item.variant}</p>
                       )}

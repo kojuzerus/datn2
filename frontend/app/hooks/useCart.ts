@@ -13,6 +13,7 @@ export function useCart() {
   const addToCart = async (product: {
     productId: string;
     tenSanPham: string;
+    slug?: string;
     hinhAnh?: string;
     gia: number;
     soLuong?: number;
@@ -37,6 +38,7 @@ export function useCart() {
         body: JSON.stringify({
           productId:  product.productId,
           tenSanPham: product.tenSanPham,
+          slug:       product.slug || '',
           hinhAnh:    product.hinhAnh || '',
           gia:        product.gia,
           soLuong:    product.soLuong || 1,

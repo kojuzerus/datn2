@@ -34,6 +34,7 @@ import {
   type FavoriteProduct,
 } from "../../../components/favoritesContext";
 import { requireLogin, isLoggedIn } from "../../../lib/authPrompt";
+import { setCheckoutItemIds } from "../../../lib/checkoutSelection";
 import ProductQuestions from "../../../components/ProductQuestions";
 import { toastError } from "../../../utils/toast";
 
@@ -387,6 +388,7 @@ export default function ProductDetailClient() {
     const success = await addToCart({
       productId: String(product.id),
       tenSanPham: product.ten,
+      slug: product.slug,
       hinhAnh: imgSrc,
       gia: displayPrice,
       soLuong: Math.max(1, qty),
@@ -436,7 +438,7 @@ export default function ProductDetailClient() {
         toastError("Không thể xử lý mua ngay, thử lại nhé!");
         return;
       }
-      localStorage.setItem("smarthub_checkout_ids", JSON.stringify([added._id]));
+      setCheckoutItemIds([added._id]);
       router.push("/thanhtoan");
     } catch {
       toastError("Không thể xử lý mua ngay, thử lại nhé!");
