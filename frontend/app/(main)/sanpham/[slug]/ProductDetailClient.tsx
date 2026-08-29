@@ -443,6 +443,53 @@ export default function ProductDetailClient() {
     }
   };
 
+  const getProductUrl = () => {
+    if (typeof window === "undefined") return "";
+    return `${window.location.origin}/sanpham/${product?.slug}`;
+  };
+
+  const handleShareFacebook = () => {
+    const url = getProductUrl();
+    if (!url) return;
+    const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+    window.open(facebookShareUrl, "facebook-share", "width=600,height=400");
+  };
+
+  const handleShareZalo = () => {
+    const url = getProductUrl();
+    if (!url) return;
+    const zaloShareUrl = `https://zalo.me/?text=${encodeURIComponent(product?.ten || "Sản phẩm")} ${encodeURIComponent(url)}`;
+    window.open(zaloShareUrl, "zalo-share", "width=600,height=400");
+  };
+
+  const handleCopyLink = async () => {
+    const url = getProductUrl();
+    if (!url) return;
+    try {
+      await navigator.clipboard.writeText(url);
+      // Hiện thông báo thành công
+      const toast = document.createElement("div");
+      toast.className =
+        "fixed top-20 right-5 z-50 flex items-center gap-2 bg-white rounded-md border border-gray-200 shadow-lg px-4 py-3 max-w-[320px]";
+      toast.innerHTML = `
+        <svg class="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+        </svg>
+        <div>
+          <p class="text-[13px] font-semibold text-gray-800">Đã sao chép!</p>
+          <p class="text-[12px] text-gray-500">Link sản phẩm đã được copy</p>
+        </div>
+      `;
+      document.body.appendChild(toast);
+      toast.style.animation = "fadeInScale 0.3s cubic-bezier(0.34,1.56,0.64,1) both";
+      setTimeout(() => {
+        toast.remove();
+      }, 2000);
+    } catch {
+      toastError("Không thể sao chép link");
+    }
+  };
+
   const scrollToTab = (tab: "mo-ta" | "danh-gia") => {
     const ref = tab === "danh-gia" ? reviewsRef : tabRef;
     ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -666,13 +713,19 @@ export default function ProductDetailClient() {
             {/* Share strip */}
             <div className="flex items-center gap-3 px-4 py-3 border-t border-gray-100 bg-gray-50/60">
               <span className="text-[12px] text-gray-400">Chia sẻ:</span>
-              <button className="bg-[#1877F2] text-white text-[11px] font-semibold px-3 py-1.5 rounded-full hover:opacity-90 transition-opacity">
+              <button 
+                onClick={handleShareFacebook}
+                className="bg-[#1877F2] text-white text-[11px] font-semibold px-3 py-1.5 rounded-full hover:opacity-90 transition-opacity">
                 Facebook
               </button>
-              <button className="bg-[#0068FF] text-white text-[11px] font-semibold px-3 py-1.5 rounded-full hover:opacity-90 transition-opacity">
+              <button 
+                onClick={handleShareZalo}
+                className="bg-[#0068FF] text-white text-[11px] font-semibold px-3 py-1.5 rounded-full hover:opacity-90 transition-opacity">
                 Zalo
               </button>
-              <button className="bg-gray-500 text-white text-[11px] font-semibold px-3 py-1.5 rounded-full hover:opacity-90 transition-opacity flex items-center gap-1">
+              <button 
+                onClick={handleCopyLink}
+                className="bg-gray-500 text-white text-[11px] font-semibold px-3 py-1.5 rounded-full hover:opacity-90 transition-opacity flex items-center gap-1">
                 <Share2 className="w-3 h-3" /> Sao chép
               </button>
             </div>
