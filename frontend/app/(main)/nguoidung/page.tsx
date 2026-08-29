@@ -9,7 +9,7 @@ import {
   LogOut, Camera, Eye, EyeOff, MapPin,
   Plus, Trash2, Star, Home, ShoppingCart,
   Wallet, LayoutGrid, Search, Heart, Coins,
-  ArrowDownLeft, ArrowUpRight, Receipt, Sparkles,
+  ArrowDownLeft, ArrowUpRight, Receipt, Sparkles, CreditCard,
 } from 'lucide-react';
 import SearchableSelect, { SelectOption } from '../../components/SearchableSelect';
 import { useFavorites } from '../../components/favoritesContext';
@@ -49,11 +49,32 @@ type Tab = 'overview' | 'info' | 'address' | 'password' | 'orders' | 'wallet';
 
 interface WalletTransaction {
   _id: string;
-  type: 'hoan_tien' | 'thanh_toan';
+  type: 'hoan_tien' | 'thanh_toan' | 'rut_tien';
   amount: number;
   soDuSau: number;
   note: string;
   createdAt: string;
+}
+
+interface BankAccount {
+  _id: string;
+  accountName: string;
+  accountNumber: string;
+  bankCode: string;
+  bankName: string;
+  isDefault: boolean;
+  isVerified: boolean;
+  createdAt: string;
+}
+
+interface WithdrawalRequest {
+  _id: string;
+  bankAccountId: BankAccount;
+  amount: number;
+  status: 'cho_xac_nhan' | 'da_xac_nhan' | 'hoan_tat' | 'da_huy';
+  note: string;
+  requestedAt: string;
+  processedAt?: string;
 }
 
 interface OrderItem {
@@ -121,6 +142,30 @@ export default function NguoiDungPage() {
   const [walletBalance, setWalletBalance]           = useState(0);
   const [walletHistory, setWalletHistory]           = useState<WalletTransaction[]>([]);
   const [walletLoading, setWalletLoading]            = useState(false);
+
+  // ── Tài khoản ngân hàng ──
+  const [bankAccounts, setBankAccounts]           = useState<BankAccount[]>([]);
+  const [withdrawals, setWithdrawals]             = useState<WithdrawalRequest[]>([]);
+  const [bankLoading, setBankLoading]             = useState(false);
+  const [showAddBank, setShowAddBank]             = useState(false);
+  const [showWithdrawForm, setShowWithdrawForm]   = useState(false);
+  const [bankForm, setBankForm]                   = useState({ accountName: '', accountNumber: '', bankCode: '', bankName: '' });
+  const [withdrawForm, setWithdrawForm]           = useState({ bankAccountId: '', amount: 0 });
+  const [bankErr, setBankErr]                     = useState('');
+  const [bankMsg, setBankMsg]                     = useState('');
+  const [withdrawErr, setWithdrawErr]             = useState('');
+  const [withdrawMsg, setWithdrawMsg]             = useState('');
+  const [withdrawSubmitting, setWithdrawSubmitting] = useState(false);
+
+  // ── Accordion collapse/expand ──
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    wallet: true,
+    actions: true,
+    transHistory: false,
+    bank: true,
+    withdraw: false,
+    withdrawHistory: false,
+  });
 
   // ── Profile edit ──
   const [editing, setEditing]   = useState(false);
@@ -263,6 +308,36 @@ export default function NguoiDungPage() {
     if ((tab === 'wallet' || tab === 'overview') && user) fetchWallet();
   }, [tab, user, fetchWallet]);
 
+  // ── Fetch tài khoản ngân hàng ──
+  const fetchBankAccounts = useCallback(async () => {
+    setBankLoading(true);
+    try {
+      const r = await fetch(`${API_URL}/api/wallet/bank-accounts`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      const d = await r.json();
+      if (d.success) setBankAccounts(d.data || []);
+    } finally { setBankLoading(false); }
+  }, []);
+
+  // ── Fetch yêu cầu rút tiền ──
+  const fetchWithdrawals = useCallback(async () => {
+    try {
+      const r = await fetch(`${API_URL}/api/wallet/withdrawals`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      const d = await r.json();
+      if (d.success) setWithdrawals(d.data || []);
+    } catch (err) {}
+  }, []);
+
+  useEffect(() => {
+    if (tab === 'wallet' && user) {
+      fetchBankAccounts();
+      fetchWithdrawals();
+    }
+  }, [tab, user, fetchBankAccounts, fetchWithdrawals]);
+
   const handleCancelOrder = async (lyDoHuy: string) => {
     if (!confirmCancelId) return;
     setCancellingOrderId(confirmCancelId);
@@ -287,6 +362,115 @@ export default function NguoiDungPage() {
     } finally {
       setCancellingOrderId(null);
       setConfirmCancelId(null);
+    }
+  };
+
+  // ── Thêm tài khoản ngân hàng ──
+  const handleAddBankAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBankErr('');
+    setBankMsg('');
+    
+    if (!bankForm.accountName || !bankForm.accountNumber || !bankForm.bankCode || !bankForm.bankName) {
+      setBankErr('Vui lòng điền đầy đủ thông tin');
+      return;
+    }
+
+    try {
+      const r = await fetch(`${API_URL}/api/wallet/bank-accounts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+        body: JSON.stringify(bankForm),
+      });
+      const d = await r.json();
+      if (d.success) {
+        setBankMsg(d.message);
+        setBankForm({ accountName: '', accountNumber: '', bankCode: '', bankName: '' });
+        setShowAddBank(false);
+        fetchBankAccounts();
+      } else {
+        setBankErr(d.message);
+      }
+    } catch (err) {
+      setBankErr('Lỗi kết nối, vui lòng thử lại');
+    }
+  };
+
+  // ── Xóa tài khoản ngân hàng ──
+  const handleDeleteBankAccount = async (id: string) => {
+    if (!confirm('Bạn có chắc muốn xóa tài khoản này?')) return;
+    
+    try {
+      const r = await fetch(`${API_URL}/api/wallet/bank-accounts/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      const d = await r.json();
+      if (d.success) {
+        toastSuccess(d.message);
+        fetchBankAccounts();
+      } else {
+        toastError(d.message);
+      }
+    } catch (err) {
+      toastError('Lỗi kết nối');
+    }
+  };
+
+  // ── Rút tiền ──
+  const handleWithdrawal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setWithdrawErr('');
+    setWithdrawMsg('');
+    
+    if (!withdrawForm.bankAccountId || withdrawForm.amount <= 0) {
+      setWithdrawErr('Vui lòng chọn tài khoản và nhập số tiền');
+      return;
+    }
+
+    setWithdrawSubmitting(true);
+    try {
+      const r = await fetch(`${API_URL}/api/wallet/withdraw`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+        body: JSON.stringify(withdrawForm),
+      });
+      const d = await r.json();
+      if (d.success) {
+        setWithdrawMsg(d.message);
+        setWithdrawForm({ bankAccountId: '', amount: 0 });
+        setShowWithdrawForm(false);
+        fetchWallet();
+        fetchWithdrawals();
+      } else {
+        setWithdrawErr(d.message);
+      }
+    } catch (err) {
+      setWithdrawErr('Lỗi kết nối, vui lòng thử lại');
+    } finally {
+      setWithdrawSubmitting(false);
+    }
+  };
+
+  // ── Hủy yêu cầu rút tiền ──
+  const handleCancelWithdrawal = async (id: string) => {
+    if (!confirm('Hủy yêu cầu rút tiền này?')) return;
+    
+    try {
+      const r = await fetch(`${API_URL}/api/wallet/withdrawals/${id}/cancel`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      const d = await r.json();
+      if (d.success) {
+        toastSuccess(d.message);
+        fetchWallet();
+        fetchWithdrawals();
+      } else {
+        toastError(d.message);
+      }
+    } catch (err) {
+      toastError('Lỗi kết nối');
     }
   };
 
@@ -1251,78 +1435,271 @@ export default function NguoiDungPage() {
 
           {/* ── Tab: Ví SmartHub ── */}
           {tab === 'wallet' && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
-              {/* Số dư — bên trái, gọn hơn thay vì chiếm hết chiều ngang */}
-              <div className="lg:col-span-1 relative overflow-hidden bg-gradient-to-br from-teal-500 via-emerald-600 to-emerald-700 rounded-2xl shadow-md p-6 text-white">
-                {/* Vòng tròn trang trí mờ phía sau — tạo chiều sâu thay vì mảng màu phẳng lì */}
-                <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-white/10" />
-                <div className="absolute -bottom-14 -left-10 w-36 h-36 rounded-full bg-white/10" />
+            <div className="space-y-4">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <button
+                  onClick={() => setExpandedSections({ ...expandedSections, wallet: !expandedSections.wallet })}
+                  className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition"
+                >
+                  <h3 className="text-base font-bold text-gray-800 flex items-center gap-2">
+                    <Wallet className="w-4 h-4 text-gray-400" /> Ví SmartHub
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    {walletHistory.length > 0 && <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">{walletHistory.length} GD</span>}
+                    <ChevronRight className={`w-5 h-5 text-gray-400 transition-transform ${expandedSections.wallet ? 'rotate-90' : ''}`} />
+                  </div>
+                </button>
 
-                <div className="relative">
-                  <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur flex items-center justify-center mb-4">
-                    <Wallet className="w-5 h-5" />
-                  </div>
-                  <p className="text-emerald-50 text-sm mb-1">Số dư khả dụng</p>
-                  <p className="text-4xl font-extrabold tracking-tight">
-                    {new Intl.NumberFormat('vi-VN').format(walletBalance)}
-                    <span className="text-xl font-bold align-top ml-0.5">đ</span>
-                  </p>
-                  <div className="mt-4 pt-4 border-t border-white/20 flex items-start gap-2">
-                    <Sparkles className="w-3.5 h-3.5 text-emerald-100 shrink-0 mt-0.5" />
-                    <p className="text-emerald-50 text-xs leading-relaxed">
-                      Tiền hoàn từ các đơn đã thanh toán online bị huỷ sẽ tự động cộng vào đây — dùng để thanh toán cho đơn hàng tiếp theo.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Lịch sử giao dịch — bên phải */}
-              <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-                  <h1 className="text-base font-bold text-gray-800 flex items-center gap-2">
-                    <Receipt className="w-4 h-4 text-gray-400" /> Lịch sử giao dịch
-                  </h1>
-                  {walletHistory.length > 0 && (
-                    <span className="text-xs font-medium text-gray-400 bg-gray-50 px-2.5 py-1 rounded-full">
-                      {walletHistory.length} giao dịch
-                    </span>
-                  )}
-                </div>
-                {walletLoading ? (
-                  <div className="p-10 text-center text-gray-400 text-sm">Đang tải...</div>
-                ) : walletHistory.length === 0 ? (
-                  <div className="p-10 text-center text-gray-400 text-sm">
-                    Chưa có giao dịch nào trong ví.
-                  </div>
-                ) : (
-                  <div className="divide-y divide-gray-50 max-h-[420px] overflow-y-auto">
-                    {walletHistory.map((t) => (
-                      <div key={t._id} className="flex items-center gap-3.5 px-6 py-4 hover:bg-gray-50/80 transition-colors">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
-                          t.type === 'hoan_tien' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'
-                        }`}>
-                          {t.type === 'hoan_tien'
-                            ? <ArrowDownLeft className="w-4.5 h-4.5" />
-                            : <ArrowUpRight className="w-4.5 h-4.5" />}
+                {expandedSections.wallet && (
+                  <div className="border-t border-gray-100 p-4 space-y-4">
+                    <div className="relative overflow-hidden bg-gradient-to-br from-teal-500 via-emerald-600 to-emerald-700 rounded-xl shadow-md p-6 text-white">
+                      <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-white/10" />
+                      <div className="absolute -bottom-14 -left-10 w-36 h-36 rounded-full bg-white/10" />
+                      <div className="relative">
+                        <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur flex items-center justify-center mb-4">
+                          <Wallet className="w-5 h-5" />
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-800 truncate">
-                            {t.note || (t.type === 'hoan_tien' ? 'Hoàn tiền' : 'Thanh toán bằng ví')}
-                          </p>
-                          <p className="text-xs text-gray-400 mt-0.5">
-                            {new Date(t.createdAt).toLocaleString('vi-VN')}
-                          </p>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <p className={`text-sm font-bold ${t.type === 'hoan_tien' ? 'text-emerald-600' : 'text-red-500'}`}>
-                            {t.type === 'hoan_tien' ? '+' : '-'}{new Intl.NumberFormat('vi-VN').format(t.amount)}đ
-                          </p>
-                          <p className="text-xs text-gray-400 mt-0.5">
-                            Số dư: {new Intl.NumberFormat('vi-VN').format(t.soDuSau)}đ
+                        <p className="text-emerald-50 text-sm mb-1">Số dư khả dụng</p>
+                        <p className="text-4xl font-extrabold tracking-tight">
+                          {new Intl.NumberFormat('vi-VN').format(walletBalance)}
+                          <span className="text-xl font-bold align-top ml-0.5">đ</span>
+                        </p>
+                        <div className="mt-4 pt-4 border-t border-white/20 flex items-start gap-2">
+                          <Sparkles className="w-3.5 h-3.5 text-emerald-100 shrink-0 mt-0.5" />
+                          <p className="text-emerald-50 text-xs leading-relaxed">
+                            Tiền hoàn từ các đơn bị huỷ sẽ cộng vào đây — dùng để thanh toán cho đơn hàng tiếp theo hoặc rút về tài khoản ngân hàng cá nhân.
                           </p>
                         </div>
                       </div>
-                    ))}
+                    </div>
+
+                    <div className="bg-gray-50 rounded-xl border border-gray-100 overflow-hidden">
+                      <button
+                        onClick={() => setExpandedSections({ ...expandedSections, transHistory: !expandedSections.transHistory })}
+                        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-100 transition"
+                      >
+                        <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                          <Coins className="w-4 h-4 text-gray-400" /> Lịch sử giao dịch
+                        </h4>
+                        <ChevronRight className={`w-4 h-4 text-gray-400 transition-transform ${expandedSections.transHistory ? 'rotate-90' : ''}`} />
+                      </button>
+
+                      {expandedSections.transHistory && (
+                        <div className="border-t border-gray-200 p-3 space-y-2 max-h-[280px] overflow-y-auto">
+                          {walletLoading ? (
+                            <div className="text-center text-gray-400 text-xs py-3">Đang tải...</div>
+                          ) : walletHistory.length === 0 ? (
+                            <div className="text-center text-gray-400 text-xs py-4">Chưa có giao dịch nào</div>
+                          ) : (
+                            walletHistory.map((t) => (
+                              <div key={t._id} className="flex items-center gap-2.5 p-2 bg-white border border-gray-100 rounded hover:bg-gray-50 transition">
+                                <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-[10px] ${
+                                  t.type === 'hoan_tien' ? 'bg-emerald-50 text-emerald-600' :
+                                  t.type === 'rut_tien' ? 'bg-orange-50 text-orange-500' :
+                                  'bg-red-50 text-red-500'
+                                }`}>
+                                  {t.type === 'hoan_tien' ? '↓' : '↑'}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-[11px] font-medium text-gray-800 truncate">
+                                    {t.note || (t.type === 'hoan_tien' ? 'Hoàn tiền' : t.type === 'rut_tien' ? 'Rút tiền' : 'Thanh toán')}
+                                  </p>
+                                  <p className="text-[10px] text-gray-400">
+                                    {new Date(t.createdAt).toLocaleDateString('vi-VN')}
+                                  </p>
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <p className={`text-[11px] font-bold ${t.type === 'hoan_tien' ? 'text-emerald-600' : 'text-red-500'}`}>
+                                    {t.type === 'hoan_tien' ? '+' : '-'}{new Intl.NumberFormat('vi-VN').format(t.amount)}đ
+                                  </p>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <button
+                  onClick={() => setExpandedSections({ ...expandedSections, actions: !expandedSections.actions })}
+                  className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition"
+                >
+                  <h3 className="text-base font-bold text-gray-800 flex items-center gap-2">
+                    <CreditCard className="w-4 h-4 text-gray-400" /> Tài khoản & Rút tiền
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    {bankAccounts.length > 0 && <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">{bankAccounts.length} tk</span>}
+                    <ChevronRight className={`w-5 h-5 text-gray-400 transition-transform ${expandedSections.actions ? 'rotate-90' : ''}`} />
+                  </div>
+                </button>
+
+                {expandedSections.actions && (
+                  <div className="border-t border-gray-100 p-4 space-y-3">
+                    <div className="bg-gray-50 rounded-xl border border-gray-100 overflow-hidden">
+                      <button
+                        onClick={() => setExpandedSections({ ...expandedSections, bank: !expandedSections.bank })}
+                        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-100 transition"
+                      >
+                        <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                          <CreditCard className="w-4 h-4 text-gray-400" /> Tài khoản ngân hàng
+                        </h4>
+                        <ChevronRight className={`w-4 h-4 text-gray-400 transition-transform ${expandedSections.bank ? 'rotate-90' : ''}`} />
+                      </button>
+
+                      {expandedSections.bank && (
+                        <div className="border-t border-gray-200">
+                          <div className="px-4 py-3 border-b border-gray-200 bg-white/60">
+                            {!showAddBank ? (
+                              <button onClick={() => setShowAddBank(true)} className="text-[13px] font-semibold text-red-500 hover:text-red-600 flex items-center gap-1 transition">
+                                <Plus className="w-4 h-4" /> Thêm tài khoản
+                              </button>
+                            ) : (
+                              <form onSubmit={handleAddBankAccount} className="space-y-2">
+                                {bankErr && <div className="bg-red-50 border border-red-200 text-red-600 text-xs px-2 py-1.5 rounded">{bankErr}</div>}
+                                {bankMsg && <div className="bg-green-50 border border-green-200 text-green-600 text-xs px-2 py-1.5 rounded flex items-center gap-1"><Check className="w-3 h-3" />{bankMsg}</div>}
+                                <input type="text" placeholder="Tên chủ TK" value={bankForm.accountName} onChange={e => setBankForm({...bankForm, accountName: e.target.value})} className="w-full border border-gray-200 rounded px-2.5 py-1.5 text-xs focus:outline-none focus:border-red-400" required />
+                                <input type="text" placeholder="Số TK" value={bankForm.accountNumber} onChange={e => setBankForm({...bankForm, accountNumber: e.target.value})} className="w-full border border-gray-200 rounded px-2.5 py-1.5 text-xs focus:outline-none focus:border-red-400" required />
+                                <input type="text" placeholder="Mã NH (VCB, ACB...)" value={bankForm.bankCode} onChange={e => setBankForm({...bankForm, bankCode: e.target.value})} className="w-full border border-gray-200 rounded px-2.5 py-1.5 text-xs focus:outline-none focus:border-red-400" required />
+                                <input type="text" placeholder="Tên ngân hàng" value={bankForm.bankName} onChange={e => setBankForm({...bankForm, bankName: e.target.value})} className="w-full border border-gray-200 rounded px-2.5 py-1.5 text-xs focus:outline-none focus:border-red-400" required />
+                                <div className="flex gap-2 pt-1">
+                                  <button type="submit" className="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold py-1.5 rounded text-xs transition">Lưu</button>
+                                  <button type="button" onClick={() => setShowAddBank(false)} className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-1.5 rounded text-xs transition">Hủy</button>
+                                </div>
+                              </form>
+                            )}
+                          </div>
+
+                          <div className="p-3 space-y-2 max-h-[220px] overflow-y-auto">
+                            {bankLoading ? (
+                              <div className="text-center text-gray-400 text-xs py-3">Đang tải...</div>
+                            ) : bankAccounts.length === 0 ? (
+                              <div className="text-center text-gray-400 text-xs py-4">Chưa có tài khoản nào</div>
+                            ) : (
+                              bankAccounts.map(acc => (
+                                <div key={acc._id} className="border border-gray-200 rounded p-2 flex items-start justify-between bg-white hover:bg-gray-50 transition">
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-semibold text-gray-800">{acc.accountName}</p>
+                                    <p className="text-[11px] text-gray-500 mt-0.5">{acc.bankName} • {acc.accountNumber}</p>
+                                  </div>
+                                  <button onClick={() => handleDeleteBankAccount(acc._id)} className="text-gray-300 hover:text-red-500 ml-2 shrink-0 transition" title="Xóa">
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="bg-gray-50 rounded-xl border border-gray-100 overflow-hidden">
+                      <button
+                        onClick={() => setExpandedSections({ ...expandedSections, withdraw: !expandedSections.withdraw })}
+                        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-100 transition"
+                      >
+                        <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                          <ArrowUpRight className="w-4 h-4 text-gray-400" /> Rút tiền
+                        </h4>
+                        <ChevronRight className={`w-4 h-4 text-gray-400 transition-transform ${expandedSections.withdraw ? 'rotate-90' : ''}`} />
+                      </button>
+
+                      {expandedSections.withdraw && (
+                        <div className="border-t border-gray-200 p-4 space-y-4 bg-white/60">
+                          {withdrawErr && <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-3 py-2 rounded-lg">{withdrawErr}</div>}
+                          {withdrawMsg && <div className="bg-green-50 border border-green-200 text-green-600 text-sm px-3 py-2 rounded-lg flex items-center gap-2"><Check className="w-4 h-4" />{withdrawMsg}</div>}
+
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-600 mb-2">Chọn tài khoản nhận tiền</label>
+                            <select
+                              value={withdrawForm.bankAccountId}
+                              onChange={e => setWithdrawForm({ ...withdrawForm, bankAccountId: e.target.value })}
+                              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-red-400"
+                              required
+                            >
+                              <option value="">-- Chọn tài khoản --</option>
+                              {bankAccounts.map(acc => (
+                                <option key={acc._id} value={acc._id}>{acc.accountName} ({acc.bankName})</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-600 mb-2">Số tiền rút (đ)</label>
+                            <input
+                              type="number"
+                              min="50000"
+                              max={walletBalance}
+                              step="10000"
+                              value={withdrawForm.amount || ''}
+                              onChange={e => setWithdrawForm({ ...withdrawForm, amount: Number(e.target.value) })}
+                              placeholder="Nhập số tiền (tối thiểu 50.000đ)"
+                              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-red-400"
+                              required
+                            />
+                            <p className="text-xs text-gray-500 mt-1">Số dư có thể rút: {new Intl.NumberFormat('vi-VN').format(walletBalance)}đ</p>
+                          </div>
+
+                          <button
+                            type="submit"
+                            onClick={handleWithdrawal}
+                            disabled={withdrawSubmitting || bankAccounts.length === 0}
+                            className="w-full bg-red-500 hover:bg-red-600 disabled:opacity-60 text-white font-semibold py-2.5 rounded-lg text-sm transition"
+                          >
+                            {withdrawSubmitting ? 'Đang xử lý...' : 'Yêu cầu rút tiền'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="bg-gray-50 rounded-xl border border-gray-100 overflow-hidden">
+                      <button
+                        onClick={() => setExpandedSections({ ...expandedSections, withdrawHistory: !expandedSections.withdrawHistory })}
+                        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-100 transition"
+                      >
+                        <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                          <Receipt className="w-4 h-4 text-gray-400" /> Lịch sử rút tiền
+                        </h4>
+                        {withdrawals.length > 0 && <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">{withdrawals.length}</span>}
+                        <ChevronRight className={`w-4 h-4 text-gray-400 transition-transform ${expandedSections.withdrawHistory ? 'rotate-90' : ''}`} />
+                      </button>
+
+                      {expandedSections.withdrawHistory && (
+                        <div className="border-t border-gray-200 p-3 space-y-2 max-h-[220px] overflow-y-auto bg-white/60">
+                          {withdrawals.length === 0 ? (
+                            <div className="text-center text-gray-400 text-xs py-4">Chưa có yêu cầu rút tiền nào</div>
+                          ) : (
+                            withdrawals.map(w => (
+                              <div key={w._id} className="border border-gray-200 rounded p-2.5 bg-white hover:bg-gray-50 transition">
+                                <div className="flex items-start justify-between gap-2 mb-1">
+                                  <p className="text-xs font-semibold text-gray-800">{new Intl.NumberFormat('vi-VN').format(w.amount)}đ</p>
+                                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded whitespace-nowrap ${
+                                    w.status === 'cho_xac_nhan' ? 'bg-amber-50 text-amber-600' :
+                                    w.status === 'da_xac_nhan' ? 'bg-blue-50 text-blue-600' :
+                                    w.status === 'hoan_tat' ? 'bg-green-50 text-green-600' :
+                                    'bg-gray-100 text-gray-500'
+                                  }`}>
+                                    {w.status === 'cho_xac_nhan' ? 'Chờ' :
+                                     w.status === 'da_xac_nhan' ? 'Xác nhận' :
+                                     w.status === 'hoan_tat' ? 'Hoàn tất' :
+                                     'Huỷ'}
+                                  </span>
+                                </div>
+                                <p className="text-[11px] text-gray-500">{new Date(w.requestedAt).toLocaleDateString('vi-VN')}</p>
+                                {w.status === 'cho_xac_nhan' && (
+                                  <button onClick={() => handleCancelWithdrawal(w._id)} className="text-[11px] text-red-500 hover:text-red-600 font-medium mt-1 transition">
+                                    Hủy yêu cầu
+                                  </button>
+                                )}
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
