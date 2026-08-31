@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { X, Gift } from "lucide-react";
+import { X, Gift, Sparkles } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -199,7 +199,8 @@ export default function VoucherSpinWheel({
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(0,0,0,0.7)",
+        background: "rgba(0,0,0,0.75)",
+        backdropFilter: "blur(4px)",
         zIndex: 100,
         display: "flex",
         alignItems: "center",
@@ -208,61 +209,70 @@ export default function VoucherSpinWheel({
       }}
     >
       <div
-        className="relative border border-red-900/20 shadow-2xl rounded-2xl p-8 max-w-md w-full text-center"
+        className="relative border-2 border-amber-400/30 shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-3xl p-6 sm:p-8 max-w-md w-full text-center overflow-hidden animate-in fade-in zoom-in-95 duration-200"
         style={{
           background:
-            "linear-gradient(140deg, #C4161C 0%, #E02B20 45%, #FB7423 100%)",
+            "radial-gradient(circle at 50% 0%, #E02B20 0%, #C4161C 55%, #8A0B10 100%)",
         }}
       >
+        {/* Họa tiết ánh sáng trang trí góc */}
+        <div className="absolute -top-10 -left-10 w-32 h-32 bg-amber-400/20 rounded-full blur-2xl pointer-events-none" />
+        <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-amber-400/20 rounded-full blur-2xl pointer-events-none" />
+
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 z-20 text-white/70 hover:text-white transition"
+          className="absolute top-4 right-4 z-20 text-white/70 hover:text-white bg-black/20 hover:bg-black/40 p-1.5 rounded-full transition"
           aria-label="Đóng"
         >
-          <X size={22} />
+          <X size={20} />
         </button>
 
         <div className="flex items-center justify-center gap-2 mb-1">
-          <Gift className="text-amber-300" size={24} />
-          <h2 className="text-white font-bold text-xl m-0">
-            Vòng quay may mắn SmartHub
+          <Sparkles className="text-amber-300 animate-pulse" size={24} />
+          <h2 className="text-white font-extrabold text-xl sm:text-2xl tracking-wide m-0 drop-shadow-md">
+            Vòng Quay May Mắn
           </h2>
+          <Sparkles className="text-amber-300 animate-pulse" size={24} />
         </div>
-        <p className="text-red-50 text-sm mb-6">
-          Mỗi tài khoản có 1 lượt quay duy nhất
+        <p className="text-amber-100/90 text-xs sm:text-sm mb-6 font-medium">
+          Mỗi tài khoản nhận 1 lượt quay trúng thưởng 100%
         </p>
 
         {loadingPrizes ? (
-          <div className="py-16 text-red-50 text-sm">Đang tải...</div>
+          <div className="py-20 text-red-100 text-sm font-medium animate-pulse flex flex-col items-center gap-2">
+            <div className="w-8 h-8 border-4 border-amber-300 border-t-transparent rounded-full animate-spin" />
+            Đang tải dữ liệu vòng quay...
+          </div>
         ) : prizes.length === 0 ? (
-          <div className="py-16 text-red-50 text-sm">
-            Chương trình quay số hiện không khả dụng
+          <div className="py-16 text-red-100 text-sm bg-black/10 rounded-xl">
+            Chương trình quay số hiện chưa có sẵn
           </div>
         ) : (
           <>
-            <div className="relative mx-auto mb-6 w-[280px] h-[280px] sm:w-[320px] sm:h-[320px]">
-              {/* Kim chỉ */}
+            <div className="relative mx-auto mb-6 w-[270px] h-[270px] sm:w-[310px] sm:h-[310px] flex items-center justify-center">
+              {/* Kim chỉ vị trí (Pointer) */}
               <div
                 style={{
                   position: "absolute",
-                  top: 2,
+                  top: -8,
                   left: "50%",
                   transform: "translateX(-50%)",
-                  zIndex: 10,
-                  filter: "drop-shadow(0 2px 3px rgba(0,0,0,0.3))",
+                  zIndex: 20,
+                  filter: "drop-shadow(0 4px 6px rgba(0,0,0,0.4))",
                 }}
               >
-                <svg width="30" height="38" viewBox="0 0 30 38">
+                <svg width="34" height="42" viewBox="0 0 30 38">
                   <path
                     d="M15 38 L2 15 L8 2 L22 2 L28 15 Z"
-                    fill="#E01B24"
-                    stroke="#ffffff"
-                    strokeWidth="2.5"
+                    fill="#DC2626"
+                    stroke="#FFE4E6"
+                    strokeWidth="2"
                     strokeLinejoin="round"
                   />
                 </svg>
               </div>
 
+              {/* Vòng quay chính */}
               <svg
                 ref={wheelRef}
                 viewBox={`0 0 ${VB} ${VB}`}
@@ -275,17 +285,18 @@ export default function VoucherSpinWheel({
                   transition: spinning
                     ? "transform 4.2s cubic-bezier(0.17, 0.67, 0.12, 0.99)"
                     : "none",
-                  boxShadow: "0 0 0 10px #FFFFFF, 0 10px 30px rgba(0,0,0,0.35)",
+                  boxShadow:
+                    "0 0 0 8px #FFFFFF, 0 0 0 12px #F5B921, 0 12px 35px rgba(0,0,0,0.5)",
                 }}
               >
                 <defs>
-                  {/* Làm mép ngoài đậm hơn tâm một chút cho có chiều sâu */}
                   <radialGradient id="wheelDepth" cx="50%" cy="50%" r="50%">
                     <stop offset="65%" stopColor="#fff" stopOpacity="0" />
-                    <stop offset="100%" stopColor="#000" stopOpacity="0.06" />
+                    <stop offset="100%" stopColor="#000" stopOpacity="0.08" />
                   </radialGradient>
                 </defs>
 
+                {/* Các múi quạt */}
                 {prizes.map((prize, i) => {
                   const start = i * segmentAngle;
                   const end = start + segmentAngle;
@@ -304,7 +315,23 @@ export default function VoucherSpinWheel({
                   );
                 })}
 
-                {/* Lớp phủ tạo chiều sâu, không chắn sự kiện chuột */}
+                {/* 12 chấm đốm đèn trang trí quanh vành */}
+                {Array.from({ length: 12 }).map((_, idx) => {
+                  const pt = pointAt(idx * 30, R - 3);
+                  return (
+                    <circle
+                      key={`dot-${idx}`}
+                      cx={pt.x}
+                      cy={pt.y}
+                      r="1.8"
+                      fill="#FFFFFF"
+                      stroke="#F5B921"
+                      strokeWidth="0.5"
+                    />
+                  );
+                })}
+
+                {/* Lớp phủ shadow chiều sâu */}
                 <circle
                   cx={CX}
                   cy={CY}
@@ -313,7 +340,7 @@ export default function VoucherSpinWheel({
                   pointerEvents="none"
                 />
 
-                {/* Nhãn: xoay theo múi, tự lật 180° ở nửa dưới để không bị ngược */}
+                {/* Chữ hiển thị trên múi quạt */}
                 {prizes.map((prize, i) => {
                   const mid = i * segmentAngle + segmentAngle / 2;
                   const flip = mid > 90 && mid < 270;
@@ -352,64 +379,77 @@ export default function VoucherSpinWheel({
                 })}
               </svg>
 
-              {/* Trục giữa */}
+              {/* Trục tâm giữa */}
               <div
                 style={{
                   position: "absolute",
                   top: "50%",
                   left: "50%",
                   transform: "translate(-50%, -50%)",
-                  width: 64,
-                  height: 64,
+                  width: 60,
+                  height: 60,
                   borderRadius: "50%",
-                  background: "#FFFFFF",
+                  background:
+                    "radial-gradient(circle, #FFFFFF 60%, #FFFBEB 100%)",
                   border: "3px solid #F5B921",
-                  boxShadow: "0 3px 10px rgba(0,0,0,0.18)",
-                  zIndex: 5,
+                  boxShadow:
+                    "0 4px 12px rgba(0,0,0,0.25), inset 0 2px 4px rgba(255,255,255,0.8)",
+                  zIndex: 15,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <Gift size={24} className="text-red-600" />
+                <Gift size={26} className="text-red-600 drop-shadow-sm" />
               </div>
             </div>
 
             {!isLoggedIn && (
-              <p className="text-amber-200 text-xs mb-3">
+              <p className="text-amber-200 text-xs mb-3 font-medium bg-black/20 py-1.5 px-3 rounded-full inline-block">
                 Vui lòng đăng nhập để quay
               </p>
             )}
 
             {hasSpun ? (
-              <div className="bg-white/95 border border-white rounded-xl px-4 py-3 text-sm text-gray-800">
-                Bạn đã quay và nhận mã{" "}
-                <strong className="font-mono">
+              <div className="bg-white/95 backdrop-blur border border-amber-300 rounded-xl px-4 py-3 text-sm text-gray-800 shadow-md">
+                Bạn đã nhận mã quà tặng:{" "}
+                <strong className="font-mono text-red-600 font-bold bg-red-50 px-2 py-0.5 rounded border border-red-200">
                   {existingResult?.code || result?.code}
                 </strong>
-                . Dùng mã này khi thanh toán giỏ hàng nhé!
+                <p className="text-xs text-gray-500 mt-1">
+                  Đã lưu vào kho voucher của bạn!
+                </p>
               </div>
             ) : (
               <button
                 onClick={handleSpin}
                 disabled={spinning || !isLoggedIn}
-                className="bg-white hover:bg-red-50 disabled:bg-white/40 disabled:text-white/70 text-red-600 font-bold px-10 py-3 rounded-xl transition shadow-md hover:shadow-lg disabled:shadow-none"
+                className="relative group overflow-hidden bg-gradient-to-b from-amber-200 via-amber-400 to-amber-500 hover:from-amber-100 hover:to-amber-400 text-red-950 font-black text-lg px-10 py-3.5 rounded-2xl transition-all transform hover:scale-105 active:scale-95 shadow-[0_6px_20px_rgba(245,185,33,0.4)] disabled:opacity-50 disabled:scale-100 disabled:shadow-none"
               >
-                {spinning ? "Đang quay..." : "Quay ngay"}
+                <span className="relative z-10 drop-shadow-sm">
+                  {spinning ? "ĐANG QUAY..." : "QUAY NGAY"}
+                </span>
+                <div className="absolute inset-0 w-1/2 h-full bg-white/30 skew-x-12 -translate-x-full group-hover:translate-x-[300%] transition-transform duration-1000 ease-in-out" />
               </button>
             )}
 
-            {error && <p className="text-amber-200 text-xs mt-3">{error}</p>}
+            {error && (
+              <p className="text-amber-200 text-xs mt-3 bg-red-900/50 py-1 px-3 rounded-lg border border-red-500/30">
+                {error}
+              </p>
+            )}
           </>
         )}
       </div>
 
+      {/* Modal kết quả khi quay xong */}
       {showResultModal && result && (
         <div
           style={{
             position: "fixed",
             inset: 0,
-            background: "rgba(0,0,0,0.6)",
+            background: "rgba(0,0,0,0.65)",
+            backdropFilter: "blur(4px)",
             zIndex: 110,
             display: "flex",
             alignItems: "center",
@@ -420,31 +460,38 @@ export default function VoucherSpinWheel({
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="bg-white border-2 border-amber-400 shadow-xl rounded-2xl p-6 max-w-xs w-full text-center"
+            className="bg-white border-2 border-amber-400 shadow-2xl rounded-2xl p-6 max-w-xs w-full text-center animate-in zoom-in-95 duration-200"
           >
-            <Gift className="text-amber-500 mx-auto mb-3" size={40} />
-            <h3 className="text-black font-bold text-lg mb-1">
-              {result.type === "none"
-                ? "Chúc bạn may mắn lần sau!"
-                : "Chúc mừng bạn đã trúng thưởng!"}
+            <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-3 text-amber-500 shadow-inner">
+              <Gift size={36} />
+            </div>
+            <h3 className="text-gray-900 font-extrabold text-lg mb-1">
+              {result.type === "none" ? "May mắn lần sau!" : "Chúc mừng bạn!"}
             </h3>
-            {result.type !== "none" && (
+            {result.type !== "none" ? (
               <>
-                <p className="text-amber-600 font-bold text-2xl my-2">
+                <p className="text-amber-600 font-black text-2xl my-2 drop-shadow-sm">
                   {result.label}
                 </p>
-                <p className="text-gray-600 text-xs mb-4">
-                  Mã:{" "}
-                  <span className="text-black font-mono">{result.code}</span> —
-                  áp dụng khi thanh toán giỏ hàng
-                </p>
+                <div className="bg-gray-50 border border-dashed border-gray-300 rounded-lg p-2.5 mb-4">
+                  <p className="text-gray-500 text-xs mb-1">
+                    Mã ưu đãi của bạn:
+                  </p>
+                  <span className="text-red-600 font-mono font-bold text-base select-all">
+                    {result.code}
+                  </span>
+                </div>
               </>
+            ) : (
+              <p className="text-gray-600 text-sm mb-4">
+                Cảm ơn bạn đã tham gia chương trình!
+              </p>
             )}
             <button
               onClick={() => setShowResultModal(false)}
-              className="bg-red-600 hover:bg-red-700 text-white font-medium px-6 py-2 rounded-lg mt-2"
+              className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white font-bold px-6 py-2.5 rounded-xl transition shadow-md"
             >
-              Đóng
+              Xác nhận
             </button>
           </div>
         </div>
