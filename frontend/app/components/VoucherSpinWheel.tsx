@@ -19,20 +19,14 @@ interface SpinResult {
   value: number;
 }
 
-/** Bảng màu cho từng ô — đủ tương phản để phân biệt, chữ trắng luôn đọc rõ */
-const SEGMENT_COLORS = [
-  "#e11d48", // hồng đỏ
-  "#f59e0b", // hổ phách
-  "#0d9488", // ngọc lam
-  "#7c3aed", // tím
-  "#ea580c", // cam
-  "#2563eb", // xanh dương
-  "#be123c", // đỏ rượu
-  "#65a30d", // xanh lá
-];
+/** Ô trắng và vàng nhạt xen kẽ, chữ đỏ đọc rõ trên cả hai */
+const SEGMENT_COLORS = ["#FFFFFF", "#FBE39B"];
 
-/** Ô "chúc may mắn lần sau" luôn xám, để khách nhận ra ngay đó là ô trắng */
-const NONE_COLOR = "#64748b";
+/** Ô "chúc may mắn lần sau" vàng đậm, nổi hẳn giữa các ô còn lại */
+const NONE_COLOR = "#F5B921";
+
+/** Mọi ô đều nền sáng nên chữ dùng chung một màu đỏ */
+const LABEL_COLOR = "#B91C1C";
 
 const VB = 200; // viewBox
 const CX = 100;
@@ -213,29 +207,35 @@ export default function VoucherSpinWheel({
         padding: 16,
       }}
     >
-      <div className="relative bg-white border border-gray-200 shadow-xl rounded-2xl p-8 max-w-md w-full text-center">
+      <div
+        className="relative border border-red-900/20 shadow-2xl rounded-2xl p-8 max-w-md w-full text-center"
+        style={{
+          background:
+            "linear-gradient(140deg, #C4161C 0%, #E02B20 45%, #FB7423 100%)",
+        }}
+      >
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 z-20 text-gray-500 hover:text-black transition"
+          className="absolute top-3 right-3 z-20 text-white/70 hover:text-white transition"
           aria-label="Đóng"
         >
           <X size={22} />
         </button>
 
         <div className="flex items-center justify-center gap-2 mb-1">
-          <Gift className="text-red-500" size={24} />
-          <h2 className="text-black font-bold text-xl m-0">
+          <Gift className="text-amber-300" size={24} />
+          <h2 className="text-white font-bold text-xl m-0">
             Vòng quay may mắn SmartHub
           </h2>
         </div>
-        <p className="text-gray-600 text-sm mb-6">
+        <p className="text-red-50 text-sm mb-6">
           Mỗi tài khoản có 1 lượt quay duy nhất
         </p>
 
         {loadingPrizes ? (
-          <div className="py-16 text-gray-500 text-sm">Đang tải...</div>
+          <div className="py-16 text-red-50 text-sm">Đang tải...</div>
         ) : prizes.length === 0 ? (
-          <div className="py-16 text-gray-500 text-sm">
+          <div className="py-16 text-red-50 text-sm">
             Chương trình quay số hiện không khả dụng
           </div>
         ) : (
@@ -245,19 +245,19 @@ export default function VoucherSpinWheel({
               <div
                 style={{
                   position: "absolute",
-                  top: -6,
+                  top: 2,
                   left: "50%",
                   transform: "translateX(-50%)",
                   zIndex: 10,
-                  filter: "drop-shadow(0 2px 3px rgba(0,0,0,0.35))",
+                  filter: "drop-shadow(0 2px 3px rgba(0,0,0,0.3))",
                 }}
               >
-                <svg width="30" height="34" viewBox="0 0 30 34">
+                <svg width="30" height="38" viewBox="0 0 30 38">
                   <path
-                    d="M15 34 L2 6 A 14 14 0 0 1 28 6 Z"
-                    fill="#fbbf24"
-                    stroke="#b45309"
-                    strokeWidth="2"
+                    d="M15 38 L2 15 L8 2 L22 2 L28 15 Z"
+                    fill="#E01B24"
+                    stroke="#ffffff"
+                    strokeWidth="2.5"
                     strokeLinejoin="round"
                   />
                 </svg>
@@ -275,15 +275,14 @@ export default function VoucherSpinWheel({
                   transition: spinning
                     ? "transform 4.2s cubic-bezier(0.17, 0.67, 0.12, 0.99)"
                     : "none",
-                  boxShadow:
-                    "0 0 0 6px #fbbf24, 0 0 0 9px #b45309, 0 10px 30px rgba(0,0,0,0.25)",
+                  boxShadow: "0 0 0 10px #FFFFFF, 0 10px 30px rgba(0,0,0,0.35)",
                 }}
               >
                 <defs>
                   {/* Làm mép ngoài đậm hơn tâm một chút cho có chiều sâu */}
                   <radialGradient id="wheelDepth" cx="50%" cy="50%" r="50%">
-                    <stop offset="55%" stopColor="#fff" stopOpacity="0.16" />
-                    <stop offset="100%" stopColor="#000" stopOpacity="0.18" />
+                    <stop offset="65%" stopColor="#fff" stopOpacity="0" />
+                    <stop offset="100%" stopColor="#000" stopOpacity="0.06" />
                   </radialGradient>
                 </defs>
 
@@ -299,8 +298,8 @@ export default function VoucherSpinWheel({
                       key={prize._id}
                       d={wedgePath(start, end)}
                       fill={fill}
-                      stroke="#ffffff"
-                      strokeWidth="1.2"
+                      stroke="#F5B921"
+                      strokeWidth="0.6"
                     />
                   );
                 })}
@@ -334,15 +333,9 @@ export default function VoucherSpinWheel({
                         x={CX}
                         y={baseY}
                         textAnchor="middle"
-                        fill="#ffffff"
+                        fill={LABEL_COLOR}
                         fontSize={lines.length > 1 ? 7 : 8}
                         fontWeight={700}
-                        style={{
-                          paintOrder: "stroke",
-                          stroke: "rgba(0,0,0,0.28)",
-                          strokeWidth: 2.2,
-                          strokeLinejoin: "round",
-                        }}
                       >
                         {lines.map((line, li) => (
                           <tspan
@@ -366,31 +359,30 @@ export default function VoucherSpinWheel({
                   top: "50%",
                   left: "50%",
                   transform: "translate(-50%, -50%)",
-                  width: 56,
-                  height: 56,
+                  width: 64,
+                  height: 64,
                   borderRadius: "50%",
-                  background:
-                    "radial-gradient(circle at 35% 30%, #fde68a, #f59e0b 70%)",
-                  border: "4px solid #b45309",
-                  boxShadow: "0 3px 10px rgba(0,0,0,0.3)",
+                  background: "#FFFFFF",
+                  border: "3px solid #F5B921",
+                  boxShadow: "0 3px 10px rgba(0,0,0,0.18)",
                   zIndex: 5,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <Gift size={22} className="text-white" />
+                <Gift size={24} className="text-red-600" />
               </div>
             </div>
 
             {!isLoggedIn && (
-              <p className="text-red-500 text-xs mb-3">
+              <p className="text-amber-200 text-xs mb-3">
                 Vui lòng đăng nhập để quay
               </p>
             )}
 
             {hasSpun ? (
-              <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 text-sm text-emerald-800">
+              <div className="bg-white/95 border border-white rounded-xl px-4 py-3 text-sm text-gray-800">
                 Bạn đã quay và nhận mã{" "}
                 <strong className="font-mono">
                   {existingResult?.code || result?.code}
@@ -401,13 +393,13 @@ export default function VoucherSpinWheel({
               <button
                 onClick={handleSpin}
                 disabled={spinning || !isLoggedIn}
-                className="bg-red-600 hover:bg-red-700 disabled:bg-gray-200 disabled:text-gray-500 text-white font-bold px-10 py-3 rounded-xl transition shadow-md hover:shadow-lg disabled:shadow-none"
+                className="bg-white hover:bg-red-50 disabled:bg-white/40 disabled:text-white/70 text-red-600 font-bold px-10 py-3 rounded-xl transition shadow-md hover:shadow-lg disabled:shadow-none"
               >
                 {spinning ? "Đang quay..." : "Quay ngay"}
               </button>
             )}
 
-            {error && <p className="text-red-500 text-xs mt-3">{error}</p>}
+            {error && <p className="text-amber-200 text-xs mt-3">{error}</p>}
           </>
         )}
       </div>
