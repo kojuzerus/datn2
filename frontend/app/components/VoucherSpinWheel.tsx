@@ -290,6 +290,7 @@ export default function VoucherSpinWheel({
                 }}
               >
                 <defs>
+                  {/* Làm mép ngoài đậm hơn tâm một chút cho có chiều sâu */}
                   <radialGradient id="wheelDepth" cx="50%" cy="50%" r="50%">
                     <stop offset="65%" stopColor="#fff" stopOpacity="0" />
                     <stop offset="100%" stopColor="#000" stopOpacity="0.08" />
@@ -416,6 +417,7 @@ export default function VoucherSpinWheel({
                 <strong className="font-mono text-red-600 font-bold bg-red-50 px-2 py-0.5 rounded border border-red-200">
                   {existingResult?.code || result?.code}
                 </strong>
+                . Dùng mã này khi thanh toán giỏ hàng nhé!
                 <p className="text-xs text-gray-500 mt-1">
                   Đã lưu vào kho voucher của bạn!
                 </p>
