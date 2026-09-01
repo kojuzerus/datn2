@@ -118,7 +118,9 @@ export default function ThanhToanPage() {
   const [items, setItems] = useState<CartItem[]>([]); // chỉ item được chọn
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedAddr, setSelectedAddr] = useState<string>("");
-  const [paymentMethod, setPaymentMethod] = useState<"cod" | "vnpay" | "vi">("cod");
+  const [paymentMethod, setPaymentMethod] = useState<"cod" | "vnpay" | "vi">(
+    "cod",
+  );
   const [walletBalance, setWalletBalance] = useState(0);
   const [ghiChu, setGhiChu] = useState("");
   const [loading, setLoading] = useState(true);
@@ -184,9 +186,6 @@ export default function ThanhToanPage() {
     } catch {}
   };
 
-  // Mã trúng từ Vòng quay may mắn — chỉ hiện nếu đã trúng thật (không phải "chúc may mắn
-  // lần sau") và chưa dùng. Nút này gọi chung handleApplyPromo/validate — nơi đó đã tự
-  // nhận diện đây là mã vòng quay (nhánh checkSpinVoucher trong promotionController).
   const fetchSpinVoucher = async () => {
     if (!token) return;
     try {
@@ -194,7 +193,12 @@ export default function ThanhToanPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
-      if (data.hasSpun && data.voucher && !data.voucher.isUsed && data.voucher.type !== "none") {
+      if (
+        data.hasSpun &&
+        data.voucher &&
+        !data.voucher.isUsed &&
+        data.voucher.type !== "none"
+      ) {
         setSpinVoucher(data.voucher);
       }
     } catch {}
@@ -420,7 +424,10 @@ export default function ThanhToanPage() {
       });
       data = await res.json();
     } catch {
-      data = { success: false, message: "Không thể kết nối máy chủ, vui lòng thử lại" };
+      data = {
+        success: false,
+        message: "Không thể kết nối máy chủ, vui lòng thử lại",
+      };
     }
     setPlacing(false);
 
@@ -715,7 +722,9 @@ export default function ThanhToanPage() {
                       name="payment"
                       value={id}
                       checked={paymentMethod === id}
-                      onChange={() => setPaymentMethod(id as "cod" | "vnpay" | "vi")}
+                      onChange={() =>
+                        setPaymentMethod(id as "cod" | "vnpay" | "vi")
+                      }
                       className="accent-blue-500"
                     />
                     <div
@@ -763,7 +772,9 @@ export default function ThanhToanPage() {
                         <Wallet className="w-5 h-5 text-amber-600" />
                       </div>
                       <div className="flex-1">
-                        <p className="font-medium text-gray-800 text-sm">Ví SmartHub</p>
+                        <p className="font-medium text-gray-800 text-sm">
+                          Ví SmartHub
+                        </p>
                         <p className="text-xs text-gray-400 mt-0.5">
                           Số dư khả dụng: {formatPrice(walletBalance)}
                           {!duDu && " — không đủ để thanh toán đơn này"}
@@ -781,7 +792,9 @@ export default function ThanhToanPage() {
                     Thanh toán bằng Ví SmartHub
                   </p>
                   <p className="text-sm text-amber-700">
-                    {formatPrice(tongThanhToan)} sẽ được trừ ngay từ số dư ví ({formatPrice(walletBalance)}) — không cần chuyển khoản hay quét mã.
+                    {formatPrice(tongThanhToan)} sẽ được trừ ngay từ số dư ví (
+                    {formatPrice(walletBalance)}) — không cần chuyển khoản hay
+                    quét mã.
                   </p>
                 </div>
               )}
@@ -1050,7 +1063,9 @@ export default function ThanhToanPage() {
               <button
                 onClick={handlePlaceOrder}
                 disabled={
-                  placing || items.length === 0 || !selectedAddr ||
+                  placing ||
+                  items.length === 0 ||
+                  !selectedAddr ||
                   (paymentMethod === "vi" && walletBalance < tongThanhToan)
                 }
                 className={`w-full font-bold py-3.5 rounded-sm transition flex items-center justify-center gap-2 ${

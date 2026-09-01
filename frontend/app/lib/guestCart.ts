@@ -1,9 +1,5 @@
-// frontend/lib/guestCart.ts
-// Giỏ hàng cho khách chưa đăng nhập, lưu tạm ở localStorage.
-// Khi khách đăng nhập, giỏ hàng này được gộp vào giỏ hàng trên server rồi xóa đi.
-
-const KEY = 'smarthub_guest_cart';
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const KEY = "smarthub_guest_cart";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export interface GuestCartItem {
   _id: string;
@@ -17,9 +13,9 @@ export interface GuestCartItem {
 }
 
 function read(): GuestCartItem[] {
-  if (typeof window === 'undefined') return [];
+  if (typeof window === "undefined") return [];
   try {
-    return JSON.parse(localStorage.getItem(KEY) || '[]');
+    return JSON.parse(localStorage.getItem(KEY) || "[]");
   } catch {
     return [];
   }
@@ -27,7 +23,7 @@ function read(): GuestCartItem[] {
 
 function write(items: GuestCartItem[]) {
   localStorage.setItem(KEY, JSON.stringify(items));
-  window.dispatchEvent(new Event('cart-updated'));
+  window.dispatchEvent(new Event("cart-updated"));
 }
 
 export function getGuestCart(): GuestCartItem[] {
@@ -38,11 +34,6 @@ export function guestCartCount(): number {
   return read().reduce((s, i) => s + i.soLuong, 0);
 }
 
-// `maxStock`: tồn kho thật của biến thể này tại thời điểm gọi (nếu trang gọi
-// biết được, VD trang chi tiết sản phẩm có sẵn selectedVariant.stock_quantity).
-// Giỏ khách vãng lai lưu ở localStorage nên KHÔNG có cách nào tự tra tồn kho —
-// phải dựa vào giá trị trang gọi truyền vào; không truyền thì không giới hạn
-// ở bước này (giỏ hàng server vẫn chặn lại khi khách đăng nhập/gộp giỏ).
 export function addGuestCartItem(item: {
   productId: string;
   tenSanPham: string;
@@ -54,16 +45,17 @@ export function addGuestCartItem(item: {
   maxStock?: number;
 }) {
   const items = read();
-  const variant = item.variant || '';
+  const variant = item.variant || "";
   const id = `${item.productId}__${variant}`;
   const idx = items.findIndex((i) => i._id === id);
   const currentQty = idx > -1 ? items[idx].soLuong : 0;
   const wantQty = item.soLuong || 1;
-  const addQty = item.maxStock != null
-    ? Math.max(0, Math.min(wantQty, item.maxStock - currentQty))
-    : wantQty;
+  const addQty =
+    item.maxStock != null
+      ? Math.max(0, Math.min(wantQty, item.maxStock - currentQty))
+      : wantQty;
 
-  if (addQty <= 0) return false; // đã có đủ/đầy tồn kho trong giỏ rồi
+  if (addQty <= 0) return false;
 
   if (idx > -1) {
     items[idx].soLuong += addQty;
@@ -72,8 +64,8 @@ export function addGuestCartItem(item: {
       _id: id,
       productId: item.productId,
       tenSanPham: item.tenSanPham,
-      slug: item.slug || '',
-      hinhAnh: item.hinhAnh || '',
+      slug: item.slug || "",
+      hinhAnh: item.hinhAnh || "",
       gia: item.gia,
       soLuong: addQty,
       variant,
@@ -103,12 +95,15 @@ export async function mergeGuestCartToServer(token: string) {
   try {
     for (const item of items) {
       await fetch(`${API_URL}/api/cart/add`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({
           productId: item.productId,
           tenSanPham: item.tenSanPham,
-          slug: item.slug || '',
+          slug: item.slug || "",
           hinhAnh: item.hinhAnh,
           gia: item.gia,
           soLuong: item.soLuong,
@@ -117,8 +112,6 @@ export async function mergeGuestCartToServer(token: string) {
       });
     }
     clearGuestCart();
-    window.dispatchEvent(new Event('cart-updated'));
-  } catch {
-    // Giữ lại giỏ hàng khách nếu gộp thất bại, thử lại ở lần đăng nhập sau
-  }
+    window.dispatchEvent(new Event("cart-updated"));
+  } catch {}
 }

@@ -401,13 +401,6 @@ export default function ProductDetailClient() {
     }
   };
 
-  // "Mua ngay" — trước đây chỉ lưu tạm ở sessionStorage rồi vào thẳng trang
-  // thanh toán, KHÔNG hề thêm vào giỏ hàng thật trong DB. Backend tạo đơn luôn
-  // lọc theo giỏ hàng thật (Cart collection) nên khi bấm thanh toán sẽ báo lỗi
-  // "Không có sản phẩm nào được chọn" (item ảo "buynow_..." không khớp item
-  // nào trong giỏ thật). Sửa: thêm thật vào giỏ hàng trước, lấy đúng _id thật
-  // của item vừa thêm, rồi chỉ định trang thanh toán CHỈ thanh toán riêng item
-  // đó (tái dùng đúng cơ chế "chọn sản phẩm" có sẵn từ trang giỏ hàng).
   const handleBuyNow = async () => {
     if (!product || !inStock) return;
     if (!isLoggedIn()) {
@@ -443,7 +436,10 @@ export default function ProductDetailClient() {
         toastError("Không thể xử lý mua ngay, thử lại nhé!");
         return;
       }
-      setCheckoutItemIds([added._id]);
+      localStorage.setItem(
+        "smarthub_checkout_ids",
+        JSON.stringify([added._id]),
+      );
       router.push("/thanhtoan");
     } catch {
       toastError("Không thể xử lý mua ngay, thử lại nhé!");
