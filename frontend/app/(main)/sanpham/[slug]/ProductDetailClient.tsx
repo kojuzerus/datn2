@@ -34,7 +34,6 @@ import {
   type FavoriteProduct,
 } from "../../../components/favoritesContext";
 import { requireLogin, isLoggedIn } from "../../../lib/authPrompt";
-import { setCheckoutItemIds } from "../../../lib/checkoutSelection";
 import ProductQuestions from "../../../components/ProductQuestions";
 import { toastError } from "../../../utils/toast";
 
@@ -376,7 +375,8 @@ export default function ProductDetailClient() {
     // Ảnh đã cuộn khuất (VD đang bấm ở sticky bar dưới cùng) → animation sẽ xuất phát
     // từ ngoài màn hình, người dùng không thấy gì cả — hiện thông báo bên trái thay thế.
     const rect = mainImgRef.current?.getBoundingClientRect();
-    const imageVisible = !!rect && rect.bottom > 0 && rect.top < window.innerHeight;
+    const imageVisible =
+      !!rect && rect.bottom > 0 && rect.top < window.innerHeight;
 
     if (imageVisible && mainImgRef.current && imgSrc) {
       flyToCart(imgSrc, mainImgRef.current.getBoundingClientRect());
@@ -419,20 +419,25 @@ export default function ProductDetailClient() {
     try {
       const res = await fetch(`${API_BASE}/api/cart/add`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({
-          productId:  String(product.id),
+          productId: String(product.id),
           tenSanPham: product.ten,
-          hinhAnh:    selectedVariant?.image || product.thumbnail,
-          gia:        displayPrice,
-          soLuong:    Math.max(1, qty),
-          variant:    variantColor,
+          hinhAnh: selectedVariant?.image || product.thumbnail,
+          gia: displayPrice,
+          soLuong: Math.max(1, qty),
+          variant: variantColor,
         }),
       });
       const data = await res.json();
       const added = data.success
-        ? data.cart.items.find((i: { productId: string; variant: string; _id: string }) =>
-            i.productId === String(product.id) && i.variant === variantColor)
+        ? data.cart.items.find(
+            (i: { productId: string; variant: string; _id: string }) =>
+              i.productId === String(product.id) && i.variant === variantColor,
+          )
         : null;
       if (!added) {
         toastError("Không thể xử lý mua ngay, thử lại nhé!");
@@ -483,7 +488,8 @@ export default function ProductDetailClient() {
         </div>
       `;
       document.body.appendChild(toast);
-      toast.style.animation = "fadeInScale 0.3s cubic-bezier(0.34,1.56,0.64,1) both";
+      toast.style.animation =
+        "fadeInScale 0.3s cubic-bezier(0.34,1.56,0.64,1) both";
       setTimeout(() => {
         toast.remove();
       }, 2000);
@@ -715,19 +721,22 @@ export default function ProductDetailClient() {
             {/* Share strip */}
             <div className="flex items-center gap-3 px-4 py-3 border-t border-gray-100 bg-gray-50/60">
               <span className="text-[12px] text-gray-400">Chia sẻ:</span>
-              <button 
+              <button
                 onClick={handleShareFacebook}
-                className="bg-[#1877F2] text-white text-[11px] font-semibold px-3 py-1.5 rounded-full hover:opacity-90 transition-opacity">
+                className="bg-[#1877F2] text-white text-[11px] font-semibold px-3 py-1.5 rounded-full hover:opacity-90 transition-opacity"
+              >
                 Facebook
               </button>
-              <button 
+              <button
                 onClick={handleShareZalo}
-                className="bg-[#0068FF] text-white text-[11px] font-semibold px-3 py-1.5 rounded-full hover:opacity-90 transition-opacity">
+                className="bg-[#0068FF] text-white text-[11px] font-semibold px-3 py-1.5 rounded-full hover:opacity-90 transition-opacity"
+              >
                 Zalo
               </button>
-              <button 
+              <button
                 onClick={handleCopyLink}
-                className="bg-gray-500 text-white text-[11px] font-semibold px-3 py-1.5 rounded-full hover:opacity-90 transition-opacity flex items-center gap-1">
+                className="bg-gray-500 text-white text-[11px] font-semibold px-3 py-1.5 rounded-full hover:opacity-90 transition-opacity flex items-center gap-1"
+              >
                 <Share2 className="w-3 h-3" /> Sao chép
               </button>
             </div>
@@ -1519,7 +1528,11 @@ export default function ProductDetailClient() {
             >
               <ShoppingCart className="w-3.5 h-3.5 shrink-0" />
               <span className="hidden sm:inline">
-                {adding ? "Đang thêm..." : addedToCart ? "Đã thêm!" : "Thêm vào giỏ"}
+                {adding
+                  ? "Đang thêm..."
+                  : addedToCart
+                    ? "Đã thêm!"
+                    : "Thêm vào giỏ"}
               </span>
             </button>
           </div>
@@ -1531,11 +1544,15 @@ export default function ProductDetailClient() {
       {showCartToast && product && (
         <div
           className="fixed top-20 right-5 z-50 flex items-center gap-3 bg-white rounded-md border border-gray-200 shadow-lg px-4 py-3 max-w-[320px]"
-          style={{ animation: "fadeInScale 0.3s cubic-bezier(0.34,1.56,0.64,1) both" }}
+          style={{
+            animation: "fadeInScale 0.3s cubic-bezier(0.34,1.56,0.64,1) both",
+          }}
         >
           <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
           <div className="min-w-0">
-            <p className="text-[13px] font-semibold text-gray-800">Đã thêm vào giỏ hàng!</p>
+            <p className="text-[13px] font-semibold text-gray-800">
+              Đã thêm vào giỏ hàng!
+            </p>
             <p className="text-[12px] text-gray-500 truncate">{product.ten}</p>
           </div>
         </div>
