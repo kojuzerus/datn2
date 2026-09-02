@@ -38,7 +38,6 @@ function pointAt(angleDeg: number, radius: number) {
   };
 }
 
-/** Đường viền một múi quạt từ startAngle đến endAngle */
 function wedgePath(startAngle: number, endAngle: number) {
   const p1 = pointAt(startAngle, R);
   const p2 = pointAt(endAngle, R);
@@ -46,7 +45,6 @@ function wedgePath(startAngle: number, endAngle: number) {
   return `M ${CX} ${CY} L ${p1.x.toFixed(3)} ${p1.y.toFixed(3)} A ${R} ${R} 0 ${largeArc} 1 ${p2.x.toFixed(3)} ${p2.y.toFixed(3)} Z`;
 }
 
-/** Cắt nhãn dài thành tối đa 2 dòng cho vừa múi quạt */
 function wrapLabel(label: string, maxChars = 13): string[] {
   const words = label.trim().split(/\s+/);
   const lines: string[] = [];
@@ -62,7 +60,6 @@ function wrapLabel(label: string, maxChars = 13): string[] {
   }
   if (cur) lines.push(cur);
 
-  // Gộp phần thừa vào dòng 2 để không quá 2 dòng
   if (lines.length > 2) {
     return [lines[0], lines.slice(1).join(" ")];
   }
