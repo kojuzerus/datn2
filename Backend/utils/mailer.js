@@ -1,50 +1,23 @@
-// Gửi mail qua Brevo (Sendinblue) HTTP API — không dùng SMTP trực tiếp vì
-// nhiều nền tảng cloud (kể cả Render) chặn/hạn chế kết nối SMTP đi ra, khiến
-// request treo hàng phút trước khi báo lỗi. HTTP API chạy qua cổng 443 như
-// mọi request web bình thường nên không bị ảnh hưởng.
-const BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
-const BREVO_TIMEOUT_MS = 10_000;
+const nodemailer = require("nodemailer");
 
-const apiKey      = process.env.BREVO_API_KEY;
-const senderEmail = process.env.BREVO_SENDER_EMAIL || process.env.EMAIL_USER;
-const senderName  = process.env.BREVO_SENDER_NAME  || "SmartHub";
+let transporter = null;
 
-if (!apiKey || !senderEmail) {
-  console.warn("Email chưa được cấu hình — set BREVO_API_KEY và BREVO_SENDER_EMAIL trong .env để bật gửi mail (quên mật khẩu, ...).");
-}
-
-async function sendMail({ to, toName, subject, html }) {
-  if (!apiKey || !senderEmail) throw new Error("Email chưa được cấu hình trên server");
-
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), BREVO_TIMEOUT_MS);
-  try {
-    const res = await fetch(BREVO_API_URL, {
-      method: "POST",
-      signal: controller.signal,
-      headers: {
-        "api-key": apiKey,
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-      },
-      body: JSON.stringify({
-        sender: { name: senderName, email: senderEmail },
-        to: [{ email: to, name: toName || undefined }],
-        subject,
-        htmlContent: html,
-      }),
-    });
-    if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      throw new Error(`Brevo API lỗi ${res.status}: ${body}`);
-    }
-  } finally {
-    clearTimeout(timer);
-  }
+if (process.env.EMAIL_USER && process.env.EMAIL_APP_PASSWORD) {
+  transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_APP_PASSWORD,
+    },
+  });
+} else {
+  console.warn("Email chưa được cấu hình — set EMAIL_USER và EMAIL_APP_PASSWORD trong .env để bật gửi mail (quên mật khẩu, ...).");
 }
 
 // ── Email đặt lại mật khẩu ──────────────────────────────────────────────────
 async function sendResetPasswordEmail(to, hoTen, resetUrl) {
+  if (!transporter) throw new Error("Email chưa được cấu hình trên server");
+
   const html = `
   <div style="font-family: Arial, Helvetica, sans-serif; background:#f5f5f5; padding:32px 16px;">
     <div style="max-width:480px; margin:0 auto; background:#ffffff; border-radius:12px; overflow:hidden; border:1px solid #eee;">
@@ -80,7 +53,12 @@ async function sendResetPasswordEmail(to, hoTen, resetUrl) {
     </div>
   </div>`;
 
-  await sendMail({ to, toName: hoTen, subject: "Đặt lại mật khẩu SmartHub", html });
+  await transporter.sendMail({
+    from: `"SmartHub" <${process.env.EMAIL_USER}>`,
+    to,
+    subject: "Đặt lại mật khẩu SmartHub",
+    html,
+  });
 }
 
 module.exports = { sendResetPasswordEmail };

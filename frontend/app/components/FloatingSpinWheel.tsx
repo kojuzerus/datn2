@@ -46,19 +46,28 @@ export default function FloatingSpinWheel() {
           {/* Vầng sáng phát nhẹ phía sau, cùng tông với banner đỏ-cam-vàng */}
           <span
             className="absolute inset-0 rounded-full animate-ping opacity-40"
-            style={{ background: "radial-gradient(circle, #fbbf24 0%, transparent 70%)" }}
+            style={{
+              background:
+                "radial-gradient(circle, #fbbf24 0%, transparent 70%)",
+            }}
           />
 
           {/* Viền ngoài — gradient đỏ/cam/vàng đồng bộ với banner + vòng quay thật */}
           <div
             className="relative w-full h-full rounded-full p-[3px] shadow-2xl"
-            style={{ background: "linear-gradient(135deg,#dc2626 0%,#f97316 55%,#fbbf24 100%)" }}
+            style={{
+              background:
+                "linear-gradient(135deg,#dc2626 0%,#f97316 55%,#fbbf24 100%)",
+            }}
           >
             {/* VÒNG QUAY TỰ XOAY — tông vàng-kim/trắng như banner, không còn cầu vồng lộn xộn */}
             <div className="w-full h-full rounded-full animate-[spin_9s_linear_infinite] overflow-hidden">
               <svg viewBox="0 0 100 100" className="w-full h-full">
                 <path d="M50 50 L50 2 A48 48 0 0 1 91.5 26 Z" fill="#fde68a" />
-                <path d="M50 50 L91.5 26 A48 48 0 0 1 91.5 74 Z" fill="#ffffff" />
+                <path
+                  d="M50 50 L91.5 26 A48 48 0 0 1 91.5 74 Z"
+                  fill="#ffffff"
+                />
                 <path d="M50 50 L91.5 74 A48 48 0 0 1 50 98 Z" fill="#fbbf24" />
                 <path d="M50 50 L50 98 A48 48 0 0 1 8.5 74 Z" fill="#ffffff" />
                 <path d="M50 50 L8.5 74 A48 48 0 0 1 8.5 26 Z" fill="#fde68a" />
