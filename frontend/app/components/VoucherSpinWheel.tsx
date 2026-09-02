@@ -19,13 +19,10 @@ interface SpinResult {
   value: number;
 }
 
-/** Ô trắng và vàng nhạt xen kẽ, chữ đỏ đọc rõ trên cả hai */
 const SEGMENT_COLORS = ["#FFFFFF", "#FBE39B"];
 
-/** Ô "chúc may mắn lần sau" vàng đậm, nổi hẳn giữa các ô còn lại */
 const NONE_COLOR = "#F5B921";
 
-/** Mọi ô đều nền sáng nên chữ dùng chung một màu đỏ */
 const LABEL_COLOR = "#B91C1C";
 
 const VB = 200; // viewBox
@@ -33,7 +30,6 @@ const CX = 100;
 const CY = 100;
 const R = 96;
 
-/** Toạ độ trên đường tròn, góc tính từ đỉnh (12h) theo chiều kim đồng hồ */
 function pointAt(angleDeg: number, radius: number) {
   const a = (angleDeg * Math.PI) / 180;
   return {
@@ -133,7 +129,6 @@ export default function VoucherSpinWheel({
       fetchPrizes();
       checkStatus();
     } else {
-      // Reset các state khi modal đóng để tránh wheel quay tiếp lần sau
       setSpinning(false);
       setRotation(0);
       setResult(null);
