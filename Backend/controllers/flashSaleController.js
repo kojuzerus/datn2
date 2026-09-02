@@ -2,6 +2,17 @@ const FlashSale = require("../models/flashSaleModel");
 const Variant   = require("../models/variantModel");
 const Product   = require("../models/productModel");
 
+function parseVietnamDateTime(value) {
+  if (!value) return null;
+
+  // datetime-local gửi từ input HTML có dạng "YYYY-MM-DDTHH:mm".
+  // Nếu không gắn timezone, JS sẽ parse theo giờ của server (thường UTC),
+  // dẫn đến lệch múi giờ so với giờ admin chọn ở Việt Nam (+07:00).
+  const isoLike = `${value}:00+07:00`;
+  const date = new Date(isoLike);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
 // ── Helper: gắn thông tin sản phẩm/biến thể vào danh sách flash sale ───────
 async function enrichFlashSales(flashSales) {
   const variantIds = flashSales.map((f) => String(f.variant_id));
@@ -174,8 +185,11 @@ function validatePayload(body) {
   const qty = Number(quantity);
   if (!qty || qty <= 0) return "Số lượng phải lớn hơn 0";
   if (!start_time || !end_time) return "Vui lòng chọn thời gian diễn ra";
-  if (new Date(end_time) <= new Date(start_time))
-    return "Thời gian kết thúc phải sau thời gian bắt đầu";
+
+  const startDate = parseVietnamDateTime(start_time);
+  const endDate = parseVietnamDateTime(end_time);
+  if (!startDate || !endDate) return "Thời gian không hợp lệ";
+  if (endDate <= startDate) return "Thời gian kết thúc phải sau thời gian bắt đầu";
   return null;
 }
 
@@ -194,15 +208,20 @@ exports.create = async (req, res) => {
       return res.status(400).json({ success: false, message: "Giá flash sale phải thấp hơn giá gốc" });
 
     const quantity = Number(req.body.quantity);
+    const startDate = parseVietnamDateTime(req.body.start_time);
+    const endDate = parseVietnamDateTime(req.body.end_time);
+    if (!startDate || !endDate)
+      return res.status(400).json({ success: false, message: "Thời gian không hợp lệ" });
+
     const flashSale = await FlashSale.create({
       name:               req.body.name.trim(),
       variant_id:         req.body.variant_id,
       sale_price:         salePrice,
       quantity,
       remaining_quantity: quantity,
-      start_time:         new Date(req.body.start_time),
-      end_time:            new Date(req.body.end_time),
-      status:              req.body.status === "inactive" ? "inactive" : "active",
+      start_time:         startDate,
+      end_time:           endDate,
+      status:             req.body.status === "inactive" ? "inactive" : "active",
     });
 
     res.status(201).json({ success: true, message: "Tạo đợt flash sale thành công", data: flashSale });
@@ -235,6 +254,11 @@ exports.update = async (req, res) => {
     const sold = existing.quantity - existing.remaining_quantity;
     const remaining = Math.max(0, quantity - sold);
 
+    const startDate = parseVietnamDateTime(req.body.start_time);
+    const endDate = parseVietnamDateTime(req.body.end_time);
+    if (!startDate || !endDate)
+      return res.status(400).json({ success: false, message: "Thời gian không hợp lệ" });
+
     const flashSale = await FlashSale.findByIdAndUpdate(
       req.params.id,
       {
@@ -243,9 +267,9 @@ exports.update = async (req, res) => {
         sale_price:         salePrice,
         quantity,
         remaining_quantity: remaining,
-        start_time:         new Date(req.body.start_time),
-        end_time:            new Date(req.body.end_time),
-        status:              req.body.status === "inactive" ? "inactive" : "active",
+        start_time:         startDate,
+        end_time:           endDate,
+        status:             req.body.status === "inactive" ? "inactive" : "active",
       },
       { new: true },
     );
